@@ -1,0 +1,104 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "afi-edme-dev-df"
+		},
+		"masterDataHub_Retail_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'masterDataHub_Retail'"
+		},
+		"masterdatahubdevstg_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'masterdatahubdevstg'"
+		},
+		"semarchy_dev_master_dloc_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_dev_master_dloc'"
+		},
+		"semarchy_dev_repo_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_dev_repo'"
+		},
+		"semarchy_dev_staging_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_dev_staging'"
+		},
+		"masterdatahubdevstg_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net/"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "afi-edme-dev-df_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"masterDataHub_Retail_connectionString": {
+						"value": "[parameters('masterDataHub_Retail_connectionString')]"
+					},
+					"masterdatahubdevstg_accountKey": {
+						"value": "[parameters('masterdatahubdevstg_accountKey')]"
+					},
+					"semarchy_dev_master_dloc_connectionString": {
+						"value": "[parameters('semarchy_dev_master_dloc_connectionString')]"
+					},
+					"semarchy_dev_repo_connectionString": {
+						"value": "[parameters('semarchy_dev_repo_connectionString')]"
+					},
+					"semarchy_dev_staging_connectionString": {
+						"value": "[parameters('semarchy_dev_staging_connectionString')]"
+					},
+					"masterdatahubdevstg_properties_typeProperties_url": {
+						"value": "[parameters('masterdatahubdevstg_properties_typeProperties_url')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "afi-edme-dev-df_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'afi-edme-dev-df_ArmTemplate_0')]"
+			]
+		}
+	]
+}
