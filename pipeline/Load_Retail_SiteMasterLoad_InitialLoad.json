@@ -257,7 +257,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "semarchy_qa_repo",
+					"referenceName": "semarchy_dev_repo",
 					"type": "LinkedServiceReference"
 				}
 			},
@@ -266,7 +266,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "SD_SiteOwner",
+						"activity": "SD_SiteMain_RDC",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -284,7 +284,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": " SELECT \n @{activity('Get_New_Load').output.firstRow.RETURN_VALUE_ARGUMENT} AS B_LoadID\n     ,[SITE_NAME] AS SITE_NAME\n      ,[SITE_TYPE] AS SITE_TYPE\n      ,CONVERT(BIT, (CASE WHEN [IS_ACTIVE] ='NULL' THEN 0 ELSE CAST([IS_ACTIVE] AS BIT) END)) as ISACTIVE\n      ,[SITE_DESCRIPTION] AS SITE_DESCRIPTION\n      ,[OWNERSHIP_TYPE] AS SITE_OWNERSHIP_TYPE\n      ,[B_SOURCE_ID] AS B_SOURCEID\n      ,[ADDRESS_LINE1] AS RAWADDRESS_LINE1\n      ,[ADDRESS_LINE2] AS RAWADDRESS_LINE2\n      ,[CITY] AS RAWCITY\n      ,[STATE_CODE] AS RAWSTATE_CODE\n      ,[POSTAL_CODE] AS RAWPOSTAL_CODE\n      ,[COUNTRY_CODE] AS RAWCOUNTRY_CODE\n\t,'INITIALLOAD' AS B_PUBID\n\t,'SiteMain' as B_CLASSNAME\n\t,FS_SITE_OWNER as [FS_SITE_OWNER]\n\t,'INITIALLOAD' AS [FP_SITE_OWNER]\n  FROM [Retail].[InitialLoadSiteMain]    \nWHERE FS_SITE_OWNER IS NOT NULL AND COUNTRY_CODE in ('USA','United States') AND [B_SOURCE_ID] IS NOT NULL",
+							"value": "SELECT \n      @{activity('Get_New_Load').output.firstRow.RETURN_VALUE_ARGUMENT} AS B_LoadID\n      ,[SITE_NAME] AS SITE_NAME\n      ,[SITE_TYPE] AS SITE_TYPE\n      ,CONVERT(BIT, (CASE WHEN [IS_ACTIVE] ='NULL' THEN 0 ELSE CAST([IS_ACTIVE] AS BIT) END)) as ISACTIVE\n      ,[SITE_DESCRIPTION] AS SITE_DESCRIPTION\n      ,[OWNERSHIP_TYPE] AS SITE_OWNERSHIP_TYPE\n      ,[B_SOURCE_ID] AS B_SOURCEID\n      ,[ADDRESS_LINE1] AS RAWADDRESS_LINE1\n      ,[ADDRESS_LINE2] AS RAWADDRESS_LINE2\n      ,[CITY] AS RAWCITY\n      ,[STATE_CODE] AS RAWSTATE_CODE\n      ,[POSTAL_CODE] AS RAWPOSTAL_CODE\n      ,[COUNTRY_CODE] AS RAWCOUNTRY_CODE\n\t  ,[LOCAL_CURRENCY_CODE]\n      ,[LOCAL_UNIT_OF_MEASURE_AREA]\n      ,CAST(OPERATIONS_START_DATE AS DATE) AS OPERATIONS_START_DATE\n      ,CAST(CUSTOMER_OPEN_DATE AS DATE) AS CUSTOMER_OPEN_DATE\n      ,CONVERT(decimal(12,4),CONVERT(float,CUSTOMER_SITE_AREA)) AS CUSTOMER_SITE_AREA\n\t,'INITIALLOAD' AS B_PUBID\n\t,'SiteMain' as B_CLASSNAME\n\t,FS_SITE_OWNER as [FS_SITE_OWNER]\n\t,'INITIALLOAD' AS [FP_SITE_OWNER]\n\t,FP_WAREHOUSE_PARENT as [FP_WAREHOUSE_PARENT]\n\t,FS_WAREHOUSE_PARENT AS [FS_WAREHOUSE_PARENT]\n  FROM [Retail].[InitialLoadSiteMain]    \nWHERE FS_SITE_OWNER IS NOT NULL AND COUNTRY_CODE in ('USA','United States') AND [B_SOURCE_ID] IS NOT NULL",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -500,6 +500,94 @@
 								},
 								"sink": {
 									"name": "FS_SITE_OWNER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATIONS_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "OPERATIONS_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "CUSTOMER_OPEN_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "CUSTOMER_OPEN_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "LOCAL_CURRENCY_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "LOCAL_CURRENCY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LOCAL_UNIT_OF_MEASURE_AREA",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CUSTOMER_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								},
+								"sink": {
+									"name": "CUSTOMER_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								}
+							},
+							{
+								"source": {
+									"name": "FP_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_WAREHOUSE_PARENT",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -1210,6 +1298,298 @@
 									"name": "RAW_SERVICE_CHAT",
 									"type": "String",
 									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Stage_SiteMain",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Location_SiteMain",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "SD_SiteMain_RDC",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SD_SiteOwner",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT @{activity('Get_New_Load').output.firstRow.RETURN_VALUE_ARGUMENT} AS B_LoadID\n      ,[B_SOURCE_ID]\n      ,[SITE_NAME]\n      ,[SITE_TYPE]\n      ,CONVERT(BIT, (CASE WHEN [IS_ACTIVE] ='NULL' THEN 0 ELSE CAST([IS_ACTIVE] AS BIT) END)) AS ISACTIVE\n      ,[SITE_DESCRIPTION]\n      ,[OWNERSHIP_TYPE]\n      ,[ADDRESS_LINE1]\n      ,[CITY]\n      ,[STATE_CODE]\n      ,[POSTAL_CODE]\n      ,[COUNTRY_CODE]\n      ,[LOCAL_CURRENCY_CODE]\n      ,[LOCAL_UNIT_OF_MEASURE_AREA]\n      ,CASE WHEN OPERATIONS_SITE_AREA='?' THEN NULL ELSE  CONVERT(decimal(16,4),  convert(float,replace([OPERATIONS_SITE_AREA],',','') )) \n\t  END AS OPERATIONS_SITE_AREA\n      ,[FS_SITE_OWNER]\n\t  ,'INITIALLOAD' AS B_PUBID\n\t,'SiteMain' as B_CLASSNAME\n  ,'INITIALLOAD' AS [FP_SITE_OWNER]\n  FROM [Retail].[InitialLoadSiteMainRDC] WHERE RNK=1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LoadID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_SOURCE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_TYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ISACTIVE",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "ISACTIVE",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_DESCRIPTION",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OWNERSHIP_TYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_OWNERSHIP_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWCITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWSTATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWPOSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWCOUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_OWNER",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE_OWNER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_OWNER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE_OWNER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LOCAL_CURRENCY_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "LOCAL_CURRENCY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LOCAL_UNIT_OF_MEASURE_AREA",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATIONS_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 16
+								},
+								"sink": {
+									"name": "OPERATIONS_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
 								}
 							}
 						],
