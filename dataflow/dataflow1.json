@@ -6,17 +6,10 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "DAC_Daily_Feed_DS",
+						"referenceName": "GetLocationsRestAPI",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
-				},
-				{
-					"dataset": {
-						"referenceName": "semarchy_repo",
-						"type": "DatasetReference"
-					},
-					"name": "source2"
+					"name": "LocationsSource"
 				}
 			],
 			"sinks": [
@@ -31,12 +24,9 @@
 			"transformations": [
 				{
 					"name": "Flatten1"
-				},
-				{
-					"name": "Select1"
 				}
 			],
-			"script": "source(output(\n\t\tContinuationToken as string,\n\t\tCount as integer,\n\t\tData as (LocationID as string, LocationNumber as string, LongBusinessName as string, PrimaryPhoneNumber as string, BusinessStatus as string, Status as string, PrimaryAddress as (AddressLine1 as string, Locality as string, Region as string, PostalCode as string, CountryCode as string))[]\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdocumentForm: 'arrayOfDocuments') ~> source1\nsource(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tinputs:['@P_DATA_LOCATION_NAME' -> '','@P_PROGRAM_NAME' -> '','@P_LOAD_DESCRIPTION' -> '','@P_USERNAME' -> '','@return_value_argument' -> ''],\n\tprocedureName: 'GET_NEW_LOADID',\n\tschemaName: 'dbo',\n\tresultSet: true,\n\tformat: 'procedure') ~> source2\nsource1 foldDown(unroll(Data),\n\tmapColumn(\n\t\tLocationID = Data.LocationID,\n\t\tLocationNumber = Data.LocationNumber,\n\t\tLongBusinessName = Data.LongBusinessName,\n\t\tPrimaryPhoneNumber = Data.PrimaryPhoneNumber,\n\t\tBusinessStatus = Data.BusinessStatus,\n\t\tStatus = Data.Status,\n\t\tAddressLine1 = Data.PrimaryAddress.AddressLine1,\n\t\tLocality = Data.PrimaryAddress.Locality,\n\t\tRegion = Data.PrimaryAddress.Region,\n\t\tPostalCode = Data.PrimaryAddress.PostalCode\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Flatten1\nFlatten1 select(mapColumn(\n\t\tLocationID,\n\t\tLocationNumber,\n\t\tLongBusinessName,\n\t\tPrimaryPhoneNumber,\n\t\tBusinessStatus,\n\t\tStatus,\n\t\tAddressLine1,\n\t\tLocality,\n\t\tRegion,\n\t\tPostalCode\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tLocationID as string,\n\t\tLocationNumber as string,\n\t\tLongBusinessName as string,\n\t\tPrimaryPhoneNumber as string,\n\t\tBusinessStatus as string,\n\t\tStatus as string,\n\t\tAddressLine1 as string,\n\t\tLocality as string,\n\t\tRegion as string,\n\t\tPostalCode as string\n\t),\n\tpartitionFileNames:['JsonOutput'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> sink1"
+			"script": "source(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\thttpMethod: 'GET',\n\ttimeout: 30,\n\trequestInterval: 0,\n\tpaginationRules: ['supportRFC5988' -> 'true'],\n\tresponseFormat: ['type' -> 'json', 'documentForm' -> 'arrayOfDocuments']) ~> LocationsSource\nLocationsSource foldDown(unroll(Data),\n\tmapColumn(\n\t\tLocationID = Data.LocationID,\n\t\tLocationNumber = Data.LocationNumber,\n\t\tLongBusinessName = Data.LongBusinessName,\n\t\tPrimaryPhoneNumber = Data.PrimaryPhoneNumber,\n\t\tBusinessStatus = Data.BusinessStatus,\n\t\tStatus = Data.Status,\n\t\tAddressLine1 = Data.PrimaryAddress.AddressLine1,\n\t\tLocality = Data.PrimaryAddress.Locality,\n\t\tRegion = Data.PrimaryAddress.Region,\n\t\tPostalCode = Data.PrimaryAddress.PostalCode\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Flatten1\nFlatten1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tLocationID as string,\n\t\tLocationNumber as string,\n\t\tLongBusinessName as string,\n\t\tPrimaryPhoneNumber as string,\n\t\tBusinessStatus as string,\n\t\tStatus as string,\n\t\tAddressLine1 as string,\n\t\tLocality as string,\n\t\tRegion as string,\n\t\tPostalCode as string\n\t),\n\tpartitionFileNames:['JsonOutput'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> sink1"
 		}
 	}
 }
