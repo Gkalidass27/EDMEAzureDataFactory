@@ -1,0 +1,385 @@
+{
+	"name": "pipeline3",
+	"properties": {
+		"activities": [
+			{
+				"name": "LookupDACLocationResponse",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "location_details_input_ds",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachLocationID",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LookupDACLocationResponse",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LookupDACLocationResponse').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "$['AccountID']"
+											},
+											"sink": {
+												"name": "AccountId",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationID']"
+											},
+											"sink": {
+												"name": "LocationId",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationNumber']"
+											},
+											"sink": {
+												"name": "LocationNumber",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['ReferenceCode']"
+											},
+											"sink": {
+												"name": "ReferenceCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['CreatedBy']"
+											},
+											"sink": {
+												"name": "CreatedBy",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['ModifiedBy']"
+											},
+											"sink": {
+												"name": "ModifiedBy",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['Created']"
+											},
+											"sink": {
+												"name": "Created",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['Modified']"
+											},
+											"sink": {
+												"name": "Modified",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['Type']"
+											},
+											"sink": {
+												"name": "DisplayPoint_Type",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['Latitude']"
+											},
+											"sink": {
+												"name": "DisplayPoint_Lattitude",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['Longitude']"
+											},
+											"sink": {
+												"name": "DisplayPoint_Longitude",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['VerificationType']"
+											},
+											"sink": {
+												"name": "DisplayPoint_VerificationType",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessStatus']"
+											},
+											"sink": {
+												"name": "Business_Status",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['Status']"
+											},
+											"sink": {
+												"name": "Status",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessName']['Name']"
+											},
+											"sink": {
+												"name": "Business_Name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessName']['LongName']"
+											},
+											"sink": {
+												"name": "Business_Longname",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessName']['Locale']"
+											},
+											"sink": {
+												"name": "Business_Locale",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessDescription']['LongDescription']"
+											},
+											"sink": {
+												"name": "Business_LongDescription",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['AddressLine1']"
+											},
+											"sink": {
+												"name": "PrimaryAddress_AddressLine1",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['Locality']"
+											},
+											"sink": {
+												"name": "PrimaryAddress_Locality",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['Region']"
+											},
+											"sink": {
+												"name": "PrimaryAddress_Region",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['PostalCode']"
+											},
+											"sink": {
+												"name": "PrimaryAddress_PostalCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['CountryCode']"
+											},
+											"sink": {
+												"name": "PrimaryAddress_CountryCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhoneNumbers']['PrimaryPhoneNumber']"
+											},
+											"sink": {
+												"name": "PhoneNumbers_PrimaryPhoneNumber",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhoneNumbers']['Landline']"
+											},
+											"sink": {
+												"name": "PhoneNumbers_Landline",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhoneNumbers']['Fax']"
+											},
+											"sink": {
+												"name": "PhoneNumbers_Fax",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhoneNumbers']['TollFree']"
+											},
+											"sink": {
+												"name": "PhoneNumbers_TollFree",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['WebsiteURL']"
+											},
+											"sink": {
+												"name": "WebsiteURL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['AlternateWebsiteURL']"
+											},
+											"sink": {
+												"name": "AlternateWebsiteURL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['MediaURLs']"
+											},
+											"sink": {
+												"name": "MediaURLs",
+												"type": "String"
+											}
+										}
+									],
+									"mapComplexValuesToString": true
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "store_payload_input_ds",
+									"type": "DatasetReference",
+									"parameters": {
+										"plocationidparameter": {
+											"value": "@item().LocationID",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "store_payload_sql_ds",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"annotations": []
+	}
+}
