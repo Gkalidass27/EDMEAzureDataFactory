@@ -1,0 +1,73 @@
+{
+	"name": "Get_Location_Details_From_DAC",
+	"properties": {
+		"activities": [
+			{
+				"name": "Until1",
+				"type": "Until",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Web1').output.ContinuationToken, null)\n",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Web1",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=%5b%7b%22token%22%3a%22%2bRID%3a%7etvVeAL7bIlmXAgAAAAAAAA%3d%3d%23RT%3a1%23TRC%3a25%23ISV%3a2%23IEO%3a65551%23QCF%3a4%23FPC%3aAgEACAAuAJECgP9DQO%2f%2f%2fv%2f%2fH8uAYQD5A7%2ba0YA%2flwCAxIGDgauBXYABwAEKkYAGgUuADYEBLACRCBgAIQADAAEBIAThgASAH4AhhCWCB4AxgBWAYQARAAaDaIYAgO%2baGYBngAIeAPECAAa2gLSCfoBRgH%2bAx4FygCuCtobEgwKMlIMNgAMGAJEgAFBQgQQUAFqmaIBUgZKAoYaegDECEAIwiSeABRAAEYQbge6EF4XJgKyRuoyHgQYIACaS94vfgJ6TBwIAxYcIDgAvmwCA%2boExg2%2bClYKuiQ%3d%3d%22%2c%22range%22%3a%7b%22min%22%3a%22%22%2c%22max%22%3a%2205C1D5AB55AB54%22%7d%7d%5d",
+								"method": "GET",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+								}
+							}
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Web1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ContinuationToken",
+								"value": {
+									"value": "@activity('Web1').output.ContinuationToken",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"URL": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"ContinuationToken": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
