@@ -5,17 +5,24 @@
 			{
 				"name": "Until1",
 				"type": "Until",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@equals(variables('token_var'), null)",
+						"value": "@equals(variables('loop_var'),'true')",
 						"type": "Expression"
 					},
 					"activities": [
 						{
-							"name": "Web1",
-							"type": "WebActivity",
+							"name": "Copy data1",
+							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
 								"timeout": "7.00:00:00",
@@ -26,8 +33,72 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"MaxRequestNumber": "48",
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RestResource2",
+									"type": "DatasetReference",
+									"parameters": {
+										"relative_url_param": "locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=",
+										"continuation_token_param": {
+											"value": "@variables('token_var')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "JsonResponse",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": "JsonOutput"
+									}
+								}
+							]
+						},
+						{
+							"name": "Web2",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Copy data1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
 								"url": {
-									"value": "@concat(pipeline().parameters.url_param, variables('token_var'))",
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=', variables('token_var'))",
 									"type": "Expression"
 								},
 								"method": "GET",
@@ -37,11 +108,11 @@
 							}
 						},
 						{
-							"name": "Set variable1",
-							"type": "SetVariable",
+							"name": "If Condition1",
+							"type": "IfCondition",
 							"dependsOn": [
 								{
-									"activity": "Web1",
+									"activity": "Web2",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -49,28 +120,117 @@
 							],
 							"userProperties": [],
 							"typeProperties": {
-								"variableName": "token_var",
-								"value": {
-									"value": "@activity('Web1').output.ContinuationToken",
+								"expression": {
+									"value": "@greater(length(activity('Web2').output.ContinuationToken),0)",
 									"type": "Expression"
-								}
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Set variable4",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop_var",
+											"value": false
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Set variable2",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop_var",
+											"value": true
+										}
+									},
+									{
+										"name": "Set variable3",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "Set variable2",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "token_var",
+											"value": {
+												"value": "@activity('Web2').output.ContinuationToken",
+												"type": "Expression"
+											}
+										}
+									}
+								]
 							}
 						}
 					],
 					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@pipeline().parameters.url_param",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "token_var",
+					"value": {
+						"value": "@activity('Web1').output.ContinuationToken",
+						"type": "Expression"
+					}
 				}
 			}
 		],
 		"parameters": {
 			"url_param": {
 				"type": "string",
-				"defaultValue": "locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
+				"defaultValue": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
 			}
 		},
 		"variables": {
 			"token_var": {
-				"type": "String",
-				"defaultValue": "%5b%7B%22token%22%3a%22%2bRID%3a~tvVeAL7bIlmXAgAAAAAAAA%3d%3d%23RT%3a1%23TRC%3a25%23ISV%3a2%23IEO%3a65551%23QCF%3a4%23FPC%3aAgEACAAuAJECgP9DQO%2f%2f%2fv%2f%2fH8uAYQD5A7%2ba0YA%2flwCAxIGDgauBXYABwAEKkYAGgUuADYEBLACRCBgAIQADAAEBIAThgASAH4AhhCWCB4AxgBWAYQARAAaDaIYAgO%2baGYBngAIeAPECAAa2gLSCfoBRgH%2bAx4FygCuCtobEgwKMlIMNgAMGAJEgAFBQgQQUAFqmaIBUgZKAoYaegDECEAIwiSeABRAAEYQbge6EF4XJgKyRuoyHgQYIACaS94vfgJ6TBwIAxYcIDgAvmwCA%2boExg2%2bClYKuiQ%3d%3d%22%2c%22range%22%3a%7B%22min%22%3a%22%22%2c%22max%22%3a%2205C1D5AB55AB54%22%7D%7D%5d"
+				"type": "String"
+			},
+			"loop_var": {
+				"type": "Boolean",
+				"defaultValue": false
 			}
 		},
 		"annotations": []
