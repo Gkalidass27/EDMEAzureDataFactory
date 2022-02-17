@@ -1,0 +1,64 @@
+{
+	"name": "Execute_DAC_Pipelin",
+	"properties": {
+		"activities": [
+			{
+				"name": "ExecuteDACLocationDetails",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Get_Location_Details_From_DAC",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"url_param": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
+					}
+				}
+			},
+			{
+				"name": "ExecuteLoadJsonData",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDACLocationDetails",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_DAC_Json_Data_To_SQL",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "ExecuteDeleteJsonFiles",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ExecuteLoadJsonData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Delete_Json_API_Data",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": []
+	}
+}
