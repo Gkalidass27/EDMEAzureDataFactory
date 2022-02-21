@@ -1,0 +1,241 @@
+{
+	"name": "Get_Location_Details_From_DAC_To_Az",
+	"properties": {
+		"activities": [
+			{
+				"name": "UntilLastPage",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "SetContinuationToken",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('loop_var'),false)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "CopyDACApiResponse1",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"MaxRequestNumber": "48",
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "RestResource2",
+									"type": "DatasetReference",
+									"parameters": {
+										"relative_url_param": "locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=",
+										"continuation_token_param": {
+											"value": "@variables('token_var')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "JsonResponse",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "GetNextToken",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "CopyDACApiResponse1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=', variables('token_var'))",
+									"type": "Expression"
+								},
+								"method": "GET",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+								}
+							}
+						},
+						{
+							"name": "HasNextToken",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "GetNextToken",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('GetNextToken').output.Count,25)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "SetLoopValueFalse",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop_var",
+											"value": false
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "SetLoopValueTrue",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop_var",
+											"value": true
+										}
+									},
+									{
+										"name": "SetNextToken",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "SetLoopValueTrue",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "token_var",
+											"value": {
+												"value": "@activity('GetNextToken').output.ContinuationToken",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "GetContinuationToken",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@pipeline().parameters.url_param",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+					}
+				}
+			},
+			{
+				"name": "SetContinuationToken",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetContinuationToken",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "token_var",
+					"value": {
+						"value": "@activity('GetContinuationToken').output.ContinuationToken",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"url_param": {
+				"type": "string",
+				"defaultValue": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
+			}
+		},
+		"variables": {
+			"token_var": {
+				"type": "String"
+			},
+			"loop_var": {
+				"type": "Boolean",
+				"defaultValue": false
+			}
+		},
+		"annotations": []
+	}
+}
