@@ -1,0 +1,32 @@
+{
+	"name": "df_store_details",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_store_details_source",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStoreDetails"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlBusinessCategories",
+						"type": "DatasetReference"
+					},
+					"name": "sinkBusinessCategories"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectForBusinessCategories"
+				}
+			],
+			"script": "parameters{\n\tfileName as string\n}\nsource(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdocumentForm: 'documentPerLine',\n\twildcardPaths:[(concat('store_details_test/', $fileName))]) ~> sourceStoreDetails\nsourceStoreDetails select(skipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> selectForBusinessCategories\nselectForBusinessCategories sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tLocationNumber as string,\n\t\tCategory1 as string,\n\t\tCategory2 as string,\n\t\tCategory3 as string,\n\t\tCategory4 as string,\n\t\tCategory5 as string,\n\t\tCategory6 as string,\n\t\tCategory7 as string,\n\t\tCategory8 as string,\n\t\tCategory9 as string,\n\t\tCategory10 as string\n\t),\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\terrorHandlingOption: 'stopOnFirstError') ~> sinkBusinessCategories"
+		}
+	}
+}
