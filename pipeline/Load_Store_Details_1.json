@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "ForEach1",
+				"name": "ForEachLocationIds",
 				"type": "ForEach",
 				"dependsOn": [],
 				"userProperties": [],
@@ -14,11 +14,11 @@
 					},
 					"activities": [
 						{
-							"name": "Data flow1",
-							"type": "ExecuteDataFlow",
+							"name": "Copy data1",
+							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
-								"timeout": "1.00:00:00",
+								"timeout": "7.00:00:00",
 								"retry": 0,
 								"retryIntervalInSeconds": 30,
 								"secureOutput": false,
@@ -26,30 +26,50 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"dataflow": {
-									"referenceName": "locations_dataflow_sa",
-									"type": "DataFlowReference",
-									"datasetParameters": {
-										"sourceLocation": {
-											"plocationidparameter": {
-												"value": "@item().LocationID",
-												"type": "Expression"
-											}
-										},
-										"sinkLocationDetails": {
-											"fileName": {
-												"value": "@concat('LocationNumber_',item().LocationNumber)",
-												"type": "Expression"
-											}
-										}
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true"
 									}
 								},
-								"compute": {
-									"coreCount": 8,
-									"computeType": "General"
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
 								},
-								"traceLevel": "Fine"
-							}
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "get_one_location_rest_ds",
+									"type": "DatasetReference",
+									"parameters": {
+										"locationID": {
+											"value": "@item().locationID",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_store_details_dl",
+									"type": "DatasetReference",
+									"parameters": {
+										"locationNumber": {
+											"value": "@item().locationNumber",
+											"type": "Expression"
+										}
+									}
+								}
+							]
 						}
 					]
 				}
