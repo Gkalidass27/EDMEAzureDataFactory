@@ -7,7 +7,7 @@
 				"type": "GetMetadata",
 				"dependsOn": [
 					{
-						"activity": "TruncateDacTables",
+						"activity": "TruncateStoresTables",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -58,11 +58,11 @@
 					},
 					"activities": [
 						{
-							"name": "Data flow1",
-							"type": "ExecuteDataFlow",
+							"name": "CopyToStoresTable",
+							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
-								"timeout": "1.00:00:00",
+								"timeout": "7.00:00:00",
 								"retry": 0,
 								"retryIntervalInSeconds": 30,
 								"secureOutput": false,
@@ -70,28 +70,862 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"dataflow": {
-									"referenceName": "locationdetails_df_sql",
-									"type": "DataFlowReference",
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "$['AccountID']"
+											},
+											"sink": {
+												"name": "AccountID",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationID']"
+											},
+											"sink": {
+												"name": "LocationID",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationNumber']"
+											},
+											"sink": {
+												"name": "LocationNumber",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['ReferenceCode']"
+											},
+											"sink": {
+												"name": "ReferenceCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['CreatedBy']"
+											},
+											"sink": {
+												"name": "CreatedBy",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['ModifiedBy']"
+											},
+											"sink": {
+												"name": "ModifiedBy",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['Created']"
+											},
+											"sink": {
+												"name": "Created",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['Modified']"
+											},
+											"sink": {
+												"name": "Modified",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['CSOLocationID']"
+											},
+											"sink": {
+												"name": "CSOLocationID",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['ITGAccountId']"
+											},
+											"sink": {
+												"name": "ITGAccountId",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['ITGAccountNumber']"
+											},
+											"sink": {
+												"name": "ITGAccountNumber",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['ITGClientId']"
+											},
+											"sink": {
+												"name": "ITGClientId",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['ITGClientNumber']"
+											},
+											"sink": {
+												"name": "ITGClientNumber",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['AgencyCode']"
+											},
+											"sink": {
+												"name": "AgencyCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['Reference Code']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['CMR']"
+											},
+											"sink": {
+												"name": "CMR",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['Open Holidays']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['Exteriorphoto']"
+											},
+											"sink": {
+												"name": "Exteriorphoto",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['HideAddress']"
+											},
+											"sink": {
+												"name": "HideAddress",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['PinMarker']"
+											},
+											"sink": {
+												"name": "PinMarker",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['CustomerServiceHours']"
+											},
+											"sink": {
+												"name": "CustomerServiceHours",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['ChainName']"
+											},
+											"sink": {
+												"name": "ChainName",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['primarylanguage']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['Google Preferred Photo']"
+											},
+											"sink": {
+												"name": "Google Preferred Photo",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['GoogleBusinessDescription']"
+											},
+											"sink": {
+												"name": "GoogleBusinessDescription",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['Promotion1Image']"
+											},
+											"sink": {
+												"name": "Promotion1Image",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeyFields']['Promotion2Image']"
+											},
+											"sink": {
+												"name": "Promotion2Image",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['Type']"
+											},
+											"sink": {
+												"name": "Type",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['Latitude']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['Longitude']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['DisplayPoint']['VerificationType']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessStatus']"
+											},
+											"sink": {
+												"name": "BusinessStatus",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['Status']"
+											},
+											"sink": {
+												"name": "Status",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessName']['Name']"
+											},
+											"sink": {
+												"name": "Name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessName']['LongName']"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessName']['Locale']"
+											},
+											"sink": {
+												"name": "Locale",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessDescription']['Description']"
+											},
+											"sink": {
+												"name": "Description",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessDescription']['ShortDescription']"
+											},
+											"sink": {
+												"name": "BusinessShortDescription",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessDescription']['LongDescription']"
+											},
+											"sink": {
+												"name": "BusinessLongDescription",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['AddressLine1']"
+											},
+											"sink": {
+												"name": "PrimaryAddressLine1",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['Locality']"
+											},
+											"sink": {
+												"name": "PrimaryLocality",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['Region']"
+											},
+											"sink": {
+												"name": "PrimaryRegion",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['PostalCode']"
+											},
+											"sink": {
+												"name": "PrimaryPostalCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PrimaryAddress']['CountryCode']"
+											},
+											"sink": {
+												"name": "PrimaryCountryCode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhoneNumbers']['PrimaryPhoneNumber']"
+											},
+											"sink": {
+												"name": "PrimaryPhoneNumber",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhoneNumbers']['Landline']"
+											},
+											"sink": {
+												"name": "Landline",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['WebsiteURL']"
+											},
+											"sink": {
+												"name": "WebsiteURL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['AlternateWebsiteURL']"
+											},
+											"sink": {
+												"name": "AlternateWebsiteURL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['MediaURLs']['FacebookURL']"
+											},
+											"sink": {
+												"name": "FacebookURL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['MediaURLs']['TwitterURL']"
+											},
+											"sink": {
+												"name": "TwitterURL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Su']['State']"
+											},
+											"sink": {
+												"name": "SuState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Mo']['State']"
+											},
+											"sink": {
+												"name": "MoState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Tu']['State']"
+											},
+											"sink": {
+												"name": "TuState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['We']['State']"
+											},
+											"sink": {
+												"name": "WeState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Th']['State']"
+											},
+											"sink": {
+												"name": "ThState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Fr']['State']"
+											},
+											"sink": {
+												"name": "FrState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Sa']['State']"
+											},
+											"sink": {
+												"name": "SaState",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category1']"
+											},
+											"sink": {
+												"name": "Category1",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category2']"
+											},
+											"sink": {
+												"name": "Category2",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category3']"
+											},
+											"sink": {
+												"name": "Category3",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category4']"
+											},
+											"sink": {
+												"name": "Category4",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category5']"
+											},
+											"sink": {
+												"name": "Category5",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category6']"
+											},
+											"sink": {
+												"name": "Category6",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category7']"
+											},
+											"sink": {
+												"name": "Category7",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category8']"
+											},
+											"sink": {
+												"name": "Category8",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category9']"
+											},
+											"sink": {
+												"name": "Category9",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['BusinessCategories']['Category10']"
+											},
+											"sink": {
+												"name": "Category10",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PaymentMethods']"
+											},
+											"sink": {
+												"name": "PaymentMethods",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['EmailAddress']"
+											},
+											"sink": {
+												"name": "EmailAddress",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['KeywordsSpecialties']"
+											},
+											"sink": {
+												"name": "KeywordsSpecialities",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['Products']"
+											},
+											"sink": {
+												"name": "Products",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['Services']"
+											},
+											"sink": {
+												"name": "Services",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['Brands']"
+											},
+											"sink": {
+												"name": "Brands",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['Tagline']"
+											},
+											"sink": {
+												"name": "Tagline",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['AreasServed']"
+											},
+											"sink": {
+												"name": "AreasServed",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Su']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "SuStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Su']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "SuEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Mo']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "MoStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Mo']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "MoEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Tu']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "TuStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Tu']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "TuEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['We']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "WeStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['We']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "WeEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Th']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "ThStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Th']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "ThEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Fr']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "FrStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Fr']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "FrEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Sa']['Ranges'][0]['StartTime']"
+											},
+											"sink": {
+												"name": "SaStartTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['HoursOfOperationStructured']['Sa']['Ranges'][0]['EndTime']"
+											},
+											"sink": {
+												"name": "SaEndTime",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhotoURLs'][0]['Type']"
+											},
+											"sink": {
+												"name": "Type",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhotoURLs'][0]['URL']"
+											},
+											"sink": {
+												"name": "URL",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhotoURLs'][0]['Name']"
+											},
+											"sink": {
+												"name": "Name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['LocationData']['PhotoURLs'][0]['Description']"
+											},
+											"sink": {
+												"name": "Description",
+												"type": "String"
+											}
+										}
+									]
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Json_dac_source_ds",
+									"type": "DatasetReference",
 									"parameters": {
 										"filenameparam": {
-											"value": "'@{item().name}'",
+											"value": "@item().name",
 											"type": "Expression"
 										}
 									}
-								},
-								"compute": {
-									"coreCount": 8,
-									"computeType": "General"
-								},
-								"traceLevel": "Fine"
-							}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "store_payload_sql_ds",
+									"type": "DatasetReference"
+								}
+							]
 						}
 					]
 				}
 			},
 			{
-				"name": "TruncateDacTables",
+				"name": "TruncateStoresTables",
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [],
 				"policy": {
@@ -103,7 +937,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"storedProcedureName": "[DAC].[Truncate_DAC_Tables]"
+					"storedProcedureName": "[DAC].[Truncate_Stores_temp]"
 				},
 				"linkedServiceName": {
 					"referenceName": "semarchy_dev_staging",
