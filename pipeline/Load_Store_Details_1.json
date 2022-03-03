@@ -14,8 +14,8 @@
 					},
 					"activities": [
 						{
-							"name": "CopyStoreDetailsToDL",
-							"type": "Copy",
+							"name": "Web1",
+							"type": "WebActivity",
 							"dependsOn": [],
 							"policy": {
 								"timeout": "7.00:00:00",
@@ -26,50 +26,58 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"source": {
-									"type": "RestSource",
-									"httpRequestTimeout": "00:01:40",
-									"requestInterval": "00.00:00:00.010",
-									"requestMethod": "GET",
-									"paginationRules": {
-										"supportRFC5988": "true"
-									}
+								"url": {
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+									"type": "Expression"
 								},
-								"sink": {
-									"type": "JsonSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "JsonWriteSettings"
-									}
-								},
-								"enableStaging": false
-							},
-							"inputs": [
+								"method": "GET",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+								}
+							}
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [
 								{
-									"referenceName": "ds_store_details_rest",
-									"type": "DatasetReference",
-									"parameters": {
-										"locationID": {
-											"value": "@item().locationID",
-											"type": "Expression"
-										}
-									}
+									"activity": "Web1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
 								}
 							],
-							"outputs": [
-								{
-									"referenceName": "ds_store_details_dl",
-									"type": "DatasetReference",
-									"parameters": {
-										"locationNumber": {
-											"value": "@item().locationNumber",
-											"type": "Expression"
-										}
-									}
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "id_var",
+								"value": {
+									"value": "@{activity('Web1').output}",
+									"type": "Expression"
 								}
-							]
+							}
+						},
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"enableStaging": false
+							}
 						}
 					]
 				}
