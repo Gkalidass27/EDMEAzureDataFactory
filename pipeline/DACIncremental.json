@@ -42,7 +42,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "select B_PUBID,B_SOURCEID,SITE_NAME,SITE_TYPE,CAST(IS_Active as bit) IS_Active,SITE_DESCRIPTION,OWNERSHIP_TYPE,ADDRESS_LINE1 ,ADDRESS_LINE2 ,CITY ,STATE_CODE ,POSTAL_CODE ,COUNTRY_CODE ,RAW_MAIN_PHONE ,RAW_FAX from Retail.DACJSONLoadSiteMain",
+						"sqlReaderQuery": "select B_PUBID,B_SOURCEID,SITE_NAME,SITE_TYPE,CAST(IS_Active as bit) IS_Active,SITE_DESCRIPTION,OWNERSHIP_TYPE,ADDRESS_LINE1 ,ADDRESS_LINE2 ,CITY ,STATE_CODE ,POSTAL_CODE ,COUNTRY_CODE ,RAW_MAIN_PHONE ,RAW_FAX from Retail.DACIncrementalSiteMain ",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -313,6 +313,34 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select * from Retail.DACIncrementalSiteContent",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SiteContent_View",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
