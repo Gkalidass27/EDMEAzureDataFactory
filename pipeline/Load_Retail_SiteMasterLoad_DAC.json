@@ -1,5 +1,5 @@
 {
-	"name": "DACIncremental",
+	"name": "Load_Retail_SiteMasterLoad_DAC",
 	"properties": {
 		"description": "Upsert_DACJSONLoadSiteMain",
 		"activities": [
@@ -329,15 +329,135 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "B_UPDDATE",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
 						"sqlReaderQuery": "select * from Retail.DACIncrementalSiteContent",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"FS_SITE_MAIN",
+								"CONTENT_TYPE"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"scale": 6
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_CATEGORY"
+								},
+								"sink": {
+									"name": "CONTENT_CATEGORY"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_TYPE"
+								},
+								"sink": {
+									"name": "CONTENT_TYPE"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_SHORT_TEXT"
+								},
+								"sink": {
+									"name": "CONTENT_SHORT_TEXT"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_LONG_TEXT"
+								},
+								"sink": {
+									"name": "CONTENT_LONG_TEXT"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_LANGUAGE"
+								},
+								"sink": {
+									"name": "CONTENT_LANGUAGE"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_MAIN"
+								},
+								"sink": {
+									"name": "FP_SITE_MAIN"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_MAIN"
+								},
+								"sink": {
+									"name": "FS_SITE_MAIN"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
 						"referenceName": "SiteContent_View",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Site_Content_Mapping",
 						"type": "DatasetReference"
 					}
 				]
