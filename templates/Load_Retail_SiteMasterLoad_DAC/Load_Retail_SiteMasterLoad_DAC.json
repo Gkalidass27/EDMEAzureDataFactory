@@ -1,0 +1,1369 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name"
+		},
+		"semarchy_dev_repo": {
+			"type": "string"
+		},
+		"semarchy_dev_staging": {
+			"type": "string"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_Retail_SiteMasterLoad_DAC')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Upsert_DACJSONLoadSiteMain",
+				"activities": [
+					{
+						"name": "IncrementalSiteMainView",
+						"description": "select all data from DACJSONLoadSiteMain view",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "SetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"additionalColumns": [
+									{
+										"name": "LoadId",
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										}
+									},
+									{
+										"name": "B_UPDDATE",
+										"value": {
+											"value": "@utcnow()",
+											"type": "Expression"
+										}
+									}
+								],
+								"sqlReaderQuery": "select B_PUBID,B_SOURCEID,SITE_NAME,SITE_TYPE,CAST(IS_Active as bit) IS_Active,SITE_DESCRIPTION,OWNERSHIP_TYPE,ADDRESS_LINE1 ,ADDRESS_LINE2 ,CITY ,STATE_CODE ,POSTAL_CODE ,COUNTRY_CODE ,RAW_MAIN_PHONE ,RAW_FAX from Retail.DACIncrementalSiteMain ",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"B_SOURCEID"
+									]
+								},
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "LoadId"
+										},
+										"sink": {
+											"name": "B_LOADID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_PUBID",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_SOURCEID",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SITE_NAME",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "SITE_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SITE_TYPE",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SITE_TYPE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "IS_Active",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "ISACTIVE",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "SITE_DESCRIPTION",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "SITE_DESCRIPTION",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OWNERSHIP_TYPE",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SITE_OWNERSHIP_TYPE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ADDRESS_LINE1",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAWADDRESS_LINE1",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ADDRESS_LINE2",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAWADDRESS_LINE2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CITY",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAWCITY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "STATE_CODE",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAWSTATE_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "POSTAL_CODE",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAWPOSTAL_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "COUNTRY_CODE",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAWCOUNTRY_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_MAIN_PHONE",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAW_MAIN_PHONE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_FAX",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAW_FAX",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE"
+										},
+										"sink": {
+											"name": "B_UPDDATE"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ConnIncrementalSiteMainView",
+								"type": "DatasetReference"
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ConnSdSiteMain",
+								"type": "DatasetReference"
+							}
+						]
+					},
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'masterDataHub_Retail'\n,@P_PROGRAM_NAME = 'SiteMasterLoad'\n,@P_LOAD_DESCRIPTION = 'SiteMasterLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "semarchy_repo",
+								"type": "DatasetReference"
+							},
+							"firstRowOnly": true
+						}
+					},
+					{
+						"name": "SetNewLoadId",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "IncrementalSiteContentView",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "IncrementalSiteMainView",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"additionalColumns": [
+									{
+										"name": "LoadId",
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										}
+									},
+									{
+										"name": "B_UPDDATE",
+										"value": {
+											"value": "@utcNow()",
+											"type": "Expression"
+										}
+									}
+								],
+								"sqlReaderQuery": "select * from Retail.DACIncrementalSiteContent",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"FS_SITE_MAIN",
+										"CONTENT_TYPE"
+									]
+								},
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "LoadId"
+										},
+										"sink": {
+											"name": "B_LOADID",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE"
+										},
+										"sink": {
+											"name": "B_UPDDATE",
+											"scale": 6
+										}
+									},
+									{
+										"source": {
+											"name": "CONTENT_CATEGORY"
+										},
+										"sink": {
+											"name": "CONTENT_CATEGORY"
+										}
+									},
+									{
+										"source": {
+											"name": "CONTENT_TYPE"
+										},
+										"sink": {
+											"name": "CONTENT_TYPE"
+										}
+									},
+									{
+										"source": {
+											"name": "CONTENT_SHORT_TEXT"
+										},
+										"sink": {
+											"name": "CONTENT_SHORT_TEXT"
+										}
+									},
+									{
+										"source": {
+											"name": "CONTENT_LONG_TEXT"
+										},
+										"sink": {
+											"name": "CONTENT_LONG_TEXT"
+										}
+									},
+									{
+										"source": {
+											"name": "CONTENT_LANGUAGE"
+										},
+										"sink": {
+											"name": "CONTENT_LANGUAGE"
+										}
+									},
+									{
+										"source": {
+											"name": "FP_SITE_MAIN"
+										},
+										"sink": {
+											"name": "FP_SITE_MAIN"
+										}
+									},
+									{
+										"source": {
+											"name": "FS_SITE_MAIN"
+										},
+										"sink": {
+											"name": "FS_SITE_MAIN"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ConnSiteContentView",
+								"type": "DatasetReference"
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ConnSaSiteContent",
+								"type": "DatasetReference"
+							}
+						]
+					},
+					{
+						"name": "IncrementalSiteDefaultHoursView",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "IncrementalSiteContentView",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"additionalColumns": [
+									{
+										"name": "LoadId",
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										}
+									},
+									{
+										"name": "B_UPDDATE",
+										"value": {
+											"value": "@utcNow()",
+											"type": "Expression"
+										}
+									}
+								],
+								"sqlReaderQuery": "select * from Retail.DACIncrementalSiteDefaultHours",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"FS_SITE_MAIN",
+										"SITE_HOURS_TYPE",
+										"DAY_OF_WEEK"
+									]
+								},
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "LoadId"
+										},
+										"sink": {
+											"name": "B_LOADID",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE"
+										},
+										"sink": {
+											"name": "B_UPDDATE",
+											"scale": 6
+										}
+									},
+									{
+										"source": {
+											"name": "SITE_HOURS_TYPE"
+										},
+										"sink": {
+											"name": "SITE_HOURS_TYPE"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK"
+										}
+									},
+									{
+										"source": {
+											"name": "START_TIME"
+										},
+										"sink": {
+											"name": "START_TIME"
+										}
+									},
+									{
+										"source": {
+											"name": "END_TIME"
+										},
+										"sink": {
+											"name": "END_TIME"
+										}
+									},
+									{
+										"source": {
+											"name": "FP_SITE_MAIN"
+										},
+										"sink": {
+											"name": "FP_SITE_MAIN"
+										}
+									},
+									{
+										"source": {
+											"name": "FS_SITE_MAIN"
+										},
+										"sink": {
+											"name": "FS_SITE_MAIN"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ConnSiteContentView",
+								"type": "DatasetReference"
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ConnSaSiteDefaultHours",
+								"type": "DatasetReference"
+							}
+						]
+					},
+					{
+						"name": "SubmitLoad",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "IncrementalSiteDefaultHoursView",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+							"storedProcedureParameters": {
+								"P_INTEGRATION_JOB_NAME": {
+									"value": {
+										"value": "SiteMasterLoadDAC",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"return_value_argument": {
+									"value": null,
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "[parameters('semarchy_dev_repo')]",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ConnIncrementalSiteMainView')]",
+				"[concat(variables('factoryId'), '/datasets/ConnSdSiteMain')]",
+				"[concat(variables('factoryId'), '/datasets/semarchy_repo')]",
+				"[concat(variables('factoryId'), '/datasets/ConnSiteContentView')]",
+				"[concat(variables('factoryId'), '/datasets/ConnSaSiteContent')]",
+				"[concat(variables('factoryId'), '/datasets/ConnSaSiteDefaultHours')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ConnIncrementalSiteMainView')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('semarchy_dev_staging')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ConnSdSiteMain')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('semarchy_dev_staging')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_PUBID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_SOURCEID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ISACTIVE",
+						"type": "bit"
+					},
+					{
+						"name": "SITE_DESCRIPTION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_OWNERSHIP_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADDRESS_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADDRESS_ERROR_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWADDRESS_LINE1",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWADDRESS_LINE2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWCITY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWSTATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWPOSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWCOUNTRY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTREET_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTREET_NUMBER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STACITY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STAPOSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STACOUNTRY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STALATITUDE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STALONGITUDE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_SITE_OWNER",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "OPERATIONS_START_DATE",
+						"type": "date"
+					},
+					{
+						"name": "OPERATIONS_END_DATE",
+						"type": "date"
+					},
+					{
+						"name": "CUSTOMER_OPEN_DATE",
+						"type": "date"
+					},
+					{
+						"name": "CUSTOMER_CLOSE_DATE",
+						"type": "date"
+					},
+					{
+						"name": "LOCAL_CURRENCY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TOTAL_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "OPERATIONS_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "CUSTOMER_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "F_SITE_DEFAULT_HOURS",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FD_SITE_DEFAULT_HOURS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_SHIP_TO",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_MAIN_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_MAIN_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MAIN_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_FAX",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_FAX",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FAX_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CS_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_CS_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CS_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CS_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VLD_CS_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SALES_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_SALES_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SALES_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SALES_CHAT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SERVICE_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_SERVICE_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SERVICE_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SERVICE_CHAT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_WAREHOUSE_PARENT",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "Scratch",
+					"table": "SD_SITE_MAIN"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/semarchy_repo')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('semarchy_dev_repo')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ConnSiteContentView')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('semarchy_dev_staging')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ConnSaSiteContent')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('semarchy_dev_staging')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "SITE_CONTENT_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DUPSOPERATIONID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_DUPSMERGETARGET",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_COPIEDFROM",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_CATEGORY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_SHORT_TEXT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_LONG_TEXT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_LANGUAGE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_SITE_MAIN",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_SITE_MAIN",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_SITE_MAIN",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_SITE_MAIN",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "Scratch",
+					"table": "SA_SITE_CONTENT"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ConnSaSiteDefaultHours')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "[parameters('semarchy_dev_staging')]",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "SITE_CONTENT_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DUPSOPERATIONID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_DUPSMERGETARGET",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_COPIEDFROM",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_CATEGORY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_SHORT_TEXT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_LONG_TEXT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTENT_LANGUAGE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_SITE_MAIN",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_SITE_MAIN",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_SITE_MAIN",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_SITE_MAIN",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "Scratch",
+					"table": "SA_SITE_DEFAULT_HOURS"
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
