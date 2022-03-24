@@ -100,9 +100,16 @@
 							}
 						},
 						{
-							"name": "Copy data1",
+							"name": "StoreDetailsJson",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "SP_Load_Json_Payload",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "7.00:00:00",
 								"retry": 0,
@@ -115,7 +122,16 @@
 								"sink": {
 									"type": "JsonSink",
 									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
+										"type": "AzureBlobFSWriteSettings",
+										"metadata": [
+											{
+												"name": "jsonData",
+												"value": {
+													"value": "@{activity('Web1').output}",
+													"type": "Expression"
+												}
+											}
+										]
 									},
 									"formatSettings": {
 										"type": "JsonWriteSettings"
@@ -129,7 +145,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"FileName": {
-											"value": "@concat('Store_Location_',variables('id_var')))",
+											"value": "@concat('Store_Location_',variables('id_var'))",
 											"type": "Expression"
 										}
 									}
