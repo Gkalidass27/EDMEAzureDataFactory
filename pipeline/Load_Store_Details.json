@@ -33,7 +33,19 @@
 								"method": "GET",
 								"headers": {
 									"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
-								}
+								},
+								"datasets": [
+									{
+										"referenceName": "StoreDetailsJson",
+										"type": "DatasetReference",
+										"parameters": {
+											"FileName": {
+												"value": "@concat('Store_Location_',variables('id_var'))",
+												"type": "Expression"
+											}
+										}
+									}
+								]
 							}
 						},
 						{
@@ -61,7 +73,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Set variable1",
+									"activity": "SetLocationID",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -100,58 +112,24 @@
 							}
 						},
 						{
-							"name": "StoreDetailsJson",
-							"type": "Copy",
+							"name": "SetLocationID",
+							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "SP_Load_Json_Payload",
+									"activity": "Set variable1",
 									"dependencyConditions": [
 										"Succeeded"
 									]
 								}
 							],
-							"policy": {
-								"timeout": "7.00:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
 							"userProperties": [],
 							"typeProperties": {
-								"sink": {
-									"type": "JsonSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings",
-										"copyBehavior": "MergeFiles",
-										"metadata": [
-											{
-												"name": "jsonData",
-												"value": {
-													"value": "@{activity('Web1').output}",
-													"type": "Expression"
-												}
-											}
-										]
-									},
-									"formatSettings": {
-										"type": "JsonWriteSettings"
-									}
-								},
-								"enableStaging": false
-							},
-							"outputs": [
-								{
-									"referenceName": "StoreDetailsJson",
-									"type": "DatasetReference",
-									"parameters": {
-										"FileName": {
-											"value": "@concat('Store_Location_',variables('id_var'))",
-											"type": "Expression"
-										}
-									}
+								"variableName": "LocationID",
+								"value": {
+									"value": "item.LocationID",
+									"type": "Expression"
 								}
-							]
+							}
 						}
 					]
 				}
