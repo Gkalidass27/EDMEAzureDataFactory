@@ -1,0 +1,64 @@
+{
+	"name": "Orchestrate_Load_Retail_SiteMasterLoad_DAC",
+	"properties": {
+		"activities": [
+			{
+				"name": "Store_DAC_Location_Details",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Store_DAC_Location_Details",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"url_param": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
+					}
+				}
+			},
+			{
+				"name": "Stage_Retail_SiteMasterLoad_DAC",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Store_DAC_Location_Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_Retail_SiteMasterLoad_DAC",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Load_Retail_SiteMasterLoad_DAC",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage_Retail_SiteMasterLoad_DAC",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_Retail_SiteMasterLoad_DAC",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": []
+	}
+}
