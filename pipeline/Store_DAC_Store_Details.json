@@ -46,6 +46,12 @@
 									"dependencyConditions": [
 										"Succeeded"
 									]
+								},
+								{
+									"activity": "WebLocationsAPIFail",
+									"dependencyConditions": [
+										"Succeeded"
+									]
 								}
 							],
 							"policy": {
@@ -172,6 +178,52 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "WebLocationsAPIFail",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "WaitingTime",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+									"type": "Expression"
+								},
+								"method": "GET",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+								}
+							}
+						},
+						{
+							"name": "WaitingTime",
+							"type": "Wait",
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 6
+							}
 						}
 					]
 				}
