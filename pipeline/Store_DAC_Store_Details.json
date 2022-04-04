@@ -41,9 +41,9 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "WaitForSkipp",
+									"activity": "WebLocationsAPI",
 									"dependencyConditions": [
-										"Skipped"
+										"Succeeded"
 									]
 								}
 							],
@@ -265,8 +265,8 @@
 										}
 									},
 									{
-										"name": "WebLocationFailedVariable",
-										"type": "SetVariable",
+										"name": "SP_Load_Json_Payload_AfterFailed",
+										"type": "SqlServerStoredProcedure",
 										"dependsOn": [
 											{
 												"activity": "WebLocationAPIFailed",
@@ -275,186 +275,52 @@
 												]
 											}
 										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
 										"userProperties": [],
 										"typeProperties": {
-											"variableName": "WebApiOutput",
-											"value": {
-												"value": "@{activity('WebLocationAPIFailed').output}",
-												"type": "Expression"
+											"storedProcedureName": "[DAC].[Load_Json_Payload]",
+											"storedProcedureParameters": {
+												"JsonPayload": {
+													"value": {
+														"value": "@variables('WebApiOutput')",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"LocationID": {
+													"value": {
+														"value": "@variables('LocationID')",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
 											}
+										},
+										"linkedServiceName": {
+											"referenceName": "semarchy_staging",
+											"type": "LinkedServiceReference"
 										}
 									},
 									{
-										"name": "SetFailedLocationIDVariable",
-										"type": "SetVariable",
+										"name": "LoadJsonFileAfterFailed",
+										"type": "Copy",
 										"dependsOn": [
 											{
-												"activity": "WebLocationAPIFailed",
+												"activity": "SP_Load_Json_Payload_AfterFailed",
 												"dependencyConditions": [
 													"Succeeded"
 												]
 											}
 										],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "LocationID",
-											"value": {
-												"value": "@{activity('WebLocationAPIFailed').output.LocationID}",
-												"type": "Expression"
-											}
-										}
-									}
-								]
-							}
-						},
-						{
-							"name": "WebLocationIDVariable",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "WebLocationsAPI",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "WebApiOutput",
-								"value": {
-									"value": "@{activity('WebLocationsAPI').output}",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "SetStatusCode",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "WebLocationsAPI",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "StatusCode",
-								"value": {
-									"value": "@string(activity('WebLocationsAPI').StatusCode)",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "WaitForSkipp",
-							"type": "Wait",
-							"dependsOn": [
-								{
-									"activity": "WebLocationIDVariable",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								},
-								{
-									"activity": "CheckErrorCode",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								},
-								{
-									"activity": "SetLocationIDVariable",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"waitTimeInSeconds": 1
-							}
-						},
-						{
-							"name": "SetLocationIDVariable",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "WebLocationsAPI",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "LocationID",
-								"value": {
-									"value": "@{activity('WebLocationsAPI').output.LocationID}",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "FileWriteConflict",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "LoadJsonFile",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "Conflict",
-								"value": {
-									"value": "@activity('LoadJsonFile').error.ErrorCode",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "FileWriteConflictCondition",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "FileWriteConflict",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@equals(variables('Conflict'),'2200')",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "FailedToWrite",
-										"type": "Fail",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"message": {
-												"value": "@activity('LoadJsonFile').error.message",
-												"type": "Expression"
-											},
-											"errorCode": "2200"
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "LoadJsonFileAfterFailed",
-										"type": "Copy",
-										"dependsOn": [],
 										"policy": {
 											"timeout": "7.00:00:00",
-											"retry": 3,
+											"retry": 0,
 											"retryIntervalInSeconds": 30,
 											"secureOutput": false,
 											"secureInput": false
@@ -535,6 +401,26 @@
 										]
 									}
 								]
+							}
+						},
+						{
+							"name": "SetStatusCode",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "StatusCode",
+								"value": {
+									"value": "@string(activity('WebLocationsAPI').StatusCode)",
+									"type": "Expression"
+								}
 							}
 						}
 					]
