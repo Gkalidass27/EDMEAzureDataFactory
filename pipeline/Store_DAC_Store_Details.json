@@ -209,13 +209,54 @@
 									{
 										"name": "SetPipelineRunId",
 										"type": "SetVariable",
-										"dependsOn": [],
+										"dependsOn": [
+											{
+												"activity": "FailPipeline",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
 										"userProperties": [],
 										"typeProperties": {
 											"variableName": "PipelineRunId",
 											"value": {
 												"value": "@concat('https://management.azure.com/subscriptions/f2330f9f-3a8b-498c-a2d6-476e4f263349/resourceGroups/afi-edme-rg/providers/Microsoft.DataFactory/factories/',pipeline().DataFactory,'/pipelineruns/',pipeline().RunId,'/cancel?api-version=2018–06–01')",
 												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "CancelPipeline",
+										"type": "WebActivity",
+										"dependsOn": [
+											{
+												"activity": "SetPipelineRunId",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@variables('PipelineRunId')",
+												"type": "Expression"
+											},
+											"method": "POST",
+											"body": {
+												"message": "Cancelling the pipeline"
+											},
+											"authentication": {
+												"type": "MSI",
+												"resource": "https://management.azure.com"
 											}
 										}
 									}
