@@ -177,13 +177,13 @@
 							"type": "Wait",
 							"dependsOn": [
 								{
-									"activity": "WebLocationsAPI",
+									"activity": "CheckErrorCode",
 									"dependencyConditions": [
 										"Succeeded"
 									]
 								},
 								{
-									"activity": "CheckErrorCode",
+									"activity": "WebLocationVariable",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -270,8 +270,8 @@
 										}
 									},
 									{
-										"name": "FailPipeline_copy1",
-										"type": "Fail",
+										"name": "WebLocationFailedVariable",
+										"type": "SetVariable",
 										"dependsOn": [
 											{
 												"activity": "WebLocationAPIFailed",
@@ -282,12 +282,9 @@
 										],
 										"userProperties": [],
 										"typeProperties": {
-											"message": {
-												"value": "@activity('WebLocationsAPI').Error.message",
-												"type": "Expression"
-											},
-											"errorCode": {
-												"value": "@activity('WebLocationsAPI').Error.statusCode",
+											"variableName": "WebApiOutput",
+											"value": {
+												"value": "@{activity('WebLocationAPIFailed').output}",
 												"type": "Expression"
 											}
 										}
@@ -296,10 +293,24 @@
 							}
 						},
 						{
-							"name": "Set variable1",
+							"name": "WebLocationVariable",
 							"type": "SetVariable",
-							"dependsOn": [],
-							"userProperties": []
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "WebApiOutput",
+								"value": {
+									"value": "@{activity('WebLocationsAPI').output}",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
