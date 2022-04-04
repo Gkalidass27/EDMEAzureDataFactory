@@ -396,26 +396,6 @@
 							}
 						},
 						{
-							"name": "FailedToWrite",
-							"type": "Fail",
-							"dependsOn": [
-								{
-									"activity": "FileWriteConflict",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"message": {
-									"value": "@activity('LoadJsonFile').error.message",
-									"type": "Expression"
-								},
-								"errorCode": "2200"
-							}
-						},
-						{
 							"name": "FileWriteConflict",
 							"type": "SetVariable",
 							"dependsOn": [
@@ -433,6 +413,128 @@
 									"value": "@activity('LoadJsonFile').error.ErrorCode",
 									"type": "Expression"
 								}
+							}
+						},
+						{
+							"name": "FileWriteConfilct",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "FileWriteConflict",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(variables('Conflict'),2200)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "FailedToWrite",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@activity('LoadJsonFile').error.message",
+												"type": "Expression"
+											},
+											"errorCode": "2200"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "LoadJsonFileAfterFailed",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 3,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "DelimitedTextSource",
+												"additionalColumns": [
+													{
+														"name": "input",
+														"value": {
+															"value": "@variables('WebApiOutput')",
+															"type": "Expression"
+														}
+													}
+												],
+												"storeSettings": {
+													"type": "AzureBlobFSReadSettings",
+													"recursive": true,
+													"enablePartitionDiscovery": false
+												},
+												"formatSettings": {
+													"type": "DelimitedTextReadSettings"
+												}
+											},
+											"sink": {
+												"type": "DelimitedTextSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "DelimitedTextWriteSettings",
+													"quoteAllText": true,
+													"fileExtension": ".txt"
+												}
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"mappings": [
+													{
+														"source": {
+															"name": "input",
+															"type": "String"
+														},
+														"sink": {
+															"type": "String",
+															"physicalType": "String",
+															"ordinal": 1
+														}
+													}
+												],
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "DAC_Location_Details_Read",
+												"type": "DatasetReference"
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "DAC_Location_Details_Write",
+												"type": "DatasetReference",
+												"parameters": {
+													"FileName": {
+														"value": "@concat('Store_Location_',variables('LocationID'),'.json')",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								]
 							}
 						}
 					]
