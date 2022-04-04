@@ -67,7 +67,7 @@
 									},
 									"LocationID": {
 										"value": {
-											"value": "@item().locationID",
+											"value": "@variables('LocationID')",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -165,7 +165,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"FileName": {
-											"value": "@concat('Store_Location_',item().LocationID,'.json')",
+											"value": "@concat('Store_Location_',variables('LocationID'),'.json')",
 											"type": "Expression"
 										}
 									}
@@ -342,11 +342,37 @@
 									"dependencyConditions": [
 										"Succeeded"
 									]
+								},
+								{
+									"activity": "SetLocationIDVariable",
+									"dependencyConditions": [
+										"Succeeded"
+									]
 								}
 							],
 							"userProperties": [],
 							"typeProperties": {
 								"waitTimeInSeconds": 1
+							}
+						},
+						{
+							"name": "SetLocationIDVariable",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LocationID",
+								"value": {
+									"value": "@{activity('WebLocationsAPI').output.LocationID}",
+									"type": "Expression"
+								}
 							}
 						}
 					]
