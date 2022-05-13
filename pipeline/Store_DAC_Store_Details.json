@@ -426,26 +426,6 @@
 							}
 						},
 						{
-							"name": "Lookup1",
-							"type": "Lookup",
-							"dependsOn": [
-								{
-									"activity": "SetErrorMsg",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "7.00:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": []
-						},
-						{
 							"name": "WebLocationAPIFailed_copy1",
 							"type": "WebActivity",
 							"dependsOn": [
@@ -480,7 +460,7 @@
 							"type": "Wait",
 							"dependsOn": [
 								{
-									"activity": "Lookup1",
+									"activity": "Stored procedure1",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -515,7 +495,7 @@
 								"storedProcedureParameters": {
 									"JsonPayload": {
 										"value": {
-											"value": "@{activity('WebLocationAPIFailed').output}",
+											"value": "@{activity('WebLocationAPIFailed_copy1').output}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -560,7 +540,7 @@
 										{
 											"name": "input",
 											"value": {
-												"value": "@{activity('WebLocationAPIFailed').output}",
+												"value": "@{activity('WebLocationAPIFailed_copy1').output}",
 												"type": "Expression"
 											}
 										}
@@ -626,6 +606,43 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "Stored procedure1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "SetErrorMsg",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[DAC].[Load_Json_Payload]",
+								"storedProcedureParameters": {
+									"JsonPayload": {
+										"value": "",
+										"type": "String"
+									},
+									"LocationID": {
+										"value": "",
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
 						}
 					]
 				}
