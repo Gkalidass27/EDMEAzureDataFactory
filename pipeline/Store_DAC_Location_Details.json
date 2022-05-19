@@ -7,7 +7,7 @@
 				"type": "Until",
 				"dependsOn": [
 					{
-						"activity": "SetContinuationToken",
+						"activity": "GetCountOfData",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -306,6 +306,39 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "GetCountOfData",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "SetContinuationToken",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": {
+							"value": "@variables('SubscriptionKey')",
+							"type": "Expression"
+						}
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -335,6 +368,9 @@
 			"SubscriptionKey": {
 				"type": "String",
 				"defaultValue": "f0c0b043ecb44804aed243980209bf89"
+			},
+			"GetCountData": {
+				"type": "String"
 			}
 		},
 		"annotations": []
