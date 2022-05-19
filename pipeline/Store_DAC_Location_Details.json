@@ -180,8 +180,8 @@
 				}
 			},
 			{
-				"name": "CheckCount",
-				"type": "IfCondition",
+				"name": "UntilLastPage",
+				"type": "Until",
 				"dependsOn": [
 					{
 						"activity": "SetDataCount",
@@ -193,53 +193,53 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@equals(int(variables('GetCountData')),0)",
+						"value": "@equals(variables('loop_var'),false)",
 						"type": "Expression"
 					},
-					"ifFalseActivities": [
+					"activities": [
 						{
-							"name": "Set variable1",
-							"type": "SetVariable",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "GetCountData",
-								"value": {
-									"value": "@string(activity('GetCountOfData').output.Count)",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "Fail1",
-							"type": "Fail",
-							"dependsOn": [
-								{
-									"activity": "Set variable1",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"message": "count is not > 0 ",
-								"errorCode": "due to count is not > 0 that's why pipeline was failed"
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "UntilLastPage",
-							"type": "Until",
+							"name": "CheckCount",
+							"type": "IfCondition",
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@equals(variables('loop_var'),false)",
+									"value": "@greater(int(variables('GetCountData')),0)",
 									"type": "Expression"
 								},
-								"activities": [
+								"ifFalseActivities": [
+									{
+										"name": "Set variable1",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "GetCountData",
+											"value": {
+												"value": "@string(activity('GetCountOfData').output.Count)",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "Fail1",
+										"type": "Fail",
+										"dependsOn": [
+											{
+												"activity": "Set variable1",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "count is not > 0 ",
+											"errorCode": "due to count is not > 0 that's why pipeline was failed"
+										}
+									}
+								],
+								"ifTrueActivities": [
 									{
 										"name": "CopyDACApiResponse",
 										"type": "Copy",
@@ -399,11 +399,11 @@
 											]
 										}
 									}
-								],
-								"timeout": "7.00:00:00"
+								]
 							}
 						}
-					]
+					],
+					"timeout": "7.00:00:00"
 				}
 			}
 		],
