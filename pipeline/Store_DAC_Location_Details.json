@@ -3,180 +3,6 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "UntilLastPage",
-				"type": "Until",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@equals(variables('loop_var'),false)",
-						"type": "Expression"
-					},
-					"activities": [
-						{
-							"name": "CopyDACApiResponse",
-							"type": "Copy",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "7.00:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "RestSource",
-									"httpRequestTimeout": "00:01:40",
-									"requestInterval": "00.00:00:00.010",
-									"requestMethod": "GET",
-									"paginationRules": {
-										"MaxRequestNumber": "48",
-										"supportRFC5988": "true"
-									}
-								},
-								"sink": {
-									"type": "JsonSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "JsonWriteSettings"
-									}
-								},
-								"enableStaging": false
-							},
-							"inputs": [
-								{
-									"referenceName": "DataAnyWhereProdRestResource",
-									"type": "DatasetReference",
-									"parameters": {
-										"relative_url_param": {
-											"value": "@concat('locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=')",
-											"type": "Expression"
-										},
-										"continuation_token_param": {
-											"value": "@variables('token_var')",
-											"type": "Expression"
-										}
-									}
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "DAC_Location_List_Write",
-									"type": "DatasetReference",
-									"parameters": {
-										"FileName": {
-											"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						},
-						{
-							"name": "GetNextToken",
-							"type": "WebActivity",
-							"dependsOn": [
-								{
-									"activity": "CopyDACApiResponse",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "7.00:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"url": {
-									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
-									"type": "Expression"
-								},
-								"method": "GET",
-								"headers": {
-									"Ocp-Apim-Subscription-Key": {
-										"value": "@variables('SubscriptionKey')",
-										"type": "Expression"
-									}
-								}
-							}
-						},
-						{
-							"name": "HasNextToken",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "GetNextToken",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@equals(activity('GetNextToken').output.Count,25)",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "SetLoopValueFalse",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "loop_var",
-											"value": false
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "SetLoopValueTrue",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "loop_var",
-											"value": true
-										}
-									},
-									{
-										"name": "SetNextToken",
-										"type": "SetVariable",
-										"dependsOn": [
-											{
-												"activity": "SetLoopValueTrue",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "token_var",
-											"value": {
-												"value": "@activity('GetNextToken').output.ContinuationToken",
-												"type": "Expression"
-											}
-										}
-									}
-								]
-							}
-						}
-					],
-					"timeout": "7.00:00:00"
-				}
-			},
-			{
 				"name": "GetContinuationToken",
 				"type": "WebActivity",
 				"dependsOn": [
@@ -351,6 +177,201 @@
 						"value": "@string(activity('GetCountOfData').output.Count)",
 						"type": "Expression"
 					}
+				}
+			},
+			{
+				"name": "CheckCount",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "GetCountOfData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('GetCountOfData').output.Count,0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "UntilLastPage",
+							"type": "Until",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(variables('loop_var'),false)",
+									"type": "Expression"
+								},
+								"activities": [
+									{
+										"name": "CopyDACApiResponse",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "RestSource",
+												"httpRequestTimeout": "00:01:40",
+												"requestInterval": "00.00:00:00.010",
+												"requestMethod": "GET",
+												"paginationRules": {
+													"MaxRequestNumber": "48",
+													"supportRFC5988": "true"
+												}
+											},
+											"sink": {
+												"type": "JsonSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "JsonWriteSettings"
+												}
+											},
+											"enableStaging": false
+										},
+										"inputs": [
+											{
+												"referenceName": "DataAnyWhereProdRestResource",
+												"type": "DatasetReference",
+												"parameters": {
+													"relative_url_param": {
+														"value": "@concat('locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=')",
+														"type": "Expression"
+													},
+													"continuation_token_param": {
+														"value": "@variables('token_var')",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "DAC_Location_List_Write",
+												"type": "DatasetReference",
+												"parameters": {
+													"FileName": {
+														"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "GetNextToken",
+										"type": "WebActivity",
+										"dependsOn": [
+											{
+												"activity": "CopyDACApiResponse",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+												"type": "Expression"
+											},
+											"method": "GET",
+											"headers": {
+												"Ocp-Apim-Subscription-Key": {
+													"value": "@variables('SubscriptionKey')",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "HasNextToken",
+										"type": "IfCondition",
+										"dependsOn": [
+											{
+												"activity": "GetNextToken",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"expression": {
+												"value": "@equals(activity('GetNextToken').output.Count,25)",
+												"type": "Expression"
+											},
+											"ifFalseActivities": [
+												{
+													"name": "SetLoopValueFalse",
+													"type": "SetVariable",
+													"dependsOn": [],
+													"userProperties": [],
+													"typeProperties": {
+														"variableName": "loop_var",
+														"value": false
+													}
+												}
+											],
+											"ifTrueActivities": [
+												{
+													"name": "SetLoopValueTrue",
+													"type": "SetVariable",
+													"dependsOn": [],
+													"userProperties": [],
+													"typeProperties": {
+														"variableName": "loop_var",
+														"value": true
+													}
+												},
+												{
+													"name": "SetNextToken",
+													"type": "SetVariable",
+													"dependsOn": [
+														{
+															"activity": "SetLoopValueTrue",
+															"dependencyConditions": [
+																"Succeeded"
+															]
+														}
+													],
+													"userProperties": [],
+													"typeProperties": {
+														"variableName": "token_var",
+														"value": {
+															"value": "@activity('GetNextToken').output.ContinuationToken",
+															"type": "Expression"
+														}
+													}
+												}
+											]
+										}
+									}
+								],
+								"timeout": "7.00:00:00"
+							}
+						}
+					]
 				}
 			}
 		],
