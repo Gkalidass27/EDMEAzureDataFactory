@@ -5,7 +5,14 @@
 			{
 				"name": "UntilLastPage",
 				"type": "Until",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "SetDataCount",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
@@ -14,76 +21,9 @@
 					},
 					"activities": [
 						{
-							"name": "CopyDACApiResponse",
-							"type": "Copy",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "7.00:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "RestSource",
-									"httpRequestTimeout": "00:01:40",
-									"requestInterval": "00.00:00:00.010",
-									"requestMethod": "GET",
-									"paginationRules": {
-										"MaxRequestNumber": "48",
-										"supportRFC5988": "true"
-									}
-								},
-								"sink": {
-									"type": "JsonSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "JsonWriteSettings"
-									}
-								},
-								"enableStaging": false
-							},
-							"inputs": [
-								{
-									"referenceName": "DataAnyWhereProdRestResource",
-									"type": "DatasetReference",
-									"parameters": {
-										"relative_url_param": "locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=",
-										"continuation_token_param": {
-											"value": "@variables('token_var')",
-											"type": "Expression"
-										}
-									}
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "DAC_Location_List_Write",
-									"type": "DatasetReference",
-									"parameters": {
-										"FileName": {
-											"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						},
-						{
 							"name": "GetNextToken",
 							"type": "WebActivity",
-							"dependsOn": [
-								{
-									"activity": "CopyDACApiResponse",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
+							"dependsOn": [],
 							"policy": {
 								"timeout": "7.00:00:00",
 								"retry": 0,
@@ -162,6 +102,76 @@
 												"type": "Expression"
 											}
 										}
+									}
+								]
+							}
+						},
+						{
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"ifTrueActivities": [
+									{
+										"name": "CopyDACApiResponse",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "RestSource",
+												"httpRequestTimeout": "00:01:40",
+												"requestInterval": "00.00:00:00.010",
+												"requestMethod": "GET",
+												"paginationRules": {
+													"MaxRequestNumber": "48",
+													"supportRFC5988": "true"
+												}
+											},
+											"sink": {
+												"type": "JsonSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "JsonWriteSettings"
+												}
+											},
+											"enableStaging": false
+										},
+										"inputs": [
+											{
+												"referenceName": "DataAnyWhereProdRestResource",
+												"type": "DatasetReference",
+												"parameters": {
+													"relative_url_param": "locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=",
+													"continuation_token_param": {
+														"value": "@variables('token_var')",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "DAC_Location_List_Write",
+												"type": "DatasetReference",
+												"parameters": {
+													"FileName": {
+														"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
+														"type": "Expression"
+													}
+												}
+											}
+										]
 									}
 								]
 							}
