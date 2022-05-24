@@ -2663,7 +2663,7 @@
 						"type": "Until",
 						"dependsOn": [
 							{
-								"activity": "SetContinuationToken",
+								"activity": "SetDataCount",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -2677,71 +2677,11 @@
 							},
 							"activities": [
 								{
-									"name": "CopyDACApiResponse",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "RestSource",
-											"httpRequestTimeout": "00:01:40",
-											"requestInterval": "00.00:00:00.010",
-											"requestMethod": "GET",
-											"paginationRules": {
-												"MaxRequestNumber": "48",
-												"supportRFC5988": "true"
-											}
-										},
-										"sink": {
-											"type": "JsonSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "JsonWriteSettings"
-											}
-										},
-										"enableStaging": false
-									},
-									"inputs": [
-										{
-											"referenceName": "DataAnyWhereProdRestResource",
-											"type": "DatasetReference",
-											"parameters": {
-												"relative_url_param": "locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=",
-												"continuation_token_param": {
-													"value": "@variables('token_var')",
-													"type": "Expression"
-												}
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "DAC_Location_List_Write",
-											"type": "DatasetReference",
-											"parameters": {
-												"FileName": {
-													"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								},
-								{
 									"name": "GetNextToken",
 									"type": "WebActivity",
 									"dependsOn": [
 										{
-											"activity": "CopyDACApiResponse",
+											"activity": "CheckCount",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -2757,12 +2697,15 @@
 									"userProperties": [],
 									"typeProperties": {
 										"url": {
-											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken=', variables('token_var'))",
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
 											"type": "Expression"
 										},
 										"method": "GET",
 										"headers": {
-											"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@variables('SubscriptionKey')",
+												"type": "Expression"
+											}
 										}
 									}
 								},
@@ -2828,6 +2771,98 @@
 											}
 										]
 									}
+								},
+								{
+									"name": "CheckCount",
+									"type": "IfCondition",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@greater(int(variables('GetCountData')),0)",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "FiledCount",
+												"type": "Fail",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+														"type": "Expression"
+													},
+													"errorCode": "404"
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "CopyDACApiResponse",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"paginationRules": {
+															"MaxRequestNumber": "48",
+															"supportRFC5988": "true"
+														}
+													},
+													"sink": {
+														"type": "JsonSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "JsonWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "DataAnyWhereProdRestResource",
+														"type": "DatasetReference",
+														"parameters": {
+															"relative_url_param": {
+																"value": "@concat('locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=')",
+																"type": "Expression"
+															},
+															"continuation_token_param": {
+																"value": "@variables('token_var')",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DAC_Location_List_Write",
+														"type": "DatasetReference",
+														"parameters": {
+															"FileName": {
+																"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
 								}
 							],
 							"timeout": "7.00:00:00"
@@ -2854,12 +2889,15 @@
 						"userProperties": [],
 						"typeProperties": {
 							"url": {
-								"value": "@pipeline().parameters.url_param",
+								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&&ContinuationToken=')",
 								"type": "Expression"
 							},
 							"method": "GET",
 							"headers": {
-								"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@variables('SubscriptionKey')",
+									"type": "Expression"
+								}
 							}
 						}
 					},
@@ -2914,17 +2952,104 @@
 								"enablePartitionDiscovery": false
 							}
 						}
+					},
+					{
+						"name": "SetModifiedDateTo",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ModifiedDateTo",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(utcnow(),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "SetModifiedDateFrom",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ModifiedDateFrom",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "GetCountOfData",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "SetContinuationToken",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',variables('AccountID'),'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@variables('SubscriptionKey')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SetDataCount",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetCountOfData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "GetCountData",
+							"value": {
+								"value": "@string(activity('GetCountOfData').output.Count)",
+								"type": "Expression"
+							}
+						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {},
 					"cancelAfter": {}
-				},
-				"parameters": {
-					"url_param": {
-						"type": "string",
-						"defaultValue": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
-					}
 				},
 				"variables": {
 					"token_var": {
@@ -2933,6 +3058,23 @@
 					"loop_var": {
 						"type": "Boolean",
 						"defaultValue": false
+					},
+					"AccountID": {
+						"type": "String",
+						"defaultValue": "9c249f2d-e157-4844-96fd-c6bbbcc30122"
+					},
+					"ModifiedDateTo": {
+						"type": "String"
+					},
+					"ModifiedDateFrom": {
+						"type": "String"
+					},
+					"SubscriptionKey": {
+						"type": "String",
+						"defaultValue": "f0c0b043ecb44804aed243980209bf89"
+					},
+					"GetCountData": {
+						"type": "String"
 					}
 				},
 				"annotations": []
@@ -2982,7 +3124,10 @@
 										},
 										"method": "GET",
 										"headers": {
-											"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@variables('SubscriptionKey')",
+												"type": "Expression"
+											}
 										}
 									}
 								},
@@ -3202,7 +3347,10 @@
 													},
 													"method": "GET",
 													"headers": {
-														"Ocp-Apim-Subscription-Key": "d529c1e2a799475e93966ede0793b58f"
+														"Ocp-Apim-Subscription-Key": {
+															"value": "@variables('SubscriptionKey')",
+															"type": "Expression"
+														}
 													}
 												}
 											},
@@ -3394,6 +3542,10 @@
 					},
 					"FailedActivity": {
 						"type": "String"
+					},
+					"SubscriptionKey": {
+						"type": "String",
+						"defaultValue": "f0c0b043ecb44804aed243980209bf89"
 					}
 				},
 				"annotations": []
@@ -4961,19 +5113,29 @@
 				"description": "Dac Incremental Daily Load",
 				"annotations": [],
 				"runtimeState": "Stopped",
-				"pipelines": [],
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Load_Retail_SiteMasterLoad_DAC",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
 						"frequency": "Day",
 						"interval": 1,
 						"startTime": "2022-03-28T05:25:00",
-						"endTime": "2022-04-30T23:59:00",
+						"endTime": "2022-05-27T23:59:00",
 						"timeZone": "Eastern Standard Time"
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/TumblingWindowDacIncrementalLoad')]",
