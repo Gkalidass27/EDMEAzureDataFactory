@@ -130,7 +130,14 @@
 									{
 										"name": "FiledCount",
 										"type": "Fail",
-										"dependsOn": [],
+										"dependsOn": [
+											{
+												"activity": "LoggingStoredProcedure",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
 										"userProperties": [],
 										"typeProperties": {
 											"message": {
@@ -138,6 +145,60 @@
 												"type": "Expression"
 											},
 											"errorCode": "404"
+										}
+									},
+									{
+										"name": "LoggingStoredProcedure",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[DAC].[uspInsertDACErrorLog]",
+											"storedProcedureParameters": {
+												"ErrorMsg": {
+													"value": {
+														"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"LoadID": {
+													"value": null,
+													"type": "Int32"
+												},
+												"PipelineId": {
+													"value": {
+														"value": "@pipeline().RunId",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"PipelineName": {
+													"value": {
+														"value": "@pipeline().Pipeline",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"RunID": {
+													"value": {
+														"value": "@pipeline().RunId",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "semarchy_staging",
+											"type": "LinkedServiceReference"
 										}
 									}
 								],
