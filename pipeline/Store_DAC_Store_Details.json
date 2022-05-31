@@ -50,6 +50,12 @@
 									"dependencyConditions": [
 										"Succeeded"
 									]
+								},
+								{
+									"activity": "WebLocationAPIFailed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
 								}
 							],
 							"policy": {
@@ -90,6 +96,12 @@
 							"dependsOn": [
 								{
 									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "WebLocationAPIFailed",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -182,7 +194,7 @@
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "FailWebLocationAPIActivity",
+									"activity": "WebLocationsAPI",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -249,14 +261,7 @@
 						{
 							"name": "SP_Load_Json_Payload_AfterFailed",
 							"type": "SqlServerStoredProcedure",
-							"dependsOn": [
-								{
-									"activity": "WebLocationAPIFailed",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
+							"dependsOn": [],
 							"policy": {
 								"timeout": "7.00:00:00",
 								"retry": 0,
@@ -292,14 +297,7 @@
 						{
 							"name": "LoadJsonFileAfterFailed",
 							"type": "Copy",
-							"dependsOn": [
-								{
-									"activity": "WebLocationAPIFailed",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
+							"dependsOn": [],
 							"policy": {
 								"timeout": "7.00:00:00",
 								"retry": 0,
@@ -434,26 +432,6 @@
 							"linkedServiceName": {
 								"referenceName": "semarchy_staging",
 								"type": "LinkedServiceReference"
-							}
-						},
-						{
-							"name": "FailWebLocationAPIActivity",
-							"type": "Fail",
-							"dependsOn": [
-								{
-									"activity": "WebLocationsAPI",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"message": {
-									"value": "@activity('WebLocationsAPI').error.message",
-									"type": "Expression"
-								},
-								"errorCode": "2108"
 							}
 						}
 					]
