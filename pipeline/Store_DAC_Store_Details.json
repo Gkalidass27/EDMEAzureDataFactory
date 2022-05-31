@@ -50,12 +50,6 @@
 									"dependencyConditions": [
 										"Succeeded"
 									]
-								},
-								{
-									"activity": "WebLocationAPIFailed",
-									"dependencyConditions": [
-										"Succeeded"
-									]
 								}
 							],
 							"policy": {
@@ -98,12 +92,6 @@
 									"activity": "WebLocationsAPI",
 									"dependencyConditions": [
 										"Succeeded"
-									]
-								},
-								{
-									"activity": "WebLocationAPIFailed",
-									"dependencyConditions": [
-										"Completed"
 									]
 								}
 							],
@@ -301,6 +289,142 @@
 									"RunID": {
 										"value": {
 											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "LoadJsonFileAfterFailed",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "WebLocationAPIFailed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "input",
+											"value": {
+												"value": "@{activity('WebLocationAPIFailed').output}",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "input",
+												"type": "String"
+											},
+											"sink": {
+												"type": "String",
+												"physicalType": "String",
+												"ordinal": 1
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DAC_Location_Details_Read1",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DAC_Location_Details_Write1",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@concat('Store_Location_',item().LocationID,'.json')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "SP_Load_Json_Payload_AfterFailed",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "WebLocationAPIFailed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[DAC].[Load_Json_Payload]",
+								"storedProcedureParameters": {
+									"JsonPayload": {
+										"value": {
+											"value": "@{activity('WebLocationAPIFailed').output}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"LocationID": {
+										"value": {
+											"value": "@item().locationID",
 											"type": "Expression"
 										},
 										"type": "String"
