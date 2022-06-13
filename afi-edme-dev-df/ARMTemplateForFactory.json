@@ -909,6 +909,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
+								"writeBatchTimeout": "00:30:00",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -1085,6 +1086,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
+								"writeBatchTimeout": "00:30:00",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -2418,9 +2420,7 @@
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
-							"parameters": {
-								"url_param": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
-							}
+							"parameters": {}
 						}
 					},
 					{
@@ -2464,11 +2464,193 @@
 							"waitOnCompletion": true,
 							"parameters": {}
 						}
+					},
+					{
+						"name": "SPCallStoreDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Store_DAC_Location_Details",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@activity('Store_DAC_Location_Details').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@activity('Store_DAC_Location_Details').error.message",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallDacSiteMasterLoadErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_SiteMasterLoad_DAC",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@activity('Load_Retail_SiteMasterLoad_DAC').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@activity('Load_Retail_SiteMasterLoad_DAC').error.message",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallStoreLocationDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Stage_Retail_SiteMasterLoad_DAC",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').error.message",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {},
 					"cancelAfter": {}
+				},
+				"variables": {
+					"StoreDetailsErrorMsg": {
+						"type": "String"
+					},
+					"StoreLocationDetailsErrorMsg": {
+						"type": "String"
+					},
+					"DacSiteMasterLoadErrorMsg": {
+						"type": "String"
+					}
 				},
 				"annotations": [],
 				"lastPublishTime": "2022-05-26T06:05:07Z"
@@ -2477,7 +2659,8 @@
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Location_Details')]",
 				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_SiteMasterLoad_DAC')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_Retail_SiteMasterLoad_DAC')]"
+				"[concat(variables('factoryId'), '/pipelines/Load_Retail_SiteMasterLoad_DAC')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
 			]
 		},
 		{
@@ -2609,7 +2792,7 @@
 							{
 								"activity": "ForEachJsonFile",
 								"dependencyConditions": [
-									"Succeeded"
+									"Completed"
 								]
 							}
 						],
@@ -2809,16 +2992,86 @@
 										},
 										"ifFalseActivities": [
 											{
-												"name": "FiledCount",
-												"type": "Fail",
+												"name": "LoggingStoredProcedure",
+												"type": "SqlServerStoredProcedure",
 												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
 												"userProperties": [],
 												"typeProperties": {
-													"message": {
-														"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+													"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+													"storedProcedureParameters": {
+														"ErrorCode": {
+															"value": "404",
+															"type": "String"
+														},
+														"ErrorMsg": {
+															"value": {
+																"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"PipelineName": {
+															"value": {
+																"value": "@pipeline().Pipeline",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"RunID": {
+															"value": {
+																"value": "@pipeline().RunId",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "semarchy_staging",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "CancelPipeline",
+												"type": "WebActivity",
+												"dependsOn": [
+													{
+														"activity": "LoggingStoredProcedure",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"url": {
+														"value": "@concat('https://management.azure.com/subscriptions/f2330f9f-3a8b-498c-a2d6-476e4f263349/resourceGroups/afi-edme-rg/providers/Microsoft.DataFactory/factories/',pipeline().DataFactory,'/pipelineruns/',pipeline().RunId,'/cancel?isRecursive=true&api-version=2018-06-01')\n",
 														"type": "Expression"
 													},
-													"errorCode": "404"
+													"method": "POST",
+													"headers": {},
+													"body": {
+														"value": "{}",
+														"type": "Expression"
+													},
+													"authentication": {
+														"type": "MSI",
+														"resource": "https://management.azure.com/"
+													}
 												}
 											}
 										],
@@ -3019,7 +3272,7 @@
 						"typeProperties": {
 							"variableName": "ModifiedDateFrom",
 							"value": {
-								"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')\n",
 								"type": "Expression"
 							}
 						}
@@ -3107,6 +3360,7 @@
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/datasets/DAC_Location_List_Read')]",
 				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
 				"[concat(variables('factoryId'), '/datasets/DataAnyWhereProdRestResource')]",
 				"[concat(variables('factoryId'), '/datasets/DAC_Location_List_Write')]"
 			]
@@ -3144,7 +3398,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"url": {
-											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=1', item().LocationID)",
 											"type": "Expression"
 										},
 										"method": "GET",
@@ -3275,14 +3529,14 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "DAC_Location_Details_Read",
+											"referenceName": "DAC_Location_Details_Read1",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
 									],
 									"outputs": [
 										{
-											"referenceName": "DAC_Location_Details_Write",
+											"referenceName": "DAC_Location_Details_Write1",
 											"type": "DatasetReference",
 											"parameters": {
 												"FileName": {
@@ -3294,242 +3548,7 @@
 									]
 								},
 								{
-									"name": "CheckErrorCode",
-									"type": "IfCondition",
-									"dependsOn": [
-										{
-											"activity": "SetStatusCode",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"expression": {
-											"value": "@equals(string(json(variables('StatusCode')).statusCode),'429')",
-											"type": "Expression"
-										},
-										"ifFalseActivities": [
-											{
-												"name": "FailPipeline",
-												"type": "Fail",
-												"dependsOn": [],
-												"userProperties": [],
-												"typeProperties": {
-													"message": {
-														"value": "@activity('WebLocationsAPI').error.message",
-														"type": "Expression"
-													},
-													"errorCode": {
-														"value": "@string(variables('StatusCode'))",
-														"type": "Expression"
-													}
-												}
-											},
-											{
-												"name": "SetFailedVariable",
-												"type": "SetVariable",
-												"dependsOn": [
-													{
-														"activity": "FailPipeline",
-														"dependencyConditions": [
-															"Succeeded"
-														]
-													}
-												],
-												"userProperties": [],
-												"typeProperties": {
-													"variableName": "FailedActivity",
-													"value": "Got the different error "
-												}
-											}
-										],
-										"ifTrueActivities": [
-											{
-												"name": "WebLocationAPIFailed",
-												"type": "WebActivity",
-												"dependsOn": [
-													{
-														"activity": "WaitTime",
-														"dependencyConditions": [
-															"Succeeded"
-														]
-													}
-												],
-												"policy": {
-													"timeout": "7.00:00:00",
-													"retry": 3,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"url": {
-														"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
-														"type": "Expression"
-													},
-													"method": "GET",
-													"headers": {
-														"Ocp-Apim-Subscription-Key": {
-															"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-															"type": "Expression"
-														}
-													}
-												}
-											},
-											{
-												"name": "WaitTime",
-												"type": "Wait",
-												"dependsOn": [],
-												"userProperties": [],
-												"typeProperties": {
-													"waitTimeInSeconds": 3
-												}
-											},
-											{
-												"name": "SP_Load_Json_Payload_AfterFailed",
-												"type": "SqlServerStoredProcedure",
-												"dependsOn": [
-													{
-														"activity": "WebLocationAPIFailed",
-														"dependencyConditions": [
-															"Succeeded"
-														]
-													}
-												],
-												"policy": {
-													"timeout": "7.00:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"storedProcedureName": "[[DAC].[Load_Json_Payload]",
-													"storedProcedureParameters": {
-														"JsonPayload": {
-															"value": {
-																"value": "@{activity('WebLocationAPIFailed').output}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"LocationID": {
-															"value": {
-																"value": "@item().locationID",
-																"type": "Expression"
-															},
-															"type": "String"
-														}
-													}
-												},
-												"linkedServiceName": {
-													"referenceName": "semarchy_staging",
-													"type": "LinkedServiceReference"
-												}
-											},
-											{
-												"name": "LoadJsonFileAfterFailed",
-												"type": "Copy",
-												"dependsOn": [
-													{
-														"activity": "WebLocationAPIFailed",
-														"dependencyConditions": [
-															"Succeeded"
-														]
-													}
-												],
-												"policy": {
-													"timeout": "7.00:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"source": {
-														"type": "DelimitedTextSource",
-														"additionalColumns": [
-															{
-																"name": "input",
-																"value": {
-																	"value": "@{activity('WebLocationAPIFailed').output}",
-																	"type": "Expression"
-																}
-															}
-														],
-														"storeSettings": {
-															"type": "AzureBlobFSReadSettings",
-															"recursive": true,
-															"enablePartitionDiscovery": false
-														},
-														"formatSettings": {
-															"type": "DelimitedTextReadSettings"
-														}
-													},
-													"sink": {
-														"type": "DelimitedTextSink",
-														"storeSettings": {
-															"type": "AzureBlobFSWriteSettings"
-														},
-														"formatSettings": {
-															"type": "DelimitedTextWriteSettings",
-															"quoteAllText": true,
-															"fileExtension": ".txt"
-														}
-													},
-													"enableStaging": false,
-													"translator": {
-														"type": "TabularTranslator",
-														"mappings": [
-															{
-																"source": {
-																	"name": "input",
-																	"type": "String"
-																},
-																"sink": {
-																	"type": "String",
-																	"physicalType": "String",
-																	"ordinal": 1
-																}
-															}
-														],
-														"typeConversion": true,
-														"typeConversionSettings": {
-															"allowDataTruncation": true,
-															"treatBooleanAsNumber": false
-														}
-													}
-												},
-												"inputs": [
-													{
-														"referenceName": "DAC_Location_Details_Read",
-														"type": "DatasetReference",
-														"parameters": {}
-													}
-												],
-												"outputs": [
-													{
-														"referenceName": "DAC_Location_Details_Write",
-														"type": "DatasetReference",
-														"parameters": {
-															"FileName": {
-																"value": "@concat('Store_Location_',item().LocationID,'.json')",
-																"type": "Expression"
-															}
-														}
-													}
-												]
-											}
-										]
-									}
-								},
-								{
-									"name": "SetStatusCode",
+									"name": "SetErrorMsg",
 									"type": "SetVariable",
 									"dependsOn": [
 										{
@@ -3541,12 +3560,255 @@
 									],
 									"userProperties": [],
 									"typeProperties": {
-										"variableName": "StatusCode",
+										"variableName": "ErrorMsg",
 										"value": {
 											"value": "@activity('WebLocationsAPI').error.message",
 											"type": "Expression"
 										}
 									}
+								},
+								{
+									"name": "WaitTime",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "SetErrorMsg",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 3
+									}
+								},
+								{
+									"name": "LoggingStoredProcedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SetErrorMsg",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@activity('WebLocationsAPI').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@variables('ErrorMsg')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "WebLocationAPIFailed",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "WaitTime",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "SP_Load_Json_Payload_AfterFailed",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "WebLocationAPIFailed",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[DAC].[Load_Json_Payload]",
+										"storedProcedureParameters": {
+											"JsonPayload": {
+												"value": {
+													"value": "@{activity('WebLocationAPIFailed').output}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LocationID": {
+												"value": {
+													"value": "@item().locationID",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LoadJsonFileAfterFailed",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "WebLocationAPIFailed",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "input",
+													"value": {
+														"value": "@{activity('WebLocationAPIFailed').output}",
+														"type": "Expression"
+													}
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "input",
+														"type": "String"
+													},
+													"sink": {
+														"type": "String",
+														"physicalType": "String",
+														"ordinal": 1
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DAC_Location_Details_Read1",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DAC_Location_Details_Write1",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat('Store_Location_',item().LocationID,'.json')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
 								}
 							]
 						}
@@ -3562,10 +3824,10 @@
 					}
 				},
 				"variables": {
-					"StatusCode": {
+					"FailedActivity": {
 						"type": "String"
 					},
-					"FailedActivity": {
+					"ErrorMsg": {
 						"type": "String"
 					}
 				},
@@ -3575,8 +3837,8 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
-				"[concat(variables('factoryId'), '/datasets/DAC_Location_Details_Read')]",
-				"[concat(variables('factoryId'), '/datasets/DAC_Location_Details_Write')]"
+				"[concat(variables('factoryId'), '/datasets/DAC_Location_Details_Read1')]",
+				"[concat(variables('factoryId'), '/datasets/DAC_Location_Details_Write1')]"
 			]
 		},
 		{
@@ -3613,7 +3875,77 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Read1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "input.txt",
+						"folderPath": "dac_store_details",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Write')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": "dac_store_details",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "",
+					"quoteChar": ""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Write1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
