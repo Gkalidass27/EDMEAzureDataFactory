@@ -128,16 +128,81 @@
 								},
 								"ifFalseActivities": [
 									{
-										"name": "FiledCount",
-										"type": "Fail",
+										"name": "LoggingStoredProcedure",
+										"type": "SqlServerStoredProcedure",
 										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
 										"userProperties": [],
 										"typeProperties": {
-											"message": {
-												"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+											"storedProcedureName": "[DAC].[uspInsertDACErrorLog]",
+											"storedProcedureParameters": {
+												"ErrorCode": {
+													"value": "404",
+													"type": "String"
+												},
+												"ErrorMsg": {
+													"value": {
+														"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"PipelineName": {
+													"value": {
+														"value": "@pipeline().Pipeline",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"RunID": {
+													"value": {
+														"value": "@pipeline().RunId",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "semarchy_staging",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "CancelPipeline",
+										"type": "WebActivity",
+										"dependsOn": [
+											{
+												"activity": "LoggingStoredProcedure",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@concat('https://management.azure.com/subscriptions/f2330f9f-3a8b-498c-a2d6-476e4f263349/resourceGroups/afi-edme-rg/providers/Microsoft.DataFactory/factories/',pipeline().DataFactory,'/pipelineruns/',pipeline().RunId,'/cancel?isRecursive=true?api-version=2018-06-01')\n",
 												"type": "Expression"
 											},
-											"errorCode": "404"
+											"method": "POST",
+											"authentication": {
+												"type": "MSI",
+												"resource": "https://management.azure.com/"
+											}
 										}
 									}
 								],
@@ -337,7 +402,7 @@
 				"typeProperties": {
 					"variableName": "ModifiedDateFrom",
 					"value": {
-						"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+						"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')\n",
 						"type": "Expression"
 					}
 				}

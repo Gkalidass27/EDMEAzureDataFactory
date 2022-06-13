@@ -12,10 +12,7 @@
 						"referenceName": "Store_DAC_Location_Details",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"url_param": "  https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=836c0e43-b4f9-41b8-80e6-fd2bee658dee&PageSize=25&ContinuationToken="
-					}
+					"waitOnCompletion": true
 				}
 			},
 			{
@@ -57,8 +54,190 @@
 					},
 					"waitOnCompletion": true
 				}
+			},
+			{
+				"name": "SPCallStoreDetailsErrorMsg",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Store_DAC_Location_Details",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[DAC].[uspInsertDACErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@activity('Store_DAC_Location_Details').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@activity('Store_DAC_Location_Details').error.message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SPCallDacSiteMasterLoadErrorMsg",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load_Retail_SiteMasterLoad_DAC",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[DAC].[uspInsertDACErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@activity('Load_Retail_SiteMasterLoad_DAC').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@activity('Load_Retail_SiteMasterLoad_DAC').error.message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SPCallStoreLocationDetailsErrorMsg",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Stage_Retail_SiteMasterLoad_DAC",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[DAC].[uspInsertDACErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').error.message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
+		"variables": {
+			"StoreDetailsErrorMsg": {
+				"type": "String"
+			},
+			"StoreLocationDetailsErrorMsg": {
+				"type": "String"
+			},
+			"DacSiteMasterLoadErrorMsg": {
+				"type": "String"
+			}
+		},
 		"annotations": [],
 		"lastPublishTime": "2022-05-26T06:05:07Z"
 	},
