@@ -54,69 +54,6 @@
 							}
 						},
 						{
-							"name": "HasNextToken",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "GetNextToken",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@equals(activity('GetNextToken').output.Count,25)",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "SetLoopValueFalse",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "loop_var",
-											"value": false
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "SetLoopValueTrue",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "loop_var",
-											"value": true
-										}
-									},
-									{
-										"name": "SetNextToken",
-										"type": "SetVariable",
-										"dependsOn": [
-											{
-												"activity": "SetLoopValueTrue",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "token_var",
-											"value": {
-												"value": "@activity('GetNextToken').output.ContinuationToken",
-												"type": "Expression"
-											}
-										}
-									}
-								]
-							}
-						},
-						{
 							"name": "CheckCount",
 							"type": "IfCondition",
 							"dependsOn": [],
@@ -246,6 +183,60 @@
 										]
 									}
 								]
+							}
+						},
+						{
+							"name": "SetNextToken",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "GetNextToken",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "token_var",
+								"value": {
+									"value": "@activity('GetNextToken').output.ContinuationToken",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SetLoopValueTrue",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "SetNextToken",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "loop_var",
+								"value": true
+							}
+						},
+						{
+							"name": "SetLoopValueFalse",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "SetNextToken",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "loop_var",
+								"value": false
 							}
 						}
 					],
@@ -436,7 +427,7 @@
 					{
 						"activity": "UntilLastPage",
 						"dependencyConditions": [
-							"Succeeded"
+							"Completed"
 						]
 					}
 				],
