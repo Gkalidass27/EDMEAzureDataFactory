@@ -13,6 +13,38 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Semarchy_Staging_ISO_StateCode')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "EXT_REF_US_STATE_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "STATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STATE_NAME",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "ISO",
+					"table": "statecode"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_EXTERNAL_REF_COUNTRY')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1634,6 +1666,7 @@
 				"lastPublishTime": "2022-05-26T06:05:04Z"
 			},
 			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Semarchy_Staging_ISO_StateCode')]",
 				"[concat(variables('factoryId'), '/datasets/masterDataHub_Retail_dbo_SA_EXTERNAL_REF_US_STATE')]"
 			]
 		},
@@ -2010,7 +2043,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"writeBatchTimeout": "00:30:00",
+								"writeBatchTimeout": "00:00:00",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -2187,7 +2220,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"writeBatchTimeout": "00:30:00",
+								"writeBatchTimeout": "00:00:00",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
@@ -3497,507 +3530,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Store_DAC_Location_Details')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "UntilLastPage",
-						"type": "Until",
-						"dependsOn": [
-							{
-								"activity": "SetDataCount",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@equals(variables('loop_var'),false)",
-								"type": "Expression"
-							},
-							"activities": [
-								{
-									"name": "GetNextToken",
-									"type": "WebActivity",
-									"dependsOn": [
-										{
-											"activity": "CheckCount",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"url": {
-											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
-											"type": "Expression"
-										},
-										"method": "GET",
-										"headers": {
-											"Ocp-Apim-Subscription-Key": {
-												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "HasNextToken",
-									"type": "IfCondition",
-									"dependsOn": [
-										{
-											"activity": "GetNextToken",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"expression": {
-											"value": "@equals(activity('GetNextToken').output.Count,25)",
-											"type": "Expression"
-										},
-										"ifFalseActivities": [
-											{
-												"name": "SetLoopValueFalse",
-												"type": "SetVariable",
-												"dependsOn": [],
-												"userProperties": [],
-												"typeProperties": {
-													"variableName": "loop_var",
-													"value": false
-												}
-											}
-										],
-										"ifTrueActivities": [
-											{
-												"name": "SetLoopValueTrue",
-												"type": "SetVariable",
-												"dependsOn": [],
-												"userProperties": [],
-												"typeProperties": {
-													"variableName": "loop_var",
-													"value": true
-												}
-											},
-											{
-												"name": "SetNextToken",
-												"type": "SetVariable",
-												"dependsOn": [
-													{
-														"activity": "SetLoopValueTrue",
-														"dependencyConditions": [
-															"Succeeded"
-														]
-													}
-												],
-												"userProperties": [],
-												"typeProperties": {
-													"variableName": "token_var",
-													"value": {
-														"value": "@activity('GetNextToken').output.ContinuationToken",
-														"type": "Expression"
-													}
-												}
-											}
-										]
-									}
-								},
-								{
-									"name": "CheckCount",
-									"type": "IfCondition",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"expression": {
-											"value": "@greater(int(variables('GetCountData')),0)",
-											"type": "Expression"
-										},
-										"ifFalseActivities": [
-											{
-												"name": "LoggingStoredProcedure",
-												"type": "SqlServerStoredProcedure",
-												"dependsOn": [],
-												"policy": {
-													"timeout": "7.00:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
-													"storedProcedureParameters": {
-														"ErrorCode": {
-															"value": "404",
-															"type": "String"
-														},
-														"ErrorMsg": {
-															"value": {
-																"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"PipelineName": {
-															"value": {
-																"value": "@pipeline().Pipeline",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"RunID": {
-															"value": {
-																"value": "@pipeline().RunId",
-																"type": "Expression"
-															},
-															"type": "String"
-														}
-													}
-												},
-												"linkedServiceName": {
-													"referenceName": "semarchy_staging",
-													"type": "LinkedServiceReference"
-												}
-											},
-											{
-												"name": "CancelPipeline",
-												"type": "WebActivity",
-												"dependsOn": [
-													{
-														"activity": "LoggingStoredProcedure",
-														"dependencyConditions": [
-															"Succeeded"
-														]
-													}
-												],
-												"policy": {
-													"timeout": "7.00:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"url": {
-														"value": "@concat('https://management.azure.com/subscriptions/f2330f9f-3a8b-498c-a2d6-476e4f263349/resourceGroups/afi-edme-rg/providers/Microsoft.DataFactory/factories/',pipeline().DataFactory,'/pipelineruns/',pipeline().RunId,'/cancel?isRecursive=true&api-version=2018-06-01')\n",
-														"type": "Expression"
-													},
-													"method": "POST",
-													"headers": {
-														"Content-Type": "application/json",
-														"Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6ImpTMVhvMU9XRGpfNTJ2YndHTmd2UU8yVnpNYyIsImtpZCI6ImpTMVhvMU9XRGpfNTJ2YndHTmd2UU8yVnpNYyJ9.eyJhdWQiOiJodHRwczovL21hbmFnZW1lbnQuY29yZS53aW5kb3dzLm5ldCIsImlzcyI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0LzVhOWQ5Y2ZkLWMzMmUtNGFjMS1hOWVkLWZlODNkZjRmOWU0ZC8iLCJpYXQiOjE2NTUxMjQ5OTcsIm5iZiI6MTY1NTEyNDk5NywiZXhwIjoxNjU1MTMwNDQ1LCJfY2xhaW1fbmFtZXMiOnsiZ3JvdXBzIjoic3JjMSJ9LCJfY2xhaW1fc291cmNlcyI6eyJzcmMxIjp7ImVuZHBvaW50IjoiaHR0cHM6Ly9ncmFwaC53aW5kb3dzLm5ldC81YTlkOWNmZC1jMzJlLTRhYzEtYTllZC1mZTgzZGY0ZjllNGQvdXNlcnMvOWZjZTFjMGYtOWUxMy00MWI1LTkxNTAtMzQ4YjNiNmFjNDAxL2dldE1lbWJlck9iamVjdHMifX0sImFjciI6IjEiLCJhaW8iOiJBVFFBeS84VEFBQUFVclhLUExRV1ZrVmxvNzhIYjdrMENaTTlkbmh6MXk2aDZMRlBNSXk5aGJsclhlcGV5a1FHRkoxaVZyQ0puVVFNIiwiYW1yIjpbInB3ZCJdLCJhcHBpZCI6IjE4ZmJjYTE2LTIyMjQtNDVmNi04NWIwLWY3YmYyYjM5YjNmMyIsImFwcGlkYWNyIjoiMCIsImZhbWlseV9uYW1lIjoiU2V2cmEiLCJnaXZlbl9uYW1lIjoiU2hhaWxlc2giLCJpcGFkZHIiOiIxMDMuMjA5LjY3LjM4IiwibmFtZSI6IlNldnJhLCBTaGFpbGVzaCAoQ29udHJhY3RvcikiLCJvaWQiOiI5ZmNlMWMwZi05ZTEzLTQxYjUtOTE1MC0zNDhiM2I2YWM0MDEiLCJvbnByZW1fc2lkIjoiUy0xLTUtMjEtMzM5MjIwNjA3OC03MTg0MDUxMzEtMzAxMzI4MTI0NC0yNjM1MjUiLCJwdWlkIjoiMTAwMzIwMDA1QkEyQzFCRCIsInJoIjoiMC5BVVVBX1p5ZFdpN0R3VXFwN2Y2RDMwLWVUVVpJZjNrQXV0ZFB1a1Bhd2ZqMk1CTkZBQ0kuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic3ViIjoidWZWUE5pSi1WU2RCQmxWZ2xIMVJzaHNWVlVpd3FrSlVzTjc3RzhSVV9iUSIsInRpZCI6IjVhOWQ5Y2ZkLWMzMmUtNGFjMS1hOWVkLWZlODNkZjRmOWU0ZCIsInVuaXF1ZV9uYW1lIjoiU1NldnJhQGFzaGxleWZ1cm5pdHVyZS5jb20iLCJ1cG4iOiJTU2V2cmFAYXNobGV5ZnVybml0dXJlLmNvbSIsInV0aSI6IkoyeGM5Q2JNalVTNjdvNXlFOGdDQVEiLCJ2ZXIiOiIxLjAiLCJ3aWRzIjpbImI3OWZiZjRkLTNlZjktNDY4OS04MTQzLTc2YjE5NGU4NTUwOSJdLCJ4bXNfdGNkdCI6MTM5Mzg3MjE4MX0.kj3E3HNyEi2Z4UqiD3jX0eD_olBoVmQZskivWmllxF3xmToo22xXyeNVuQO29uyq97vikxtQK96ODj5ap0Ecu0Rlry49QjIcBG9qN_ig_zcmbCSyCKZlfLZQ3skVpD-tX6WRXGK1xA95iHQrCCaegNSWJOfhhGUzHpX5U0vI4c6BurMCBA0-H2kThW2I8mqQdwidvBEPZaFpM7zrmwYk8DR3m6MOakettaAREESuEMZAlicQoiczLWSXDpANZFehGOA2EKArMCrOaHLhDu9piklR8VsM8WeB47xqErpVhYzsVvNRByLjC38R5YhjzBTvLw9wFSUlXDKWn5ZcteKgPw"
-													},
-													"body": {
-														"value": "{}",
-														"type": "Expression"
-													},
-													"authentication": {
-														"type": "MSI",
-														"resource": "https://management.azure.com/"
-													}
-												}
-											}
-										],
-										"ifTrueActivities": [
-											{
-												"name": "CopyDACApiResponse",
-												"type": "Copy",
-												"dependsOn": [],
-												"policy": {
-													"timeout": "7.00:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"source": {
-														"type": "RestSource",
-														"httpRequestTimeout": "00:01:40",
-														"requestInterval": "00.00:00:00.010",
-														"requestMethod": "GET",
-														"additionalHeaders": {
-															"Ocp-Apim-Subscription-Key": {
-																"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-																"type": "Expression"
-															}
-														},
-														"paginationRules": {
-															"MaxRequestNumber": "48",
-															"supportRFC5988": "true"
-														}
-													},
-													"sink": {
-														"type": "JsonSink",
-														"storeSettings": {
-															"type": "AzureBlobFSWriteSettings"
-														},
-														"formatSettings": {
-															"type": "JsonWriteSettings"
-														}
-													},
-													"enableStaging": false
-												},
-												"inputs": [
-													{
-														"referenceName": "DataAnyWhereProdRestResource",
-														"type": "DatasetReference",
-														"parameters": {
-															"relative_url_param": {
-																"value": "@concat('locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=')",
-																"type": "Expression"
-															},
-															"continuation_token_param": {
-																"value": "@variables('token_var')",
-																"type": "Expression"
-															}
-														}
-													}
-												],
-												"outputs": [
-													{
-														"referenceName": "DAC_Location_List_Write",
-														"type": "DatasetReference",
-														"parameters": {
-															"FileName": {
-																"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
-																"type": "Expression"
-															}
-														}
-													}
-												]
-											}
-										]
-									}
-								}
-							],
-							"timeout": "7.00:00:00"
-						}
-					},
-					{
-						"name": "GetContinuationToken",
-						"type": "WebActivity",
-						"dependsOn": [
-							{
-								"activity": "DeleteJsonAPIs",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"url": {
-								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&&ContinuationToken=')",
-								"type": "Expression"
-							},
-							"method": "GET",
-							"headers": {
-								"Ocp-Apim-Subscription-Key": {
-									"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "SetContinuationToken",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "GetContinuationToken",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "token_var",
-							"value": {
-								"value": "@activity('GetContinuationToken').output.ContinuationToken",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "DeleteJsonAPIs",
-						"type": "Delete",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DAC_Location_List_Read",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"logStorageSettings": {
-								"linkedServiceName": {
-									"referenceName": "masterDataHubStg",
-									"type": "LinkedServiceReference"
-								}
-							},
-							"enableLogging": true,
-							"storeSettings": {
-								"type": "AzureBlobFSReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
-					},
-					{
-						"name": "SetModifiedDateTo",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "DeleteJsonAPIs",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "ModifiedDateTo",
-							"value": {
-								"value": "@formatDateTime(convertTimeZone(utcnow(),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "SetModifiedDateFrom",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "DeleteJsonAPIs",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "ModifiedDateFrom",
-							"value": {
-								"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')\n",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "GetCountOfData",
-						"type": "WebActivity",
-						"dependsOn": [
-							{
-								"activity": "SetContinuationToken",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"url": {
-								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
-								"type": "Expression"
-							},
-							"method": "GET",
-							"headers": {
-								"Ocp-Apim-Subscription-Key": {
-									"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "SetDataCount",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "GetCountOfData",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "GetCountData",
-							"value": {
-								"value": "@string(activity('GetCountOfData').output.Count)",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"variables": {
-					"token_var": {
-						"type": "String"
-					},
-					"loop_var": {
-						"type": "Boolean",
-						"defaultValue": false
-					},
-					"ModifiedDateTo": {
-						"type": "String"
-					},
-					"ModifiedDateFrom": {
-						"type": "String"
-					},
-					"GetCountData": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"lastPublishTime": "2022-05-26T06:05:04Z"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Store_DAC_Store_Details')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -4030,7 +3562,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"url": {
-											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=1', item().LocationID)",
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
 											"type": "Expression"
 										},
 										"method": "GET",
@@ -4643,6 +4175,63 @@
 							"referenceName": "semarchy_staging",
 							"type": "LinkedServiceReference"
 						}
+					},
+					{
+						"name": "SPCallStoreLocationDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@activity('GetAllJsonFiles').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@activity('GetAllJsonFiles').error.message",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
 					}
 				],
 				"policy": {
@@ -4662,6 +4251,647 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Store_DAC_Location_Details')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "UntilLastPage",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "SetDataCount",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(variables('loop_var'),false)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "GetNextToken",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "CheckCount",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "CheckCount",
+									"type": "IfCondition",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@greater(int(variables('GetCountData')),0)",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "LoggingStoredProcedure",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+													"storedProcedureParameters": {
+														"ErrorCode": {
+															"value": "404",
+															"type": "String"
+														},
+														"ErrorMsg": {
+															"value": {
+																"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"PipelineName": {
+															"value": {
+																"value": "@pipeline().Pipeline",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"RunID": {
+															"value": {
+																"value": "@pipeline().RunId",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "semarchy_staging",
+													"type": "LinkedServiceReference"
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "CopyDACApiResponse",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"additionalHeaders": {
+															"Ocp-Apim-Subscription-Key": {
+																"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+																"type": "Expression"
+															}
+														},
+														"paginationRules": {
+															"MaxRequestNumber": "48",
+															"supportRFC5988": "true"
+														}
+													},
+													"sink": {
+														"type": "JsonSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "JsonWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "DataAnyWhereProdRestResource",
+														"type": "DatasetReference",
+														"parameters": {
+															"relative_url_param": {
+																"value": "@concat('locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=')",
+																"type": "Expression"
+															},
+															"continuation_token_param": {
+																"value": "@variables('token_var')",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DAC_Location_List_Write",
+														"type": "DatasetReference",
+														"parameters": {
+															"FileName": {
+																"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "SetNextToken",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "GetNextToken",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "token_var",
+										"value": {
+											"value": "@activity('GetNextToken').output.ContinuationToken",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SetLoopValueTrue",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "SetNextToken",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "loop_var",
+										"value": true
+									}
+								},
+								{
+									"name": "SetLoopValueFalse",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "SetNextToken",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "loop_var",
+										"value": false
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "GetContinuationToken",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&&ContinuationToken=')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SetContinuationToken",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetContinuationToken",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "token_var",
+							"value": {
+								"value": "@activity('GetContinuationToken').output.ContinuationToken",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "DeleteJsonAPIs",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DAC_Location_List_Read",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"logStorageSettings": {
+								"linkedServiceName": {
+									"referenceName": "masterDataHubStg",
+									"type": "LinkedServiceReference"
+								}
+							},
+							"enableLogging": true,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "SetModifiedDateTo",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ModifiedDateTo",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(utcnow(),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "SetModifiedDateFrom",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ModifiedDateFrom",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "GetCountOfData",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "SetContinuationToken",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SetDataCount",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetCountOfData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "GetCountData",
+							"value": {
+								"value": "@string(activity('GetCountOfData').output.Count)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "CheckCountProcessPipeline",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "UntilLastPage",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(int(variables('GetCountData')),0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "NoDataFound",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "GetCountData",
+										"value": {
+											"value": "@string(activity('GetCountOfData').output.Count)",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Stage_Retail_SiteMasterLoad_DAC",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Stage_Retail_SiteMasterLoad_DAC",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {}
+									}
+								},
+								{
+									"name": "Load_Retail_SiteMasterLoad_DAC",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Stage_Retail_SiteMasterLoad_DAC",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Load_Retail_SiteMasterLoad_DAC",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {}
+									}
+								},
+								{
+									"name": "SPCallStoreLocationDetailsErrorMsg",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Stage_Retail_SiteMasterLoad_DAC",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').error.message",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "SPCallDacSiteMasterLoadErrorMsg",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_Retail_SiteMasterLoad_DAC",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@activity('Load_Retail_SiteMasterLoad_DAC').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@activity('Load_Retail_SiteMasterLoad_DAC').error.message",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"token_var": {
+						"type": "String"
+					},
+					"loop_var": {
+						"type": "Boolean",
+						"defaultValue": false
+					},
+					"ModifiedDateTo": {
+						"type": "String"
+					},
+					"ModifiedDateFrom": {
+						"type": "String"
+					},
+					"GetCountData": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:04Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_SiteMasterLoad_DAC')]",
+				"[concat(variables('factoryId'), '/pipelines/Load_Retail_SiteMasterLoad_DAC')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -4675,48 +4905,6 @@
 						"typeProperties": {
 							"pipeline": {
 								"referenceName": "Store_DAC_Location_Details",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Stage_Retail_SiteMasterLoad_DAC",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Store_DAC_Location_Details",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Stage_Retail_SiteMasterLoad_DAC",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Load_Retail_SiteMasterLoad_DAC",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Stage_Retail_SiteMasterLoad_DAC",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Load_Retail_SiteMasterLoad_DAC",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -4779,120 +4967,6 @@
 							"referenceName": "semarchy_staging",
 							"type": "LinkedServiceReference"
 						}
-					},
-					{
-						"name": "SPCallDacSiteMasterLoadErrorMsg",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Load_Retail_SiteMasterLoad_DAC",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@activity('Load_Retail_SiteMasterLoad_DAC').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@activity('Load_Retail_SiteMasterLoad_DAC').error.message",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@pipeline().Pipeline",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "SPCallStoreLocationDetailsErrorMsg",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Stage_Retail_SiteMasterLoad_DAC",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[DAC].[uspInsertDACErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').error.message",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@pipeline().Pipeline",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
 					}
 				],
 				"policy": {
@@ -4908,47 +4982,16 @@
 					},
 					"DacSiteMasterLoadErrorMsg": {
 						"type": "String"
+					},
+					"JsonCount": {
+						"type": "String"
 					}
 				},
 				"annotations": [],
 				"lastPublishTime": "2022-05-26T06:05:07Z"
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Location_Details')]",
-				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_SiteMasterLoad_DAC')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_Retail_SiteMasterLoad_DAC')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DacIncrementalDailyLoad')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Dac Incremental Daily Load",
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "Orchestrate_Load_Retail_SiteMasterLoad_DAC",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Day",
-						"interval": 1,
-						"startTime": "2022-05-23T04:00:00",
-						"endTime": "2022-05-27T23:59:00",
-						"timeZone": "Eastern Standard Time"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]"
+				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Location_Details')]"
 			]
 		}
 	]
