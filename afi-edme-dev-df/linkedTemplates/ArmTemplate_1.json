@@ -13,6 +13,50 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Semarchy_Staging_ISO_CountryCode')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "EXT_REF_COUNTRY_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "COUNTRY_CODE_A2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_CODE_A3",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_LOCAL_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_UN_CODE",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "ISO",
+					"table": "countrycode"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Semarchy_Staging_ISO_StateCode')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1446,6 +1490,7 @@
 				"lastPublishTime": "2022-05-26T06:05:04Z"
 			},
 			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Semarchy_Staging_ISO_CountryCode')]",
 				"[concat(variables('factoryId'), '/datasets/masterDataHub_Retail_dbo_SA_EXTERNAL_REF_COUNTRY')]"
 			]
 		},
@@ -2220,7 +2265,7 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"writeBatchTimeout": "00:00:00",
+								"writeBatchTimeout": "00:30:00",
 								"writeBehavior": "upsert",
 								"upsertSettings": {
 									"useTempDB": true,
