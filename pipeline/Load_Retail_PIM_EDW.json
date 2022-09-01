@@ -305,18 +305,138 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select B.ProductColorKey,C.ProductRetailBrandNameKey,*  from [Retail].[EDWProduct] A left join  [Retail].[EDWProductColor] B on A.ItemColor=ProductColor \r\nleft join  [Retail].[EDWProductRetailBrandName] C on A.ItemRetailBrandName=C.ProductRetailBrandName",
+						"sqlReaderQuery": "select B.ProductColorKey as F_PRODUCT_COLOR,C.ProductRetailBrandNameKey as F_PRODUCT_RETAIL_BRAND,*  from [Retail].[EDWProduct] A left join  [Retail].[EDWProductColor] B on A.ItemColor=ProductColor \r\nleft join  [Retail].[EDWProductRetailBrandName] C on A.ItemRetailBrandName=C.ProductRetailBrandName",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE [EDW].[SA_PRODUCT_MAIN]",
 						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "id",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "PRODUCT_MAIN_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SourceId",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "SOURCE_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "SystemTimestamp",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "SYSTEM_TIMESTAMP",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "AlternateDescription2",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "ALTERNATE_DESCRIPTION2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ItemAFIImageSet",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "ITEM_AFI_IMAGE_SET",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "PRODUCT_STATUS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SeriesDivision",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SERIES_DIVISION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ProductColorKey",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "F_PRODUCT_COLOR",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "ItemAFIImageSet",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "F_PRODUCT_RETAIL_BRAND",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							}
+						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
