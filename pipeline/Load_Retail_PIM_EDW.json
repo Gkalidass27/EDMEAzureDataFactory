@@ -5,7 +5,14 @@
 			{
 				"name": "Load_Retail_PIM_EDWProductKit",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "SetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -17,6 +24,15 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadID",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
 						"sqlReaderQuery": {
 							"value": "select CAST(KitColorKey as DECIMAL (10,0)) as F_PRODUCT_COLOR,CAST(KitRetailBrandNameKey as DECIMAL (10,0)) as F_PRODUCT_RETAIL_BRAND,\n* from [Retail].[EDWProductKit]",
 							"type": "Expression"
