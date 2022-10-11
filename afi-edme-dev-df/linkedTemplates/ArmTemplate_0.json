@@ -164,72 +164,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DacIncrementalDailyLoad')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Dac Incremental Daily Load",
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Day",
-						"interval": 1,
-						"startTime": "2022-05-23T02:55:00",
-						"timeZone": "Eastern Standard Time"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/TumblingWindowDacIncrementalLoad')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Tumbling Window Dac Incremental Load",
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"type": "TumblingWindowTrigger",
-				"typeProperties": {
-					"frequency": "Hour",
-					"interval": 24,
-					"startTime": "2022-04-13T09:25:00Z",
-					"delay": "00:00:00",
-					"maxConcurrency": 1,
-					"retryPolicy": {
-						"count": 3,
-						"intervalInSeconds": 10
-					},
-					"dependsOn": []
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DacDaily')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "Managed",
-				"description": "increased core count IR for dac daily feed",
-				"typeProperties": {
-					"computeProperties": {
-						"location": "AutoResolve",
-						"dataFlowProperties": {
-							"computeType": "General",
-							"coreCount": 16,
-							"timeToLive": 60,
-							"cleanup": false
-						}
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Read')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1175,6 +1109,956 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDW_PIM_Kit')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Ashley_EDW",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [
+					{
+						"name": "KitID",
+						"type": "varchar"
+					},
+					{
+						"name": "KitSourceID",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "KitStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "LastModifiedDateTimeUtc",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "CreatedDateTimeUtc",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "SeriesID",
+						"type": "varchar"
+					},
+					{
+						"name": "SeriesKey",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "KitRetailBrandNameKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitRetailTypeKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitColorKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitStatusKey",
+						"type": "char"
+					},
+					{
+						"name": "KitImportDomesticKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitEngineeringDivisionKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitClassKey",
+						"type": "char"
+					},
+					{
+						"name": "KitCodeKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitSalesCategoryCodeKey",
+						"type": "char"
+					},
+					{
+						"name": "KitDefaultGroupingLookupCodeKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitFamilyofBusinessKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitSeriesRetailSalesCategoryKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitNumber",
+						"type": "varchar"
+					},
+					{
+						"name": "KitType",
+						"type": "varchar"
+					},
+					{
+						"name": "KitSeriesNumber",
+						"type": "varchar"
+					},
+					{
+						"name": "KitExpressShip",
+						"type": "char"
+					},
+					{
+						"name": "KitPrimaryLifestyle",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAXKitNumber",
+						"type": "varchar"
+					},
+					{
+						"name": "KitStatusChanged",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "KitDead",
+						"type": "char"
+					},
+					{
+						"name": "KitBoxQty",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitSeats",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitDiningChairQtyCtn",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitUPC",
+						"type": "varchar"
+					},
+					{
+						"name": "KitARVRReady",
+						"type": "char"
+					},
+					{
+						"name": "KitStandAloneFlag",
+						"type": "char"
+					},
+					{
+						"name": "KitSupplierDirectShipOnly",
+						"type": "char"
+					},
+					{
+						"name": "KitDimensionsConfirmed",
+						"type": "char"
+					},
+					{
+						"name": "KitMfgWarranty",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitFriendlyDimensions",
+						"type": "varchar"
+					},
+					{
+						"name": "KitGeneralDescriptionID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitGeneralLongDescription",
+						"type": "varchar"
+					},
+					{
+						"name": "KitForecastPlannerID",
+						"type": "varchar"
+					},
+					{
+						"name": "KitUomKey",
+						"type": "varchar"
+					},
+					{
+						"name": "KitProductDepthIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitProductDepthMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitProductHeightIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitProductHeightMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitProductWidthIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitProductWidthMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitAdditionalDimensions",
+						"type": "nvarchar"
+					},
+					{
+						"name": "KitCartonDepthIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonDepthMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonHeightIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonHeightMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonWidthIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonWidthMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitUnitWeightKg",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitUnitWeightLbs",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitSuppWeightNetWeightLbs",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitSuppWeightNetWeightKg",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitSelllingCountries",
+						"type": "nvarchar"
+					},
+					{
+						"name": "KitThirdPartyKit",
+						"type": "char"
+					},
+					{
+						"name": "KitAFIImageSet",
+						"type": "varchar"
+					},
+					{
+						"name": "KitScene7ImageSet",
+						"type": "varchar"
+					},
+					{
+						"name": "KitRollOverimage",
+						"type": "varchar"
+					},
+					{
+						"name": "KitKnockout",
+						"type": "varchar"
+					},
+					{
+						"name": "KitColorSwatch",
+						"type": "varchar"
+					},
+					{
+						"name": "KitPhoto",
+						"type": "varchar"
+					},
+					{
+						"name": "KitGoogleTitle",
+						"type": "varchar"
+					},
+					{
+						"name": "KitProductPageURL",
+						"type": "varchar"
+					},
+					{
+						"name": "KitCubesFt",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitCubesM",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitHTSCode",
+						"type": "varchar"
+					},
+					{
+						"name": "KitFOBBasePrice",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitConsumerAssembly",
+						"type": "varchar"
+					},
+					{
+						"name": "KitFutureStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "KitKeyKit",
+						"type": "char"
+					},
+					{
+						"name": "KitTrackingPiece",
+						"type": "char"
+					},
+					{
+						"name": "KitAlternateDescription2",
+						"type": "varchar"
+					},
+					{
+						"name": "KitShowroomMarketStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "KitTrademarkText",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAlternateAFIFluff1",
+						"type": "nvarchar"
+					},
+					{
+						"name": "KitValidationComplete",
+						"type": "char"
+					},
+					{
+						"name": "KitAlternateDescription3",
+						"type": "varchar"
+					},
+					{
+						"name": "KitExclusive",
+						"type": "char"
+					},
+					{
+						"name": "KitExclusiveComment",
+						"type": "varchar"
+					},
+					{
+						"name": "KitCommodity",
+						"type": "char"
+					},
+					{
+						"name": "KitUpholsteryCover",
+						"type": "nvarchar"
+					},
+					{
+						"name": "KitCartonVolume",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonDensity",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitCartonFreightClass",
+						"type": "decimal",
+						"precision": 7,
+						"scale": 2
+					},
+					{
+						"name": "KitShippableUomKey",
+						"type": "char"
+					},
+					{
+						"name": "KitNotAvailableforIndividualSale",
+						"type": "varchar"
+					},
+					{
+						"name": "KitPurchaseType",
+						"type": "varchar"
+					},
+					{
+						"name": "KitPartsDrawings",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomestoreProductLine",
+						"type": "varchar"
+					},
+					{
+						"name": "KitRetailRoomKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "KitShippingDepthIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitShippingDepthMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitShippingHeightIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitShippingHeightMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitShippingWidthIn",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitShippingWidthMm",
+						"type": "decimal",
+						"precision": 21,
+						"scale": 2
+					},
+					{
+						"name": "KitPKLegacySellablePackage",
+						"type": "varchar"
+					},
+					{
+						"name": "KitConditionalHomeDeliveryEligible",
+						"type": "varchar"
+					},
+					{
+						"name": "KitATPSeries",
+						"type": "varchar"
+					},
+					{
+						"name": "KitVendorName",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAssemblyInstructionsInternal",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAssemblyInstructionsPublic",
+						"type": "varchar"
+					},
+					{
+						"name": "KitComponentQuantity",
+						"type": "varchar"
+					},
+					{
+						"name": "KitDimensionSketch",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomeStoreAssemblyVideo1",
+						"type": "varchar"
+					},
+					{
+						"name": "KitWholesaleAssemblyVideo1",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet1English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet2English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet3English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet4English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet5English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet6English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAfiFeatureBullet7English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitConsumerDescriptionEnglish",
+						"type": "varchar"
+					},
+					{
+						"name": "KitFluffAFIEnglish",
+						"type": "varchar"
+					},
+					{
+						"name": "KitFluffPrintEnglish",
+						"type": "varchar"
+					},
+					{
+						"name": "KitFriendlyDescriptionEnglish",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet1English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet2English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet3English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet4English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet5English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet6English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet7English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomstoreFeatureBullet8English",
+						"type": "varchar"
+					},
+					{
+						"name": "KitHomestoreKitFluffEnglish",
+						"type": "varchar"
+					},
+					{
+						"name": "KitEligibleforProtectionPlan",
+						"type": "char"
+					},
+					{
+						"name": "KitIsProtectionPlan",
+						"type": "char"
+					},
+					{
+						"name": "KitAshcommDeliveryMode",
+						"type": "char"
+					},
+					{
+						"name": "KitMaterialEnglish",
+						"type": "varchar"
+					},
+					{
+						"name": "KitEcomMerchantNotes",
+						"type": "varchar"
+					},
+					{
+						"name": "KitAmazonBrandOwner",
+						"type": "char"
+					}
+				],
+				"typeProperties": {
+					"schema": "EDME_DataFactory",
+					"table": "Kit"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDW_PIM_KitComponentCrosswalk')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Ashley_EDW",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [
+					{
+						"name": "KitID",
+						"type": "varchar"
+					},
+					{
+						"name": "KitSourceID",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "ComponentType",
+						"type": "varchar"
+					},
+					{
+						"name": "ComponentID",
+						"type": "varchar"
+					},
+					{
+						"name": "ComponentSourceID",
+						"type": "bigint",
+						"precision": 19
+					}
+				],
+				"typeProperties": {
+					"schema": "EDME_Datafactory",
+					"table": "KitComponentCrosswalk "
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDW_PIM_Package')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Ashley_EDW",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [
+					{
+						"name": "PackageID",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "HomestorePackageId",
+						"type": "varchar"
+					},
+					{
+						"name": "LastModifiedDateTimeUtc",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "CreatedDateTimeUtc",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "PackageNumber",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAlternatePackageName",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHero",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageStatusChanged",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "PackageIsThirdParty",
+						"type": "char"
+					},
+					{
+						"name": "PackageHomestorePackageId",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageWholesaleID",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageRetailType",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageItemQuantity",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageUOM",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageColor",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageKnockout",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageScene7ImageSet",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageValidationComplete",
+						"type": "char"
+					},
+					{
+						"name": "PackageValidationNotes",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageRolloverImage",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageExpressShip",
+						"type": "char"
+					},
+					{
+						"name": "PackageSupplierDirectShipOnly",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageSalesCategoryCode",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageSeriesNumber",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageSeriesName",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageCode",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAshcommTransition",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageSwatchGroupID",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageDefaultProduct",
+						"type": "char"
+					},
+					{
+						"name": "PackageNewFlagDate",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "PackageAshcommDeliveryMode",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageChannelChange",
+						"type": "char"
+					},
+					{
+						"name": "PackageExclusive",
+						"type": "char"
+					},
+					{
+						"name": "PackageHotSpotsNeedReview",
+						"type": "char"
+					},
+					{
+						"name": "PackageAlternateDescription1",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAshcommTitleOverride",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHiddenField",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageConsumerChoice",
+						"type": "char"
+					},
+					{
+						"name": "PackageTotalAssemblyTime",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAshcommFlags",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageNavigableCategories",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageName",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIFluff",
+						"type": "nvarchar"
+					},
+					{
+						"name": "PackageHomestorePackageFluff",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIBullets1",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIBullets2",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIBullets3",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIBullets4",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIBullets5",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageAFIBullets6",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHomeStoreBullets1",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHomeStoreBullets2",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHomeStoreBullets3",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHomeStoreBullets4",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHomeStoreBullets5",
+						"type": "varchar"
+					},
+					{
+						"name": "PackageHomeStoreBullets6",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "EDME_DataFactory",
+					"table": "Package"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
 			]
 		}
 	]

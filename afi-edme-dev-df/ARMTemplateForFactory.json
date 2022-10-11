@@ -19432,20 +19432,30 @@
 			"properties": {
 				"description": "Dac Incremental Daily Load",
 				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Load_Retail_SiteMasterLoad_DAC",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
 						"frequency": "Day",
 						"interval": 1,
 						"startTime": "2022-05-23T02:55:00",
-						"timeZone": "Eastern Standard Time"
+						"timeZone": "Eastern Standard Time",
+						"schedule": {}
 					}
 				}
 			},
 			"dependsOn": [
-				"[variables('factoryId')]"
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]"
 			]
 		},
 		{
@@ -19454,7 +19464,7 @@
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
-				"runtimeState": "Stopped",
+				"runtimeState": "Started",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -19477,55 +19487,6 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_ProductMasterLoad')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/TumblingWindowDacIncrementalLoad')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Tumbling Window Dac Incremental Load",
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"type": "TumblingWindowTrigger",
-				"typeProperties": {
-					"frequency": "Hour",
-					"interval": 24,
-					"startTime": "2022-04-13T09:25:00Z",
-					"delay": "00:00:00",
-					"maxConcurrency": 1,
-					"retryPolicy": {
-						"count": 3,
-						"intervalInSeconds": 10
-					},
-					"dependsOn": []
-				}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DacDaily')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "Managed",
-				"description": "increased core count IR for dac daily feed",
-				"typeProperties": {
-					"computeProperties": {
-						"location": "AutoResolve",
-						"dataFlowProperties": {
-							"computeType": "General",
-							"coreCount": 16,
-							"timeToLive": 60,
-							"cleanup": false
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]"
 			]
 		},
 		{
