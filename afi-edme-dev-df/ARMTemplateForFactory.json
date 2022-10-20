@@ -43,6 +43,10 @@
 			"type": "string",
 			"defaultValue": "f0c0b043ecb44804aed243980209bf89"
 		},
+		"dataFactory_properties_globalParameters_ADF_SubscriptionID_value": {
+			"type": "string",
+			"defaultValue": "f2330f9f-3a8b-498c-a2d6-476e4f263349"
+		},
 		"dataFactory_location": {
 			"type": "string",
 			"defaultValue": "eastus"
@@ -11030,6 +11034,105 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Notify_Teams_Channale_Pipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set_Webhook_JSON_Schema",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "messageCard",
+							"value": {
+								"value": "{\n    \"@type\": \"MessageCard\",\n    \"@context\": \"http://schema.org/extensions\",\n    \"themeColor\": \"0076D7\",\n    \"summary\": \"Pipeline status alert message​​​​\",\n    \"sections\": [\n        {\n            \"activityTitle\": \"Pipeline execution alert​​​​\",\n            \"facts\": [\n                {\n                    \"name\": \"Subscription Id:\",\n                    \"value\": \"@{pipeline().parameters.subscription}\"\n                },\n                {\n                    \"name\": \"Resource Group:\",\n                    \"value\": \"@{pipeline().parameters.resourceGroup}\"\n                },\n                {\n                    \"name\": \"Data Factory Name:\",\n                    \"value\": \"@{pipeline().DataFactory}\"\n                },\n                {\n                    \"name\": \"Pipeline RunId:\",\n                    \"value\": \"@{pipeline().parameters.runId}\"\n                },\n                {\n                    \"name\": \"Pipline Name:\",\n                    \"value\": \"@{pipeline().parameters.name}\"\n                },\n                {\n                    \"name\": \"Pipeline Status:\",\n                    \"value\": \"@{pipeline().parameters.status}\"\n                },\n                {\n                    \"name\": \"Execution Start Time (UTC):\",\n                    \"value\": \"@{pipeline().parameters.triggerTime}\"\n                },\n                {\n                    \"name\": \"Execution Finish Time (UTC):\",\n                    \"value\": \"@{pipeline().parameters.executionEndTime}\"\n                },\n                {\n                    \"name\": \"Execution Duration (s):\",\n                    \"value\": \"@{pipeline().parameters.runDuration}\"\n                },\n                {\n                    \"name\": \"Message:\",\n                    \"value\": \"@{pipeline().parameters.message}\"\n                },\n                {\n                    \"name\": \"Notification Time (UTC):\",\n                    \"value\": \"@{utcnow()}\"\n                }\n            ],\n            \"markdown\": true\n        }\n    ],\n    \"potentialAction\": [\n        {\n            \"@type\": \"OpenUri\",\n            \"name\": \"View pipeline run\",\n            \"targets\": [\n                {\n                    \"os\": \"default\",\n                    \"uri\": \"@{concat('https://adf.azure.com/monitoring/pipelineruns/',pipeline().parameters.runId,'?factory=/subscriptions/',pipeline().parameters.subscription,'/resourceGroups/',pipeline().parameters.resourceGroup,'/providers/Microsoft.DataFactory/factories/',pipeline().DataFactory)}\"\n                }\n            ]\n        }\n    ]\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Invoke_Teams_Webhook_Url",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Set_Webhook_JSON_Schema",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@pipeline().parameters.teamWebhookUrl",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "@json(variables('messageCard'))",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"subscription": {
+						"type": "string"
+					},
+					"resourceGroup": {
+						"type": "string"
+					},
+					"runId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"triggerTime": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					},
+					"executionEndTime": {
+						"type": "string"
+					},
+					"runDuration": {
+						"type": "string"
+					},
+					"teamWebhookUrl": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"messageCard": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_ProductMasterLoad')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -11183,6 +11286,127 @@
 							"referenceName": "semarchy_staging",
 							"type": "LinkedServiceReference"
 						}
+					},
+					{
+						"name": "Teams_Failed_Notification_InitialLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_Retail_PIM_EDW_InitialLoad').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_MasterLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": {
+									"value": "afi-edme-rg",
+									"type": "Expression"
+								},
+								"runId": {
+									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_Retail_PIM_EDW').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_Retail_PIM_EDW').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_Retail_PIM_EDW').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_Retail_PIM_EDW').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_Retail_PIM_EDW').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
 					}
 				],
 				"policy": {
@@ -11195,7 +11419,8 @@
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/pipelines/Load_Retail_PIM_EDW_InitialLoad')]",
 				"[concat(variables('factoryId'), '/pipelines/Load_Retail_PIM_EDW')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
+				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]"
 			]
 		},
 		{
@@ -11274,6 +11499,65 @@
 							"referenceName": "semarchy_staging",
 							"type": "LinkedServiceReference"
 						}
+					},
+					{
+						"name": "Teams_Failed_Notification",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Store_DAC_Location_Details",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Store_DAC_Location_Details').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Store_DAC_Location_Details').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Store_DAC_Location_Details').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Store_DAC_Location_Details').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Store_DAC_Location_Details').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Store_DAC_Location_Details').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Store_DAC_Location_Details').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
 					}
 				],
 				"policy": {
@@ -11300,7 +11584,8 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Location_Details')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
+				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]"
 			]
 		},
 		{
@@ -19448,8 +19733,7 @@
 						"frequency": "Day",
 						"interval": 1,
 						"startTime": "2022-05-23T02:55:00",
-						"timeZone": "Eastern Standard Time",
-						"schedule": {}
+						"timeZone": "Eastern Standard Time"
 					}
 				}
 			},
@@ -19502,6 +19786,10 @@
 					"DAC_SubscriptionKey": {
 						"type": "string",
 						"value": "[parameters('dataFactory_properties_globalParameters_DAC_SubscriptionKey_value')]"
+					},
+					"ADF_SubscriptionID": {
+						"type": "string",
+						"value": "[parameters('dataFactory_properties_globalParameters_ADF_SubscriptionID_value')]"
 					}
 				}
 			},

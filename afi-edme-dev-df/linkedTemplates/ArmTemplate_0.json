@@ -35,6 +35,10 @@
 			"type": "string",
 			"defaultValue": "f0c0b043ecb44804aed243980209bf89"
 		},
+		"dataFactory_properties_globalParameters_ADF_SubscriptionID_value": {
+			"type": "string",
+			"defaultValue": "f2330f9f-3a8b-498c-a2d6-476e4f263349"
+		},
 		"dataFactory_location": {
 			"type": "string",
 			"defaultValue": "eastus"
@@ -69,6 +73,10 @@
 					"DAC_SubscriptionKey": {
 						"type": "string",
 						"value": "[parameters('dataFactory_properties_globalParameters_DAC_SubscriptionKey_value')]"
+					},
+					"ADF_SubscriptionID": {
+						"type": "string",
+						"value": "[parameters('dataFactory_properties_globalParameters_ADF_SubscriptionID_value')]"
 					}
 				}
 			},
@@ -77,6 +85,103 @@
 			"identity": {
 				"type": "[parameters('dataFactory_identity_type')]"
 			}
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Notify_Teams_Channale_Pipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set_Webhook_JSON_Schema",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "messageCard",
+							"value": {
+								"value": "{\n    \"@type\": \"MessageCard\",\n    \"@context\": \"http://schema.org/extensions\",\n    \"themeColor\": \"0076D7\",\n    \"summary\": \"Pipeline status alert message​​​​\",\n    \"sections\": [\n        {\n            \"activityTitle\": \"Pipeline execution alert​​​​\",\n            \"facts\": [\n                {\n                    \"name\": \"Subscription Id:\",\n                    \"value\": \"@{pipeline().parameters.subscription}\"\n                },\n                {\n                    \"name\": \"Resource Group:\",\n                    \"value\": \"@{pipeline().parameters.resourceGroup}\"\n                },\n                {\n                    \"name\": \"Data Factory Name:\",\n                    \"value\": \"@{pipeline().DataFactory}\"\n                },\n                {\n                    \"name\": \"Pipeline RunId:\",\n                    \"value\": \"@{pipeline().parameters.runId}\"\n                },\n                {\n                    \"name\": \"Pipline Name:\",\n                    \"value\": \"@{pipeline().parameters.name}\"\n                },\n                {\n                    \"name\": \"Pipeline Status:\",\n                    \"value\": \"@{pipeline().parameters.status}\"\n                },\n                {\n                    \"name\": \"Execution Start Time (UTC):\",\n                    \"value\": \"@{pipeline().parameters.triggerTime}\"\n                },\n                {\n                    \"name\": \"Execution Finish Time (UTC):\",\n                    \"value\": \"@{pipeline().parameters.executionEndTime}\"\n                },\n                {\n                    \"name\": \"Execution Duration (s):\",\n                    \"value\": \"@{pipeline().parameters.runDuration}\"\n                },\n                {\n                    \"name\": \"Message:\",\n                    \"value\": \"@{pipeline().parameters.message}\"\n                },\n                {\n                    \"name\": \"Notification Time (UTC):\",\n                    \"value\": \"@{utcnow()}\"\n                }\n            ],\n            \"markdown\": true\n        }\n    ],\n    \"potentialAction\": [\n        {\n            \"@type\": \"OpenUri\",\n            \"name\": \"View pipeline run\",\n            \"targets\": [\n                {\n                    \"os\": \"default\",\n                    \"uri\": \"@{concat('https://adf.azure.com/monitoring/pipelineruns/',pipeline().parameters.runId,'?factory=/subscriptions/',pipeline().parameters.subscription,'/resourceGroups/',pipeline().parameters.resourceGroup,'/providers/Microsoft.DataFactory/factories/',pipeline().DataFactory)}\"\n                }\n            ]\n        }\n    ]\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Invoke_Teams_Webhook_Url",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Set_Webhook_JSON_Schema",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@pipeline().parameters.teamWebhookUrl",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "@json(variables('messageCard'))",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"subscription": {
+						"type": "string"
+					},
+					"resourceGroup": {
+						"type": "string"
+					},
+					"runId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"triggerTime": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					},
+					"executionEndTime": {
+						"type": "string"
+					},
+					"runDuration": {
+						"type": "string"
+					},
+					"teamWebhookUrl": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"messageCard": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Ashley_EDW')]",
@@ -1796,265 +1901,6 @@
 				"typeProperties": {
 					"schema": "EDME_Datafactory",
 					"table": "KitComponentCrosswalk "
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDW_PIM_Package')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [
-					{
-						"name": "PackageID",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageKey",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "HomestorePackageId",
-						"type": "varchar"
-					},
-					{
-						"name": "LastModifiedDateTimeUtc",
-						"type": "datetime2",
-						"scale": 7
-					},
-					{
-						"name": "CreatedDateTimeUtc",
-						"type": "datetime2",
-						"scale": 7
-					},
-					{
-						"name": "PackageNumber",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAlternatePackageName",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHero",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageStatus",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageStatusChanged",
-						"type": "datetime2",
-						"scale": 7
-					},
-					{
-						"name": "PackageIsThirdParty",
-						"type": "char"
-					},
-					{
-						"name": "PackageHomestorePackageId",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageWholesaleID",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageRetailType",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageItemQuantity",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageUOM",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageColor",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageKnockout",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageScene7ImageSet",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageValidationComplete",
-						"type": "char"
-					},
-					{
-						"name": "PackageValidationNotes",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageRolloverImage",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageExpressShip",
-						"type": "char"
-					},
-					{
-						"name": "PackageSupplierDirectShipOnly",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageSalesCategoryCode",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageSeriesNumber",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageSeriesName",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageCode",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAshcommTransition",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageSwatchGroupID",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageDefaultProduct",
-						"type": "char"
-					},
-					{
-						"name": "PackageNewFlagDate",
-						"type": "datetime2",
-						"scale": 7
-					},
-					{
-						"name": "PackageAshcommDeliveryMode",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageChannelChange",
-						"type": "char"
-					},
-					{
-						"name": "PackageExclusive",
-						"type": "char"
-					},
-					{
-						"name": "PackageHotSpotsNeedReview",
-						"type": "char"
-					},
-					{
-						"name": "PackageAlternateDescription1",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAshcommTitleOverride",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHiddenField",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageConsumerChoice",
-						"type": "char"
-					},
-					{
-						"name": "PackageTotalAssemblyTime",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAshcommFlags",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageNavigableCategories",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageName",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIFluff",
-						"type": "nvarchar"
-					},
-					{
-						"name": "PackageHomestorePackageFluff",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIBullets1",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIBullets2",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIBullets3",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIBullets4",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIBullets5",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageAFIBullets6",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHomeStoreBullets1",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHomeStoreBullets2",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHomeStoreBullets3",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHomeStoreBullets4",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHomeStoreBullets5",
-						"type": "varchar"
-					},
-					{
-						"name": "PackageHomeStoreBullets6",
-						"type": "varchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "EDME_DataFactory",
-					"table": "Package"
 				}
 			},
 			"dependsOn": [
