@@ -498,6 +498,15 @@
 							"typeProperties": {
 								"source": {
 									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadId')",
+												"type": "Expression"
+											}
+										}
+									],
 									"sqlReaderQuery": {
 										"value": "SELECT \n'semadmin' AS B_CREATOR,\n'EnterpriseRefCurrency' as B_CLASSNAME,\nEXTERNAL_REF_CURRENCY_ID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nCURRENCY_CODE,\nCURRENCY_NAME\nFROM GD_EXTERNAL_REF_CURRENCY WITH(NOLOCK)\nWHERE B_UPDDATE>'@{activity('Currency_Sink_Max_date').output.firstRow.MAX_B_UPDDATE}'",
 										"type": "Expression"
@@ -515,6 +524,9 @@
 									"type": "TabularTranslator",
 									"mappings": [
 										{
+											"source": {
+												"name": "B_LOADID"
+											},
 											"sink": {
 												"name": "B_LOADID",
 												"type": "Decimal",
@@ -525,17 +537,22 @@
 										},
 										{
 											"source": {
-												"name": "EXTERNAL_REF_COUNTRY_ID",
+												"name": "EXTERNAL_REF_CURRENCY_ID",
 												"type": "Guid",
 												"physicalType": "uniqueidentifier"
 											},
 											"sink": {
-												"name": "ENTERPRISE_REF_COUNTRY_ID",
+												"name": "ENTERPRISE_REF_CURENCY_ID",
 												"type": "Guid",
 												"physicalType": "uniqueidentifier"
 											}
 										},
 										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
 											"sink": {
 												"name": "B_CLASSNAME",
 												"type": "String",
@@ -570,7 +587,7 @@
 											"source": {
 												"name": "B_CREATOR",
 												"type": "String",
-												"physicalType": "nvarchar"
+												"physicalType": "varchar"
 											},
 											"sink": {
 												"name": "B_CREATOR",
@@ -592,60 +609,24 @@
 										},
 										{
 											"source": {
-												"name": "COUNTRY_CODE_A2",
+												"name": "CURRENCY_CODE",
 												"type": "String",
 												"physicalType": "nvarchar"
 											},
 											"sink": {
-												"name": "COUNTRY_CODE_A2",
+												"name": "CURRENCY_CODE",
 												"type": "String",
 												"physicalType": "nvarchar"
 											}
 										},
 										{
 											"source": {
-												"name": "COUNTRY_CODE_A3",
+												"name": "CURRENCY_NAME",
 												"type": "String",
 												"physicalType": "nvarchar"
 											},
 											"sink": {
-												"name": "COUNTRY_CODE_A3",
-												"type": "String",
-												"physicalType": "nvarchar"
-											}
-										},
-										{
-											"source": {
-												"name": "COUNTRY_NAME",
-												"type": "String",
-												"physicalType": "nvarchar"
-											},
-											"sink": {
-												"name": "COUNTRY_NAME",
-												"type": "String",
-												"physicalType": "nvarchar"
-											}
-										},
-										{
-											"source": {
-												"name": "COUNTRY_LOCAL_NAME",
-												"type": "String",
-												"physicalType": "nvarchar"
-											},
-											"sink": {
-												"name": "COUNTRY_LOCAL_NAME",
-												"type": "String",
-												"physicalType": "nvarchar"
-											}
-										},
-										{
-											"source": {
-												"name": "COUNTRY_UN_CODE",
-												"type": "String",
-												"physicalType": "nvarchar"
-											},
-											"sink": {
-												"name": "COUNTRY_UN_CODE",
+												"name": "CURRENCY_NAME",
 												"type": "String",
 												"physicalType": "nvarchar"
 											}
@@ -666,7 +647,7 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "SA_ENTERPRISE_REF_COUNTRY",
+									"referenceName": "SA_ENTERPRISE_REF_CURRENCY",
 									"type": "DatasetReference"
 								}
 							]
