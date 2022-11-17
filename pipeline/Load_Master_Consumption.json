@@ -1,6 +1,65 @@
 {
 	"name": "Load_Master_Consumption",
 	"properties": {
+		"activities": [
+			{
+				"name": "COUNTRY_COUNT",
+				"description": "Check count for COUNTRY GD table from a source based on B_UPDDATE",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT COUNT(1) FROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) WHERE CAST(B_UPDDATE AS date)>'2022-02-01'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Lookup_GD_COUNTRY",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check_Country_Count",
+				"description": "Check_Country_Count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "COUNTRY_COUNT",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(int(activity('COUNTRY_COUNT').output.firstRow),0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			}
+		],
 		"annotations": []
 	}
 }
