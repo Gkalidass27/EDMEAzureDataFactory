@@ -33,7 +33,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "Lookup_GD_COUNTRY",
+						"referenceName": "Lookup_GD_Master_Table",
 						"type": "DatasetReference"
 					}
 				}
@@ -328,6 +328,7 @@
 			},
 			{
 				"name": "Currency_Sink_Max_date",
+				"description": "Get the max U_UPDDATE from sink table for incremental process",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -344,7 +345,55 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM [dbo].[SA_ENTERPRISE_REF_CURRENCY] WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Master_Table_Max_Date_Sink",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Currency_Source_Count",
+				"description": "Check count for CURRENCY GD table from a source based on B_UPDDATE",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Currency_Sink_Max_date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_CURRENCY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Country_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Lookup_GD_Master_Table",
+						"type": "DatasetReference"
+					}
+				}
 			}
 		],
 		"annotations": []
