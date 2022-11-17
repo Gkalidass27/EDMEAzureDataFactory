@@ -25,7 +25,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) WHERE CAST(B_UPDDATE AS date)>'2022-02-01'",
+						"sqlReaderQuery": {
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Country_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"type": "Expression"
+						},
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -122,7 +125,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "SELECT EXTERNAL_REF_COUNTRY_ID,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,\nCOUNTRY_CODE_A2,COUNTRY_CODE_A3,COUNTRY_NAME,COUNTRY_LOCAL_NAME,\nCOUNTRY_UN_CODE \nFROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) \nWHERE CAST(B_UPDDATE AS date)>'2022-02-01'",
+										"value": "SELECT EXTERNAL_REF_COUNTRY_ID,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,\nCOUNTRY_CODE_A2,COUNTRY_CODE_A3,COUNTRY_NAME,COUNTRY_LOCAL_NAME,\nCOUNTRY_UN_CODE \nFROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('Country_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
