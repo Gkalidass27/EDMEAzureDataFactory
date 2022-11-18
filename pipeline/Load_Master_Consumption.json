@@ -400,7 +400,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_CURRENCY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Country_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_CURRENCY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Currency_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -725,8 +725,8 @@
 				}
 			},
 			{
-				"name": "Check_Currency_Count_copy1",
-				"description": "Check Currency Count",
+				"name": "Check_DMA_Count",
+				"description": "Check DMA Count",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
@@ -952,6 +952,310 @@
 							"outputs": [
 								{
 									"referenceName": "SA_ENTERPRISE_REF_DMA",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "US_STATE_Sink_Max_Date",
+				"description": "Get the max U_UPDDATE from sink table for incremental process",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Check_DMA_Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM [dbo].[SA_ENTERPRISE_REF_US_STATE] WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Master_Table_Max_Date_Sink",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "US_STATE_Source_Count",
+				"description": "Check count for US STATE GD table from a source based on B_UPDDATE",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "US_STATE_Sink_Max_Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_US_STATE WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('US_STATE_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Lookup_GD_Master_Table",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check_US_STATE_Count",
+				"description": "Check US STATE Count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "US_STATE_Source_Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('US_STATE_Source_Count').output.firstRow.data,0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "DMA_Data_Not_Found_Logs_Stored_Procedure_copy1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": {
+											"value": "404",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": {
+											"value": "No Data Available For DMA",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "US_STATE_Copy_Data",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadId')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": {
+										"value": "SELECT \n'semadmin' AS B_CREATOR,\n'EnterpriseRefUSState' as B_CLASSNAME,\nEXTERNAL_REF_US_STATE_ID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nSTATE_CODE,\nSTATE_NAME,\nFROM GD_EXTERNAL_REF_US_STATE WITH(NOLOCK)\nWHERE B_UPDDATE>'@{activity('US_STATE_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "B_LOADID"
+											},
+											"sink": {
+												"name": "B_LOADID",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 0,
+												"precision": 38
+											}
+										},
+										{
+											"source": {
+												"name": "EXTERNAL_REF_DMAID",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 0,
+												"precision": 10
+											},
+											"sink": {
+												"name": "ENTERPRISE_REF_DMA_ID",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 0,
+												"precision": 10
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "DMA_REGION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "DMA_REGION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "GD_EXTERNAL_REF_US_STATE",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SA_ENTERPRISE_REF_US_STATE",
 									"type": "DatasetReference"
 								}
 							]
