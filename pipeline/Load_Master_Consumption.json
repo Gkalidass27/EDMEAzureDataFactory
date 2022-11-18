@@ -2032,8 +2032,8 @@
 				}
 			},
 			{
-				"name": "SubmitLoadID",
-				"type": "SqlServerStoredProcedure",
+				"name": "Submit_Or_Cancel_LoadID",
+				"type": "IfCondition",
 				"dependsOn": [
 					{
 						"activity": "Check_Time_Zone_Ef_Count",
@@ -2042,44 +2042,96 @@
 						]
 					}
 				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
 				"userProperties": [],
 				"typeProperties": {
-					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
-					"storedProcedureParameters": {
-						"P_INTEGRATION_JOB_NAME": {
-							"value": "",
-							"type": "String"
-						},
-						"P_LOAD_ID": {
-							"value": {
-								"value": "@variables('LoadId')",
-								"type": "Expression"
+					"expression": {
+						"value": "@or(or(or(or(or(greater(activity('Country_Source_Count').output.firstRow.data,0),greater(activity('Currency_Source_Count').output.firstRow.data,0)),greater(activity('DMA_Source_Count').output.firstRow.data,0)),greater(activity('US_STATE_Source_Count').output.firstRow.data,0)),greater(activity('Time_Zone_Source_Count').output.firstRow.data,0)),greater(activity('Time_Zone_Ef_Source_Count').output.firstRow.data,0))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Cancel_LoadId_Stored_Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
 							},
-							"type": "Decimal"
-						},
-						"P_USERNAME": {
-							"value": {
-								"value": "semadmin",
-								"type": "Expression"
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+								"storedProcedureParameters": {
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadId')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
 							},
-							"type": "String"
-						},
-						"return_value_argument": {
-							"value": null,
-							"type": "Decimal"
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
 						}
-					}
-				},
-				"linkedServiceName": {
-					"referenceName": "semarchy_repo",
-					"type": "LinkedServiceReference"
+					],
+					"ifTrueActivities": [
+						{
+							"name": "SubmitLoadID",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+								"storedProcedureParameters": {
+									"P_INTEGRATION_JOB_NAME": {
+										"value": "",
+										"type": "String"
+									},
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadId')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"return_value_argument": {
+										"value": null,
+										"type": "Decimal"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
 				}
 			}
 		],
