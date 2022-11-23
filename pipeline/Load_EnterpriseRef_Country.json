@@ -1,6 +1,42 @@
 {
 	"name": "Load_EnterpriseRef_Country",
 	"properties": {
+		"activities": [
+			{
+				"name": "Country_Sink_Max_Date",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Country_Table_Name} WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Master_Table_Max_Date_Sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Database_Name": {
+								"value": "@pipeline().parameters.Database_Name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			}
+		],
 		"parameters": {
 			"Database_Name": {
 				"type": "string"
