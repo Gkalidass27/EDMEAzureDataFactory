@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Country_Sink_Max_Date",
+				"name": "Time_Zone_EFF_DT_Sink_Max_Date",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -25,7 +25,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Country_Table_Name} WITH(NOLOCK)",
+							"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Time_Zone_EFF_DT_Table_Name} WITH(NOLOCK)",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -44,11 +44,11 @@
 				}
 			},
 			{
-				"name": "Country_Source_Count",
+				"name": "Time_Zone_EFF_DT_Source_Count",
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Country_Sink_Max_Date",
+						"activity": "Time_Zone_EFF_DT_Sink_Max_Date",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -66,7 +66,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Country_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_TIME_ZONE_EF WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Time_Zone_EFF_DT_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -83,7 +83,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Country_Source_Count",
+						"activity": "Time_Zone_EFF_DT_Source_Count",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -92,7 +92,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@greater(activity('Country_Source_Count').output.firstRow.data,0)",
+						"value": "@greater(activity('Time_Zone_EFF_DT_Source_Count').output.firstRow.data,0)",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -192,7 +192,7 @@
 					],
 					"ifTrueActivities": [
 						{
-							"name": "Country_Copy_Data",
+							"name": "Time_Zone_EFF_DT_Copy_Data",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -216,7 +216,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT \n'semadmin' AS B_CREATOR,\n'EnterpriseRefCountry' as B_CLASSNAME,\nEXTERNAL_REF_COUNTRY_ID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nCOUNTRY_CODE_A2,\nCOUNTRY_CODE_A3,\nCOUNTRY_NAME,\nCOUNTRY_LOCAL_NAME,\nCOUNTRY_UN_CODE \nFROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('Country_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'\n",
+										"value": "SELECT \n'semadmin' AS B_CREATOR,\n'EnterpriseRefTimeZoneEffectiveDate' as B_CLASSNAME,\nEXTERNAL_REF_TIME_ZONE_EF,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nTIME_ZONE_EFFECTIVE_YEAR\nDST_START_DT\nDST_END_DT\nF_EXTERNAL_REF_TIME_ZONE\nFROM GD_EXTERNAL_REF_TIME_ZONE_EF WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('Time_Zone_EFF_DT_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -228,7 +228,7 @@
 									"upsertSettings": {
 										"useTempDB": true,
 										"keys": [
-											"ENTERPRISE_REF_COUNTRY_ID"
+											"ENT_REF_TIME_ZN_EFF_DT_ID"
 										]
 									},
 									"sqlWriterUseTableLock": false,
@@ -398,15 +398,15 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "SA_ENTERPRISE_REF_COUNTRY",
+									"referenceName": "SA_ENTERPRISE_REF_TIME_ZONE_EFF_DT",
 									"type": "DatasetReference",
 									"parameters": {
 										"Database_Name": {
 											"value": "@pipeline().parameters.Database_Name",
 											"type": "Expression"
 										},
-										"Country_Table_Name": {
-											"value": "@pipeline().parameters.Sink_Country_Table_Name",
+										"Time_Zone_EFF_DT_Table_Name": {
+											"value": "@pipeline().parameters.Sink_Time_Zone_EFF_DT_Table_Name",
 											"type": "Expression"
 										}
 									}
@@ -418,7 +418,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Country_Copy_Data",
+									"activity": "Time_Zone_EFF_DT_Copy_Data",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -523,7 +523,7 @@
 			"Database_Name": {
 				"type": "string"
 			},
-			"Sink_Country_Table_Name": {
+			"Sink_Time_Zone_EFF_DT_Table_Name": {
 				"type": "string"
 			},
 			"Semarchy_Job_Name": {
