@@ -143,6 +143,101 @@
 						"value": "@greater(activity('Currency_Source_Count').output.firstRow.data,0)",
 						"type": "Expression"
 					},
+					"ifFalseActivities": [
+						{
+							"name": "Currency_Data_Not_Found_Logs_Stored_Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": {
+											"value": "404",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": {
+											"value": "No Data Available For Currency",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Cancel_LoadId_Stored_Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Currency_Data_Not_Found_Logs_Stored_Procedure",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+								"storedProcedureParameters": {
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadId')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
+						}
+					],
 					"ifTrueActivities": [
 						{
 							"name": "Currency_Copy_Data",
@@ -183,6 +278,96 @@
 								"enableStaging": false,
 								"translator": {
 									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "B_LOADID"
+											},
+											"sink": {
+												"name": "B_LOADID"
+											}
+										},
+										{
+											"source": {
+												"name": "EXTERNAL_REF_CURRENCY_ID",
+												"type": "Guid",
+												"physicalType": "uniqueidentifier"
+											},
+											"sink": {
+												"name": "ENTERPRISE_REF_CURENCY_ID"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_CREDATE"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_UPDDATE"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CREATOR"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_UPDATOR"
+											}
+										},
+										{
+											"source": {
+												"name": "CURRENCY_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CURRENCY_CODE"
+											}
+										},
+										{
+											"source": {
+												"name": "CURRENCY_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CURRENCY_NAME"
+											}
+										}
+									],
 									"typeConversion": true,
 									"typeConversionSettings": {
 										"allowDataTruncation": true,
