@@ -1,0 +1,245 @@
+{
+	"name": "Load_EnterpriseRef_Currency_InitialLoad",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\r\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\r\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set_LoadID_Variable",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadId",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Currency_Sink_Max_Date",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set_LoadID_Variable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Currency_Table_Name} WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Master_Table_Max_Date_Sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Database_Name": {
+								"value": "@pipeline().parameters.Database_Name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "Currency_Source_Count",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Currency_Sink_Max_Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_CURRENCY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Currency_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Lookup_GD_Master_Table",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check_Currency_Count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Currency_Source_Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('Currency_Source_Count').output.firstRow.data,0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Currency_Copy_Data",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadId')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": "SELECT \r\n'semadmin' AS B_CREATOR,\r\n'EnterpriseRefCurrency' as B_CLASSNAME,\r\nEXTERNAL_REF_CURRENCY_ID,\r\nB_CREDATE,\r\nB_UPDDATE,\r\nB_CREATOR,\r\nB_UPDATOR,\r\nCURRENCY_CODE,\r\nCURRENCY_NAME\r\nFROM GD_EXTERNAL_REF_CURRENCY WITH(NOLOCK) \r\nWHERE B_UPDDATE>'@{activity('Currency_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											""
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "GD_EXTERNAL_REF_TABLE",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SA_ENTERPRISE_REF_Currency",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Stored procedure1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": []
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"Database_Name": {
+				"type": "string"
+			},
+			"Sink_Currency_Table_Name": {
+				"type": "string"
+			},
+			"Semarchy_Job_Name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"LoadId": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "EnterPriceRef_Pipelines"
+		},
+		"annotations": []
+	}
+}
