@@ -1,0 +1,487 @@
+{
+	"name": "Load_EnterpriseRef_US_STATE_InitialLoad",
+	"properties": {
+		"activities": [
+			{
+				"name": "US_State_Sink_Max_Date",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set_LoadID_Variable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_US_State_Table_Name} WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Master_Table_Max_Date_Sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"Database_Name": {
+								"value": "@pipeline().parameters.Database_Name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "US_State_Source_Count",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "US_State_Sink_Max_Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT COUNT(1) as data FROM GD_EXTERNAL_REF_COUNTRY WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('US_State_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Lookup_GD_Master_Table",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check_US_State_Count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "US_State_Source_Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('US_State_Source_Count').output.firstRow.data,0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "US_State_Data_Not_Found_Logs_Stored_Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": {
+											"value": "404",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": {
+											"value": "No Data Available For Country",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Cancel_LoadId_Stored_Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "US_State_Data_Not_Found_Logs_Stored_Procedure",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+								"storedProcedureParameters": {
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadId')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "US_State_Copy_Data",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadId')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": {
+										"value": "SELECT \n'semadmin' AS B_CREATOR,\n'EnterpriseRefUSState' as B_CLASSNAME,\nEXTERNAL_REF_US_STATE_ID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nSTATE_CODE,\nSTATE_NAME\nFROM GD_EXTERNAL_REF_US_STATE WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('US_State_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"ENTERP_REF_US_STATE_ID"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "B_LOADID"
+											},
+											"sink": {
+												"name": "B_LOADID"
+											}
+										},
+										{
+											"source": {
+												"name": "EXTERNAL_REF_US_STATE_ID",
+												"type": "Guid",
+												"physicalType": "uniqueidentifier"
+											},
+											"sink": {
+												"name": "ENTERP_REF_US_STATE_ID"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_CREDATE"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_UPDDATE"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CREATOR"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_UPDATOR"
+											}
+										},
+										{
+											"source": {
+												"name": "STATE_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "STATE_CODE"
+											}
+										},
+										{
+											"source": {
+												"name": "STATE_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "STATE_NAME"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "GD_EXTERNAL_REF_TABLE",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SA_ENTERPRISE_REF_US_STATE",
+									"type": "DatasetReference",
+									"parameters": {
+										"Database_Name": {
+											"value": "@pipeline().parameters.Database_Name",
+											"type": "Expression"
+										},
+										"US_State_Table_Name": {
+											"value": "@pipeline().parameters.Sink_US_State_Table_Name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "SubmitLoadID",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "US_State_Copy_Data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+								"storedProcedureParameters": {
+									"P_INTEGRATION_JOB_NAME": {
+										"value": {
+											"value": "@pipeline().parameters.Semarchy_Job_Name",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadId')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"return_value_argument": {
+										"value": null,
+										"type": "Decimal"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set_LoadID_Variable",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadId",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"Database_Name": {
+				"type": "string"
+			},
+			"Sink_US_State_Table_Name": {
+				"type": "string"
+			},
+			"Semarchy_Job_Name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"LoadId": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "EnterPriceRef_Pipelines"
+		},
+		"annotations": []
+	}
+}
