@@ -116,6 +116,58 @@
 						"type": "DatasetReference"
 					}
 				}
+			},
+			{
+				"name": "Check_HomesArcadia_Count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get_HomesArcadia_Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('Get_HomesArcadia_Count').output.firstRow.data,0)\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Load_HomesArcadia_RetailCustomers",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE\nFROM HomesBrandon.RetailCustomersIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesArcadia_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "Raw_HomesArcadia_RetailCustomersIncremental",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
 			}
 		],
 		"variables": {
