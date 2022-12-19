@@ -53,14 +53,7 @@
 						{
 							"name": "Process_Ashcomm_Files",
 							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "SetTableSchema",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
+							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
@@ -86,7 +79,14 @@
 									{
 										"name": "Load_ASHCOMM_Data_In_Staging",
 										"type": "Copy",
-										"dependsOn": [],
+										"dependsOn": [
+											{
+												"activity": "SetAshcommTableSchema",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
 										"policy": {
 											"timeout": "0.12:00:00",
 											"retry": 0,
@@ -445,6 +445,19 @@
 											"referenceName": "semarchy_staging",
 											"type": "LinkedServiceReference"
 										}
+									},
+									{
+										"name": "SetAshcommTableSchema",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "TableSchema",
+											"value": {
+												"value": "@split(item().name,'_')[0]",
+												"type": "Expression"
+											}
+										}
 									}
 								]
 							}
@@ -581,19 +594,6 @@
 										}
 									}
 								]
-							}
-						},
-						{
-							"name": "SetTableSchema",
-							"type": "SetVariable",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "TableSchema",
-								"value": {
-									"value": "@split(item().name,'_')[0]",
-									"type": "Expression"
-								}
 							}
 						},
 						{
