@@ -303,6 +303,69 @@
 									"type": "DatasetReference"
 								}
 							]
+						},
+						{
+							"name": "Load_HomesArcadia_EmailAddresses",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Load_HomesArcadia_RetailCustomers",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadID')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": "SELECT B_SOURCEID,\r\nRAWEMAILADDRESS,\r\nB_PUBID,\r\nB_CLASSNAME,\r\nB_CREATOR,\r\nB_UPDATE,\r\nFP_RETAIL_CUSTOMER,\r\nFS_RETAIL_CUSTOMER\r\nFROM HomesBrandon.EmailAddressesIncremental \r\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesArcadia_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Raw_HomesArcadia_EmailAddressesIncremental",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SD_EMAIL_ADDRESS",
+									"type": "DatasetReference"
+								}
+							]
 						}
 					]
 				}
