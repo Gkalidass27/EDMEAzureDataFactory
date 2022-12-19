@@ -293,7 +293,7 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "Raw_HomesArcadia_RetailCustomersIncremental",
+									"referenceName": "Raw_RetailCustomersIncremental",
 									"type": "DatasetReference"
 								}
 							],
@@ -466,13 +466,189 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "Raw_HomesArcadia_EmailAddressesIncremental",
+									"referenceName": "Raw_EmailAddressesIncremental",
 									"type": "DatasetReference"
 								}
 							],
 							"outputs": [
 								{
 									"referenceName": "SD_EMAIL_ADDRESS",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Load_HomesArcadia_PhoneNumbers",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Load_HomesArcadia_EmailAddresses",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadID')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": {
+										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesArcadia.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesArcadia_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'\n",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "B_LOADID"
+											},
+											"sink": {
+												"name": "B_LOADID",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 0,
+												"precision": 38
+											}
+										},
+										{
+											"source": {
+												"name": "B_PUBID",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_PUBID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_SOURCEID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_SOURCEID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATE",
+												"type": "DateTime",
+												"physicalType": "datetime"
+											},
+											"sink": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "RAWPHONENUMBER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "RAW_PHONE_NUMBER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FP_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "FP_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FS_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "FS_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Raw_PhoneNumbersIncremental",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SD_PHONE_NUMBER",
 									"type": "DatasetReference"
 								}
 							]
