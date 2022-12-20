@@ -51,7 +51,7 @@
 				}
 			},
 			{
-				"name": "Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER",
+				"name": "Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -72,7 +72,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select MAX(B_UPDDATE) as MAX_B_UPDDATE FROM SD_RETAIL_CUSTOMER WHERE B_PUBID='Homes_Atlanta'",
+						"sqlReaderQuery": "select MAX(B_UPDDATE) as MAX_B_UPDDATE FROM SD_RETAIL_CUSTOMER WHERE B_PUBID='Homes_Colton'",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -83,11 +83,11 @@
 				}
 			},
 			{
-				"name": "Get_HomesAtlanta_Count",
+				"name": "Get_HomesColton_Count",
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER",
+						"activity": "Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -105,7 +105,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT COUNT(1) FROM HomesAtlanta.CustomerInfo \nWITH(NOLOCK) WHERE updatedDate>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+							"value": "SELECT COUNT(1) FROM HomesAtlanta.CustomerInfo \nWITH(NOLOCK) WHERE updatedDate>'@{activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -118,11 +118,11 @@
 				}
 			},
 			{
-				"name": "Check_HomesAtlanta_Count",
+				"name": "Check_HomesColton_Count",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Get_HomesAtlanta_Count",
+						"activity": "Get_HomesColton_Count",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -131,7 +131,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@greater(activity('Get_HomesAtlanta_Count').output.firstRow.data,0)\n",
+						"value": "@greater(activity('Get_HomesColton_Count').output.firstRow.data,0)\n",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -231,7 +231,7 @@
 					],
 					"ifTrueActivities": [
 						{
-							"name": "Load_HomesAtlanta_RetailCustomers",
+							"name": "Load_HomesColton_RetailCustomers",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -255,7 +255,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE\nFROM HomesAtlanta.RetailCustomersIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE\nFROM HomesColton.RetailCustomersIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -400,11 +400,11 @@
 							]
 						},
 						{
-							"name": "Load_HomesAtlanta_EmailAddresses",
+							"name": "Load_HomesColton_EmailAddresses",
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Load_HomesAtlanta_RetailCustomers",
+									"activity": "Load_HomesColton_RetailCustomers",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -431,7 +431,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesAtlanta.EmailAddressesIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesColton.EmailAddressesIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -576,11 +576,11 @@
 							]
 						},
 						{
-							"name": "Load_HomesAtlanta_PhoneNumbers",
+							"name": "Load_HomesColton_PhoneNumbers",
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Load_HomesAtlanta_EmailAddresses",
+									"activity": "Load_HomesColton_EmailAddresses",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -607,7 +607,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesAtlanta.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'\n",
+										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesColton.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'\n",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -752,11 +752,11 @@
 							]
 						},
 						{
-							"name": "Load_HomesAtlanta_AddressLocations",
+							"name": "Load_HomesColton_AddressLocations",
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Load_HomesAtlanta_PhoneNumbers",
+									"activity": "Load_HomesColton_PhoneNumbers",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -783,7 +783,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesAtlanta.AddressLocationsIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesColton.AddressLocationsIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -992,7 +992,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_HomesAtlanta_AddressLocations",
+									"activity": "Load_HomesColton_AddressLocations",
 									"dependencyConditions": [
 										"Succeeded"
 									]
