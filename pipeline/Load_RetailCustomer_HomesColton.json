@@ -1026,6 +1026,57 @@
 						"value": "@and(not(equals(activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE, null)), not(equals(activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE, '')))",
 						"type": "Expression"
 					},
+					"ifFalseActivities": [
+						{
+							"name": "Get_HomesColton_All_Count",
+							"description": "Get HomesColton All Data due to SD table is blank",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT COUNT(1) AS data FROM HomesColton.CustomerInfo \nWITH(NOLOCK) WHERE updatedDate>'@{activity('Get_Max_Date_HomesColton_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Count_RAW_Customer",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Set_Count_Variable_copy1",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get_HomesColton_All_Count",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Count",
+								"value": {
+									"value": "@string(activity('Get_HomesColton_Count').output.firstRow.data)",
+									"type": "Expression"
+								}
+							}
+						}
+					],
 					"ifTrueActivities": [
 						{
 							"name": "Get_HomesColton_Count",
