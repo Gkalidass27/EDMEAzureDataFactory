@@ -83,46 +83,11 @@
 				}
 			},
 			{
-				"name": "Get_HomesAtlanta_Count",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "SELECT COUNT(1) AS data FROM HomesAtlanta.CustomerInfo \nWITH(NOLOCK) WHERE updatedDate>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
-							"type": "Expression"
-						},
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Count_RAW_Customer",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
 				"name": "Check_HomesAtlanta_Count",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Get_HomesAtlanta_Count",
+						"activity": "If Condition1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1043,10 +1008,58 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"ifTrueActivities": [
+						{
+							"name": "Get_HomesAtlanta_Count",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT COUNT(1) AS data FROM HomesAtlanta.CustomerInfo \nWITH(NOLOCK) WHERE updatedDate>'@{activity('Get_Max_Date_HomesAtlanta_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Count_RAW_Customer",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
 			}
 		],
 		"variables": {
 			"LoadID": {
+				"type": "String"
+			},
+			"Count": {
 				"type": "String"
 			}
 		},
