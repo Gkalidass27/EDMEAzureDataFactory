@@ -23,7 +23,7 @@
 				}
 			},
 			{
-				"name": "Load_RetailCustomers",
+				"name": "Initial_Load_RetailCustomers",
 				"type": "Copy",
 				"dependsOn": [
 					{
@@ -199,11 +199,11 @@
 				]
 			},
 			{
-				"name": "Copy data1",
+				"name": "Initial_Load_EmailAddresses",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Load_RetailCustomers",
+						"activity": "Initial_Load_RetailCustomers",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -218,8 +218,51 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
-				}
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LOADID",
+								"value": {
+									"value": "@variables('LoadId')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT \nB_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM Scratch.InitialLoadRetailCustomerPhone WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Raw_RetailCustomersPhoneInitial",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "INITIAL_SD_PHONE_NUMBER",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
