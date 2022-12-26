@@ -21,8 +21,51 @@
 					"referenceName": "semarchy_staging",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "Load_RetailCustomers",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "usp_InitialLoadRetail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\nB_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE\nFROM Scratch.InitialLoadRetailCustomer WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "Raw_RetailCustomersInitial",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
+		"parameters": {
+			"LoadId": {
+				"type": "string"
+			}
+		},
 		"folder": {
 			"name": "Retail_Customer_Flow"
 		},
