@@ -3,38 +3,11 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "usp_InitialLoadRetail",
-				"type": "SqlServerStoredProcedure",
-				"dependsOn": [
-					{
-						"activity": "Set_LoadID_Variable",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"storedProcedureName": "[Scratch].[usp_InitialLoadRetail]"
-				},
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				}
-			},
-			{
 				"name": "Initial_Load_RetailCustomers",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "usp_InitialLoadRetail",
+						"activity": "Set_LoadID_Variable",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -796,7 +769,14 @@
 			{
 				"name": "GetNewLoadId",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "usp_InitialLoadRetail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -892,6 +872,26 @@
 				},
 				"linkedServiceName": {
 					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "usp_InitialLoadRetail",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Scratch].[usp_InitialLoadRetail]"
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
 					"type": "LinkedServiceReference"
 				}
 			}
