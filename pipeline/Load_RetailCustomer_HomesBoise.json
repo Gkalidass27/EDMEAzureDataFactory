@@ -87,7 +87,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "If_Max_Date_Not_Found",
+						"activity": "Get_Max_CustomerMasterID_HomesBoise",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -96,7 +96,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@greater(int(variables('Count')),0)\n",
+						"value": "@greater(int(activity('Get_Max_CustomerMasterID_HomesBoise').output.firstRow.MAX_ID),0)\n",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -220,7 +220,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE\nFROM HomesBoise.RetailCustomersIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE\nFROM HomesBoise.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId>='@{activity('Get_Max_CustomerMasterID_HomesBoise').output.firstRow.MAX_ID}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -420,7 +420,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesBoise.EmailAddressesIncremental \nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesBoise.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId>='@{activity('Get_Max_CustomerMasterID_HomesBoise').output.firstRow.MAX_ID}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -620,7 +620,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesBoise.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'\n",
+										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesBoise.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId>='@{activity('Get_Max_CustomerMasterID_HomesBoise').output.firstRow.MAX_ID}'\n",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -820,7 +820,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesBoise.AddressLocationsIncremental\nWITH(NOLOCK) WHERE B_UPDATE>'@{activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
+										"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesBoise.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId>='@{activity('Get_Max_CustomerMasterID_HomesBoise').output.firstRow.MAX_ID}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -1076,118 +1076,6 @@
 							"linkedServiceName": {
 								"referenceName": "semarchy_repo",
 								"type": "LinkedServiceReference"
-							}
-						}
-					]
-				}
-			},
-			{
-				"name": "If_Max_Date_Not_Found",
-				"type": "IfCondition",
-				"dependsOn": [
-					{
-						"activity": "Get_Max_CustomerMasterID_HomesBoise",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@and(not(equals(activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE, null)), not(equals(activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE, '')))",
-						"type": "Expression"
-					},
-					"ifFalseActivities": [
-						{
-							"name": "Get_HomesBoise_All_Count",
-							"description": "Get HomesBoise All Data due to SD table is blank",
-							"type": "Lookup",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "AzureSqlSource",
-									"sqlReaderQuery": {
-										"value": "SELECT COUNT(1) AS data FROM HomesBoise.CustomerInfo WITH(NOLOCK)",
-										"type": "Expression"
-									},
-									"queryTimeout": "02:00:00",
-									"partitionOption": "None"
-								}
-							}
-						},
-						{
-							"name": "Set_AllCount_Variable",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "Get_HomesBoise_All_Count",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "Count",
-								"value": {
-									"value": "@string(activity('Get_HomesBoise_All_Count').output.firstRow.data)",
-									"type": "Expression"
-								}
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "Get_HomesBoise_Count",
-							"type": "Lookup",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "AzureSqlSource",
-									"sqlReaderQuery": {
-										"value": "SELECT COUNT(1) AS data FROM HomesBoise.CustomerInfo \nWITH(NOLOCK) WHERE updatedDate>'@{activity('Get_Max_Date_HomesBoise_SD_RETAIL_CUSTOMER').output.firstRow.MAX_B_UPDDATE}'",
-										"type": "Expression"
-									},
-									"queryTimeout": "02:00:00",
-									"partitionOption": "None"
-								}
-							}
-						},
-						{
-							"name": "Set_Count_Variable",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "Get_HomesBoise_Count",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "Count",
-								"value": {
-									"value": "@string(activity('Get_HomesBoise_Count').output.firstRow.data)",
-									"type": "Expression"
-								}
 							}
 						}
 					]
