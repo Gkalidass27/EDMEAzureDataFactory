@@ -574,7 +574,14 @@
 									{
 										"name": "Error_ASHCOMM_Files",
 										"type": "Copy",
-										"dependsOn": [],
+										"dependsOn": [
+											{
+												"activity": "Load_ASHCOMM_Data_In_Staging",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
 										"policy": {
 											"timeout": "0.12:00:00",
 											"retry": 0,
@@ -632,6 +639,42 @@
 												"type": "DatasetReference"
 											}
 										]
+									},
+									{
+										"name": "Remove_ASHCOMM_Error_Files_From_Source",
+										"type": "Delete",
+										"dependsOn": [
+											{
+												"activity": "Error_ASHCOMM_Files",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "Remove_ASHCOMM_Files_From_Source",
+												"type": "DatasetReference"
+											},
+											"enableLogging": false,
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false,
+												"wildcardFileName": {
+													"value": "@{string(item().name)}",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											}
+										}
 									}
 								]
 							}
