@@ -12,6 +12,10 @@
 			"metadata": "Secure string for 'connectionString' of 'Ashley_EDW'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=ashley-edw-dev.database.windows.net;Initial Catalog=ASHLEY_EDW_DEV"
 		},
+		"CDP_CustomerProfiling_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'CDP_CustomerProfiling'"
+		},
 		"Enterprise_ReferenceMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
@@ -211,6 +215,19 @@
 				"type": "AzureSqlDW",
 				"typeProperties": {
 					"connectionString": "[parameters('Ashley_EDW_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CDP_CustomerProfiling')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('CDP_CustomerProfiling_connectionString')]"
 				}
 			},
 			"dependsOn": []
@@ -698,39 +715,6 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"folderPath": "dac_api_staging",
-						"fileSystem": "raw-zone"
-					}
-				},
-				"schema": {}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_List_Write')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "Json",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
 						"folderPath": "dac_api_staging",
 						"fileSystem": "raw-zone"
 					}
