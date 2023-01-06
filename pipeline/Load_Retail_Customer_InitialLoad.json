@@ -675,6 +675,84 @@
 												"enablePartitionDiscovery": false
 											}
 										}
+									},
+									{
+										"name": "ADF_Error_Logs_Process",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Load_ASHCOMM_Data_In_Staging",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADF_Error_Logs_Process",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"ErrorMsg": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.message}",
+													"type": "Expression"
+												},
+												"RunID": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"PipelineName": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"ErrorCode": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.errorCode}",
+													"type": "Expression"
+												},
+												"Source": {
+													"value": "@{item().src_name}",
+													"type": "Expression"
+												},
+												"Sink": {
+													"value": "@{item().dst_name}",
+													"type": "Expression"
+												},
+												"TriggerType": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"TriggerId": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"TriggerName": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"TriggerTime": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"Source_Type": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"Sink_Type": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"FailureType": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.failureType}",
+													"type": "Expression"
+												},
+												"ErrorStatusCode": {
+													"value": "@activity('Load_ASHCOMM_Data_In_Staging').StatusCode",
+													"type": "Expression"
+												}
+											}
+										}
 									}
 								]
 							}
