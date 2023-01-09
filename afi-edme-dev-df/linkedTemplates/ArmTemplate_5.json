@@ -65,6 +65,3426 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_HomesSacramento')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get_Max_CustomerMasterID_HomesSacramento",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesSacramento].CustomerInfo WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Max_CustomerMasterId_CustomerInfo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_HomesSacramento_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get_Max_CustomerMasterID_HomesSacramento",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesSacramento').output.firstRow.MAX_ID,null))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "HomesSacramento_Data_Not_Found_Logs_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "404",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No RAW Data Available For HomesSacramento",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "HomesSacramento_Data_Not_Found_Logs_Stored_Procedure",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Load_HomesSacramento_RetailCustomers",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE\nFROM HomesSacramento.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSacramento').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWFIRSTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_FIRST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWLASTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_LAST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWMIDDLENAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_MIDDLE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_RetailCustomersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_RETAIL_CUSTOMER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesSacramento_EmailAddresses",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSacramento_RetailCustomers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesSacramento.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSacramento').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWEMAILADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_EmailAddressesIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_EMAIL_ADDRESS",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesSacramento_PhoneNumbers",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSacramento_EmailAddresses",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesSacramento.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSacramento').output.firstRow.MAX_ID}'\n",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWPHONENUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_PhoneNumbersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_PHONE_NUMBER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesSacramento_AddressLocations",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSacramento_PhoneNumbers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesSacramento.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSacramento').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTREETADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STREET_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWADDRESSLINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ADDRESS_LINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_CITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTATEORPROVINCECODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STATE_OR_PROV_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWZIPOSTALCODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ZIP_POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCOUNTRYCODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "RAW_COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_AddressLocationsIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_ADDRESS_LOCATION",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSacramento_AddressLocations",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "RetailCustomerLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					},
+					"Count": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_HomesSaltLake')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get_Max_CustomerMasterID_HomesSaltLake",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesSaltLake].CustomerInfo WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Max_CustomerMasterId_CustomerInfo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_HomesSaltLake_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get_Max_CustomerMasterID_HomesSaltLake",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesSaltLake').output.firstRow.MAX_ID,null))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "HomesSaltLake_Data_Not_Found_Logs_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "404",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No RAW Data Available For HomesSaltLake",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "HomesSaltLake_Data_Not_Found_Logs_Stored_Procedure",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Load_HomesSaltLake_RetailCustomers",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE\nFROM HomesSaltLake.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSaltLake').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWFIRSTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_FIRST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWLASTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_LAST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWMIDDLENAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_MIDDLE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_RetailCustomersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_RETAIL_CUSTOMER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesSaltLake_EmailAddresses",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSaltLake_RetailCustomers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesSaltLake.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSaltLake').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWEMAILADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_EmailAddressesIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_EMAIL_ADDRESS",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesSaltLake_PhoneNumbers",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSaltLake_EmailAddresses",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesSaltLake.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSaltLake').output.firstRow.MAX_ID}'\n",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWPHONENUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_PhoneNumbersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_PHONE_NUMBER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesSaltLake_AddressLocations",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSaltLake_PhoneNumbers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesSaltLake.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesSaltLake').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTREETADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STREET_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWADDRESSLINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ADDRESS_LINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_CITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTATEORPROVINCECODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STATE_OR_PROV_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWZIPOSTALCODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ZIP_POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCOUNTRYCODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "RAW_COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_AddressLocationsIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_ADDRESS_LOCATION",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesSaltLake_AddressLocations",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "RetailCustomerLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					},
+					"Count": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_Retail_Customer_InitialLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get_All_Storages_Files",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "Retail_Customers_Blob",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "Iterate_Files",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get_All_Storages_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get_All_Storages_Files').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Process_Ashcomm_Files",
+									"type": "IfCondition",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@startswith(toLower(string(item().name)),'d365ecm_')",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "AshcommSetVariable",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "FileCheck",
+													"value": {
+														"value": "@concat(item().name,' This is not a ASHCOMM csv file')",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "Load_ASHCOMM_Data_In_Staging",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "updatedDate",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "createdDate",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"wildcardFileName": {
+																"value": "@string(item().name)",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": true,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "posRawContainerRecID",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "sourceCustomerId",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posFirstName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "firstName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posMiddleInitial",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "middleInitial",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posLastName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "lastName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerEmail1",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerEmail1",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerEmail2",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerEmail2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerEmail3",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerEmail3",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerPhone1",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerPhone1",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerPhone2",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerPhone2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerPhone3",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerPhone3",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_address",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "addressLine1",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_addr2",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "addressLine2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_city",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "city",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_state",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "state",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_zip9",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "zipCode",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "market_id",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "marketId",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "customer_type",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerType",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SourceSystem",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "sourceSystem",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SourceSubSystem",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "sourceSubSystem",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "createdDate",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "createdDate",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															},
+															{
+																"source": {
+																	"name": "updatedDate",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "updatedDate",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "Retail_Customer_Files",
+														"type": "DatasetReference",
+														"parameters": {}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "D365ECM_CustomerInfo",
+														"type": "DatasetReference",
+														"parameters": {
+															"D365Ecm_Schema": {
+																"value": "@split(item().name,'_')[0]",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Add_ASHCOMM_Failure_Logs",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Load_ASHCOMM_Data_In_Staging",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+													"storedProcedureParameters": {
+														"ErrorCode": {
+															"value": {
+																"value": "@activity('Load_ASHCOMM_Data_In_Staging').StatusCode",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"ErrorMsg": {
+															"value": {
+																"value": "@activity('Load_ASHCOMM_Data_In_Staging').error.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"PipelineName": {
+															"value": {
+																"value": "@pipeline().Pipeline",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"RunID": {
+															"value": {
+																"value": "@pipeline().RunId",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "semarchy_staging",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Archive_ASHCOMM_Files",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "Load_ASHCOMM_Data_In_Staging",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false,
+															"wildcardFileName": {
+																"value": "@string(item().name)",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".csv"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "Archive_ASHCOMM_Source_Files",
+														"type": "DatasetReference",
+														"parameters": {}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "Move_Archive_Folder_Files",
+														"type": "DatasetReference",
+														"parameters": {}
+													}
+												]
+											},
+											{
+												"name": "Remove_ASHCOMM_Files_From_Source",
+												"type": "Delete",
+												"dependsOn": [
+													{
+														"activity": "Archive_ASHCOMM_Files",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"dataset": {
+														"referenceName": "Remove_ASHCOMM_Files_From_Source",
+														"type": "DatasetReference",
+														"parameters": {}
+													},
+													"enableLogging": false,
+													"storeSettings": {
+														"type": "AzureBlobFSReadSettings",
+														"recursive": false,
+														"wildcardFileName": {
+															"value": "@{string(item().name)}",
+															"type": "Expression"
+														},
+														"enablePartitionDiscovery": false
+													}
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "Process_Homes_Files",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Process_Ashcomm_Files",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@startswith(toLower(string(item().name)),'homes')\n",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "HomesSetVariable",
+												"type": "SetVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "FileCheck",
+													"value": {
+														"value": "@concat(item().name,' This is not a Homes csv file')",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "Load_RET_Data_In_Staging",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "updatedDate",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "createdDate",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"wildcardFileName": {
+																"value": "@string(item().name)",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": true,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "posRawContainerRecID",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "sourceCustomerId",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posFirstName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "firstName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posMiddleInitial",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "middleInitial",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posLastName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "lastName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerEmail1",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerEmail1",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerEmail2",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerEmail2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerEmail3",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerEmail3",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerPhone1",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerPhone1",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerPhone2",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerPhone2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "posCustomerPhone3",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerPhone3",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_address",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "addressLine1",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_addr2",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "addressLine2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_city",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "city",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_state",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "state",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "n_zip9",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "zipCode",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "market_id",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "marketId",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "customer_type",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerType",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "customer_since",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "customerSince",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															},
+															{
+																"source": {
+																	"name": "SourceSystem",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "sourceSystem",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "createdDate",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "createdDate",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															},
+															{
+																"source": {
+																	"name": "updatedDate",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "updatedDate",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "Retail_Customer_Files",
+														"type": "DatasetReference",
+														"parameters": {}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "Homes_CustomerInfo",
+														"type": "DatasetReference",
+														"parameters": {
+															"Homes_Table_Schema": {
+																"value": "@split(item().name,'_')[0]",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Add_RET_Failure_Logs",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Load_RET_Data_In_Staging",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+													"storedProcedureParameters": {
+														"ErrorCode": {
+															"value": {
+																"value": "@activity('Load_RET_Data_In_Staging').StatusCode",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"ErrorMsg": {
+															"value": {
+																"value": "@activity('Load_RET_Data_In_Staging').error.message",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"PipelineName": {
+															"value": {
+																"value": "@pipeline().Pipeline",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"RunID": {
+															"value": {
+																"value": "@pipeline().RunId",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "semarchy_staging",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "Archive_Homes_Files",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "Load_RET_Data_In_Staging",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false,
+															"wildcardFileName": {
+																"value": "@string(item().name)",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".csv"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "Archive_Homes_Source_Files",
+														"type": "DatasetReference",
+														"parameters": {}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "Move_Archive_Folder_Files",
+														"type": "DatasetReference",
+														"parameters": {}
+													}
+												]
+											},
+											{
+												"name": "Remove_Homes_Files_From_Source",
+												"type": "Delete",
+												"dependsOn": [
+													{
+														"activity": "Archive_Homes_Files",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"dataset": {
+														"referenceName": "Remove_Homes_Files_From_Source",
+														"type": "DatasetReference",
+														"parameters": {}
+													},
+													"enableLogging": false,
+													"storeSettings": {
+														"type": "AzureBlobFSReadSettings",
+														"recursive": false,
+														"wildcardFileName": {
+															"value": "@{string(item().name)}",
+															"type": "Expression"
+														},
+														"enablePartitionDiscovery": false
+													}
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"FileCheck": {
+						"type": "String"
+					},
+					"TableSchema": {
+						"type": "String"
+					},
+					"LoadID": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Load_Retail_ExternalRefCountry')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -12734,7 +16154,10 @@
 				},
 				"annotations": []
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesSaltLake')]",
+				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesSacramento')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_ProductMasterLoad')]",
@@ -13300,7 +16723,9 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Load_Retail_Customer_InitialLoad')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Store_DAC_Location_Details')]",
@@ -14207,37 +17632,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Location_Details')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DacIncrementalDailyLoad')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Dac Incremental Daily Load",
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "Orchestrate_Load_Retail_SiteMasterLoad_DAC",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Day",
-						"interval": 1,
-						"startTime": "2022-05-23T02:55:00",
-						"timeZone": "Eastern Standard Time"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]"
 			]
 		}
 	]
