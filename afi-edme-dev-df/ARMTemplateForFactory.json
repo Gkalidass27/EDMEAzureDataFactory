@@ -658,6 +658,10 @@
 									"FileName": {
 										"value": "@pipeline().parameters.FileName",
 										"type": "Expression"
+									},
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
 									}
 								}
 							}
@@ -693,10 +697,13 @@
 					},
 					"Table_Schema": {
 						"type": "String"
+					},
+					"ContainerName": {
+						"type": "String"
 					}
 				},
 				"folder": {
-					"name": "Retail_Customer_Flow"
+					"name": "Customer_Validation_Flow"
 				},
 				"annotations": []
 			},
@@ -744,7 +751,7 @@
 									}
 								],
 								"sqlReaderQuery": {
-									"value": "SELECT\nB_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE,\nB_UPDATE AS B_CREDATE\nFROM CDP.RetailCustomerInitialLoad WITH(NOLOCK)",
+									"value": "SELECT\nB_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE,\nB_UPDATE AS B_CREDATE\nFROM Masterdata_CDP.RetailCustomerInitialLoad WITH(NOLOCK)",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -946,7 +953,7 @@
 									}
 								],
 								"sqlReaderQuery": {
-									"value": "SELECT \nB_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE AS B_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM CDP.PhoneNumbersInitialLoad WITH(NOLOCK)",
+									"value": "SELECT \nB_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE AS B_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM Masterdata_CDP.PhoneNumbersInitialLoad WITH(NOLOCK)",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -1148,7 +1155,7 @@
 									}
 								],
 								"sqlReaderQuery": {
-									"value": "SELECT \nB_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE AS B_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM CDP.EmailAddressesInitialLoad WITH(NOLOCK)",
+									"value": "SELECT \nB_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE AS B_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM Masterdata_CDP.EmailAddressesInitialLoad WITH(NOLOCK)",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -1350,7 +1357,7 @@
 									}
 								],
 								"sqlReaderQuery": {
-									"value": "SELECT \nB_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE AS B_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM CDP.AddressLocationsInitialLoad WITH(NOLOCK)",
+									"value": "SELECT \nB_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_CREATOR AS B_UPDATOR,\nB_UPDATE AS B_CREDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM Masterdata_CDP.AddressLocationsInitialLoad WITH(NOLOCK)",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -1704,7 +1711,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"storedProcedureName": "[[CDP].[usp_InitialLoadRetail]"
+							"storedProcedureName": "[[Masterdata_CDP].[usp_InitialLoadRetail]"
 						},
 						"linkedServiceName": {
 							"referenceName": "semarchy_staging",
@@ -29838,6 +29845,826 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/MasterData_Validation_Flow')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Customer_Fake_Address",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "FakeAddressPhrase",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FakeAddressPhrase",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "IsLoaded",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IsLoaded",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "LoadedDate",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LoadedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_Fake_Address_Blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@pipeline().parameters.Customer_Fake_Address_FileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_Fake_Address",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.Customer_Fake_Address_Schema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.Customer_Fake_Address_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Customer_Fake_Address_Exact",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Customer_Fake_Address",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "AddressLine1",
+											"type": "String"
+										},
+										"sink": {
+											"name": "AddressLine1",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Zipcode",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Zipcode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "CandidateType",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CandidateType",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"name": "CleanseFlag",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CleanseFlag",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "IsLoaded",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IsLoaded",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "LoadedDate",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LoadedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_Fake_Address_Exact_Blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@pipeline().parameters.Customer_Fake_Address_Exact_FileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_Fake_Address_Exact",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.Customer_Fake_Address_Exact_Schema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.Customer_Fake_Address_Exact_Schema_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Customer_Fake_Email",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Customer_Fake_Address_Exact",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "FakeEmailPhrase",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FakeEmailPhrase",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "IsLoaded",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IsLoaded",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "LoadedDate",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LoadedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_Fake_Email_Blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@pipeline().parameters.Customer_Fake_Email_FileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_Fake_Email",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.Customer_Fake_Email_Schema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.Customer_Fake_Email_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Customer_Fake_Email_Exact",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Customer_Fake_Email",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "Email",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Email",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "CandidateType",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CandidateType",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"name": "CleanseFlag",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CleanseFlag",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"name": "IsLoaded",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IsLoaded",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "LoadedDate",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LoadedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_Fake_Email_Exact_Blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@pipeline().parameters.Customer_Fake_Email_Exact_FileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_Fake_Email_Exact",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.Customer_Fake_Email_Exact_Schema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.Customer_Fake_Email_Exact_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Customer_Fake_Phone_Exact",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Customer_Fake_Email_Exact",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "Phone",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Phone",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "CandidateType",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CandidateType",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"name": "CleanseFlag",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CleanseFlag",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"name": "IsLoaded",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IsLoaded",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "LoadedDate",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LoadedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_Fake_Phone_Exact_Blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@pipeline().parameters.Customer_Fake_Phone_Exact_FileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_Fake_Phone_Exact",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.Customer_Fake_Phone_Exact_Schema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.Customer_Fake_Phone_Exact_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "StageInitialLoadRetailChunkControl",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Customer_Fake_Phone_Exact",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "SeqID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "SeqID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"name": "FirstNameInitial",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FirstNameInitial",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "dtComplete",
+											"type": "String"
+										},
+										"sink": {
+											"name": "dtComplete",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"name": "RunCount",
+											"type": "String"
+										},
+										"sink": {
+											"name": "RunCount",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"name": "ProdCountDec2022",
+											"type": "String"
+										},
+										"sink": {
+											"name": "ProdCountDec2022",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"name": "dtPrevious",
+											"type": "String"
+										},
+										"sink": {
+											"name": "dtPrevious",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "StageInitialLoadRetailChunkControl_Blob",
+								"type": "DatasetReference",
+								"parameters": {
+									"ContainerName": {
+										"value": "@pipeline().parameters.ContainerName",
+										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@pipeline().parameters.StageInitialLoadRetailChunkControl_FileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "StageInitialLoadRetailChunkControl",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.StageInitialLoadRetailChunkControl_Schema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.StageInitialLoadRetailChunkControl_TableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"Customer_Fake_Address_FileName": {
+						"type": "String"
+					},
+					"Customer_Fake_Address_Schema": {
+						"type": "String"
+					},
+					"Customer_Fake_Address_TableName": {
+						"type": "String"
+					},
+					"Customer_Fake_Address_Exact_Schema": {
+						"type": "String"
+					},
+					"Customer_Fake_Address_Exact_Schema_TableName": {
+						"type": "String"
+					},
+					"Customer_Fake_Address_Exact_FileName": {
+						"type": "String"
+					},
+					"Customer_Fake_Email_FileName": {
+						"type": "String"
+					},
+					"Customer_Fake_Email_Schema": {
+						"type": "String"
+					},
+					"Customer_Fake_Email_TableName": {
+						"type": "String"
+					},
+					"Customer_Fake_Email_Exact_FileName": {
+						"type": "String"
+					},
+					"Customer_Fake_Email_Exact_Schema": {
+						"type": "String"
+					},
+					"Customer_Fake_Email_Exact_TableName": {
+						"type": "String"
+					},
+					"Customer_Fake_Phone_Exact_FileName": {
+						"type": "String"
+					},
+					"Customer_Fake_Phone_Exact_Schema": {
+						"type": "String"
+					},
+					"Customer_Fake_Phone_Exact_TableName": {
+						"type": "String"
+					},
+					"StageInitialLoadRetailChunkControl_FileName": {
+						"type": "String"
+					},
+					"StageInitialLoadRetailChunkControl_Schema": {
+						"type": "String"
+					},
+					"StageInitialLoadRetailChunkControl_TableName": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Customer_Validation_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Address_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Address')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Address_Exact_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Address_Exact')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Email_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Email')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Email_Exact_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Email_Exact')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Phone_Exact_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Fake_Phone_Exact')]",
+				"[concat(variables('factoryId'), '/datasets/StageInitialLoadRetailChunkControl_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/StageInitialLoadRetailChunkControl')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Notify_Teams_Channale_Pipeline')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -33160,6 +33987,9 @@
 				"parameters": {
 					"FileName": {
 						"type": "String"
+					},
+					"ContainerName": {
+						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -33171,7 +34001,10 @@
 							"value": "@dataset().FileName",
 							"type": "Expression"
 						},
-						"fileSystem": "test"
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
 					},
 					"columnDelimiter": "\t",
 					"escapeChar": "\\",
@@ -33183,6 +34016,401 @@
 						"type": "String"
 					}
 				]
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Exact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Exact_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Exact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Exact_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Phone_Exact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Phone_Exact_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
 			},
 			"dependsOn": [
 				"[variables('factoryId')]",
@@ -41122,6 +42350,85 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StageInitialLoadRetailChunkControl')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StageInitialLoadRetailChunkControl_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
 			]
 		},
 		{
