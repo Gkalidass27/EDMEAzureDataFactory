@@ -410,63 +410,6 @@
 										]
 									},
 									{
-										"name": "Add_ASHCOMM_Failure_Logs",
-										"type": "SqlServerStoredProcedure",
-										"dependsOn": [
-											{
-												"activity": "Load_ASHCOMM_Data_In_Staging",
-												"dependencyConditions": [
-													"Failed"
-												]
-											}
-										],
-										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 0,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
-											"storedProcedureParameters": {
-												"ErrorCode": {
-													"value": {
-														"value": "@activity('Load_ASHCOMM_Data_In_Staging').StatusCode",
-														"type": "Expression"
-													},
-													"type": "String"
-												},
-												"ErrorMsg": {
-													"value": {
-														"value": "@activity('Load_ASHCOMM_Data_In_Staging').error.message",
-														"type": "Expression"
-													},
-													"type": "String"
-												},
-												"PipelineName": {
-													"value": {
-														"value": "@pipeline().Pipeline",
-														"type": "Expression"
-													},
-													"type": "String"
-												},
-												"RunID": {
-													"value": {
-														"value": "@pipeline().RunId",
-														"type": "Expression"
-													},
-													"type": "String"
-												}
-											}
-										},
-										"linkedServiceName": {
-											"referenceName": "semarchy_staging",
-											"type": "LinkedServiceReference"
-										}
-									},
-									{
 										"name": "Archive_ASHCOMM_Files",
 										"type": "Copy",
 										"dependsOn": [
@@ -568,6 +511,189 @@
 													"type": "Expression"
 												},
 												"enablePartitionDiscovery": false
+											}
+										}
+									},
+									{
+										"name": "Error_ASHCOMM_Files",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "Load_ASHCOMM_Data_In_Staging",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "DelimitedTextSource",
+												"storeSettings": {
+													"type": "AzureBlobFSReadSettings",
+													"recursive": false,
+													"wildcardFileName": {
+														"value": "@string(item().name)",
+														"type": "Expression"
+													},
+													"enablePartitionDiscovery": false
+												},
+												"formatSettings": {
+													"type": "DelimitedTextReadSettings"
+												}
+											},
+											"sink": {
+												"type": "DelimitedTextSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "DelimitedTextWriteSettings",
+													"quoteAllText": true,
+													"fileExtension": ".csv"
+												}
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "Archive_ASHCOMM_Source_Files",
+												"type": "DatasetReference"
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "Move_Error_Folder_Files",
+												"type": "DatasetReference"
+											}
+										]
+									},
+									{
+										"name": "Remove_ASHCOMM_Error_Files_From_Source",
+										"type": "Delete",
+										"dependsOn": [
+											{
+												"activity": "Error_ASHCOMM_Files",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "Remove_ASHCOMM_Files_From_Source",
+												"type": "DatasetReference"
+											},
+											"enableLogging": false,
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false,
+												"wildcardFileName": {
+													"value": "@{string(item().name)}",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											}
+										}
+									},
+									{
+										"name": "ASHCOMM_ADF_Error_Logs_Process",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Load_ASHCOMM_Data_In_Staging",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADF_Error_Logs_Process",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"ErrorMsg": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.message}",
+													"type": "Expression"
+												},
+												"RunID": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"PipelineName": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"ErrorCode": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.errorCode}",
+													"type": "Expression"
+												},
+												"Source": {
+													"value": "@string(item().name)",
+													"type": "Expression"
+												},
+												"Sink": {
+													"value": "@concat(split(item().name,'_')[0],'.CustomerInfo')",
+													"type": "Expression"
+												},
+												"TriggerType": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"TriggerId": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"TriggerName": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"TriggerTime": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"Source_Type": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"Sink_Type": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"FailureType": {
+													"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.failureType}",
+													"type": "Expression"
+												},
+												"ErrorStatusCode": {
+													"value": "@activity('Load_ASHCOMM_Data_In_Staging').StatusCode",
+													"type": "Expression"
+												}
 											}
 										}
 									}
@@ -939,63 +1065,6 @@
 										]
 									},
 									{
-										"name": "Add_RET_Failure_Logs",
-										"type": "SqlServerStoredProcedure",
-										"dependsOn": [
-											{
-												"activity": "Load_RET_Data_In_Staging",
-												"dependencyConditions": [
-													"Failed"
-												]
-											}
-										],
-										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 0,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
-											"storedProcedureParameters": {
-												"ErrorCode": {
-													"value": {
-														"value": "@activity('Load_RET_Data_In_Staging').StatusCode",
-														"type": "Expression"
-													},
-													"type": "String"
-												},
-												"ErrorMsg": {
-													"value": {
-														"value": "@activity('Load_RET_Data_In_Staging').error.message",
-														"type": "Expression"
-													},
-													"type": "String"
-												},
-												"PipelineName": {
-													"value": {
-														"value": "@pipeline().Pipeline",
-														"type": "Expression"
-													},
-													"type": "String"
-												},
-												"RunID": {
-													"value": {
-														"value": "@pipeline().RunId",
-														"type": "Expression"
-													},
-													"type": "String"
-												}
-											}
-										},
-										"linkedServiceName": {
-											"referenceName": "semarchy_staging",
-											"type": "LinkedServiceReference"
-										}
-									},
-									{
 										"name": "Archive_Homes_Files",
 										"type": "Copy",
 										"dependsOn": [
@@ -1097,6 +1166,189 @@
 													"type": "Expression"
 												},
 												"enablePartitionDiscovery": false
+											}
+										}
+									},
+									{
+										"name": "Error_Homes_Files",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "Load_RET_Data_In_Staging",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "DelimitedTextSource",
+												"storeSettings": {
+													"type": "AzureBlobFSReadSettings",
+													"recursive": false,
+													"wildcardFileName": {
+														"value": "@string(item().name)",
+														"type": "Expression"
+													},
+													"enablePartitionDiscovery": false
+												},
+												"formatSettings": {
+													"type": "DelimitedTextReadSettings"
+												}
+											},
+											"sink": {
+												"type": "DelimitedTextSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "DelimitedTextWriteSettings",
+													"quoteAllText": true,
+													"fileExtension": ".csv"
+												}
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "Archive_Homes_Source_Files",
+												"type": "DatasetReference"
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "Move_Homes_File_Error_Folder",
+												"type": "DatasetReference"
+											}
+										]
+									},
+									{
+										"name": "Remove_Homes_Error_Files_From_Source",
+										"type": "Delete",
+										"dependsOn": [
+											{
+												"activity": "Error_Homes_Files",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "Remove_Homes_Files_From_Source",
+												"type": "DatasetReference"
+											},
+											"enableLogging": false,
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false,
+												"wildcardFileName": {
+													"value": "@{string(item().name)}",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											}
+										}
+									},
+									{
+										"name": "Homes_ADF_Error_Logs_Process",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Load_RET_Data_In_Staging",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "ADF_Error_Logs_Process",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"ErrorMsg": {
+													"value": "@{activity('Load_RET_Data_In_Staging').error.message}",
+													"type": "Expression"
+												},
+												"RunID": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"PipelineName": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"ErrorCode": {
+													"value": "@{activity('Load_RET_Data_In_Staging').error.errorCode}",
+													"type": "Expression"
+												},
+												"Source": {
+													"value": "@string(item().name)",
+													"type": "Expression"
+												},
+												"Sink": {
+													"value": "@concat(split(item().name,'_')[0],'.CustomerInfo')",
+													"type": "Expression"
+												},
+												"TriggerType": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"TriggerId": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"TriggerName": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"TriggerTime": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"Source_Type": {
+													"value": "@{activity('Load_RET_Data_In_Staging').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"Sink_Type": {
+													"value": "@{activity('Load_RET_Data_In_Staging').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"FailureType": {
+													"value": "@{activity('Load_RET_Data_In_Staging').error.failureType}",
+													"type": "Expression"
+												},
+												"ErrorStatusCode": {
+													"value": "@activity('Load_RET_Data_In_Staging').StatusCode",
+													"type": "Expression"
+												}
 											}
 										}
 									}
