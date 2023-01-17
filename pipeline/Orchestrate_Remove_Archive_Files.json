@@ -1,0 +1,83 @@
+{
+	"name": "Orchestrate_Remove_Archive_Files",
+	"properties": {
+		"activities": [
+			{
+				"name": "Remove_Archive_Files",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Remove_Archive_Files",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_HomesBoise",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Remove_Archive_Files",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@activity('Remove_Archive_Files').output['pipelineRunId']",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@activity('Remove_Archive_Files').output['pipelineName']",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Remove_Archive_Files').ExecutionStartTime",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Remove_Archive_Files').Status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Remove_Archive_Files').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@activity('Remove_Archive_Files').ExecutionEndTime",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Remove_Archive_Files').Duration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "Retail_Customer_Flow"
+		},
+		"annotations": []
+	}
+}
