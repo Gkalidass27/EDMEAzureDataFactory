@@ -7,7 +7,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Load_Postal_Code",
+						"activity": "Set_LoadID_Variable",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -24,12 +24,210 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LOADID",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT \n'PostalCodeMaster' as B_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\n'Semadmin' AS B_CREATOR,\n'Semadmin' AS B_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATTITUDE,\nLONGITUDE,\nIS_PREFERRED_CITY_NAME,\nPOSTAL_CODE_TYPE\nFROM [Masterdata_CDP].[SA_POSTAL_CODE_MASTER] WITH(NOLOCK)",
+							"type": "Expression"
+						},
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LOADID"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "POSTAL_CODE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "POSTAL_CODE",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "STATE_OR_PROVINCE_CODE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "STATE_OR_PROVINCE_CODE",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY_NAME",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CITY_NAME",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY_ABBREVIATION",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CITY_ABBREVIATION",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "COUNTRY_CODE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "COUNTRY_CODE",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "TIME_ZONE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "TIME_ZONE",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "OBSERVES_DST",
+									"type": "String"
+								},
+								"sink": {
+									"name": "OBSERVES_DST",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"name": "LATTITUDE",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "LATTITUDE",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "LONGITUDE",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "LONGITUDE",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "IS_PREFERRED_CITY_NAME",
+									"type": "String"
+								},
+								"sink": {
+									"name": "IS_PREFERRED_CITY_NAME",
+									"type": "Boolean"
+								}
+							},
+							{
+								"source": {
+									"name": "POSTAL_CODE_TYPE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "POSTAL_CODE_TYPE",
+									"type": "String"
+								}
+							}
+						]
+					}
 				},
 				"inputs": [
+					{
+						"referenceName": "Staging_Postal_Code_Master",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
 					{
 						"referenceName": "SA_POSTAL_CODE_MASTER",
 						"type": "DatasetReference"
@@ -68,6 +266,192 @@
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "POSTAL_CODE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STATE_OR_PROVINCE_CODE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "STATE_OR_PROVINCE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY_NAME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "CITY_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY_ABBREVIATION",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "CITY_ABBREVIATION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TIME_ZONE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "TIME_ZONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OBSERVES_DST",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "OBSERVES_DST",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LATTITUDE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LATTITUDE",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 5,
+									"precision": 9
+								}
+							},
+							{
+								"source": {
+									"name": "LONGITUDE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LONGITUDE",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 5,
+									"precision": 9
+								}
+							},
+							{
+								"source": {
+									"name": "IS_PREFERRED_CITY_NAME",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "IS_PREFERRED_CITY_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "POSTAL_CODE_TYPE",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "POSTAL_CODE_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
@@ -97,6 +481,61 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Load_Postal_Code",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'PostalCodeMaster'\n,@P_LOAD_DESCRIPTION = 'PostalCodeMaster'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set_LoadID_Variable",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -105,6 +544,11 @@
 			},
 			"File_Name": {
 				"type": "string"
+			}
+		},
+		"variables": {
+			"LoadID": {
+				"type": "String"
 			}
 		},
 		"annotations": []
