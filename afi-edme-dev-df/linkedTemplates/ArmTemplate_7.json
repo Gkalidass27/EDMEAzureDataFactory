@@ -65,6 +65,589 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_ProductMasterLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Load_Retail_PIM_EDW_InitialLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_Retail_PIM_EDW_InitialLoad",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Load_Retail_PIM_EDW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_Retail_PIM_EDW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "SPCallStoreDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Load_Retail_PIM_EDW').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallStoreDetailsErrorMsg_InitialLoad",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_InitialLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_Retail_PIM_EDW_InitialLoad').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_MasterLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": {
+									"value": "afi-edme-rg",
+									"type": "Expression"
+								},
+								"runId": {
+									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_Retail_PIM_EDW').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_Retail_PIM_EDW').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_Retail_PIM_EDW').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_Retail_PIM_EDW').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_Retail_PIM_EDW').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_ReProcess_Initial_Load_RetailCustomer')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReProcess_Initial_Load_RetailCustomer",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "ReProcess_Initial_Load_RetailCustomer",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_HomesBoise",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "ReProcess_Initial_Load_RetailCustomer",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('ReProcess_Initial_Load_RetailCustomer').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_Remove_Archive_Files')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Remove_Archive_Files",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Remove_Archive_Files",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_HomesBoise",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Remove_Archive_Files",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Remove_Archive_Files').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Remove_Archive_Files').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Remove_Archive_Files').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Remove_Archive_Files').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Remove_Archive_Files').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Remove_Archive_Files').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Remove_Archive_Files').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Stage_Retail_SiteMasterLoad_DAC')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1302,7 +1885,9 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_ProductMasterLoad')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]",

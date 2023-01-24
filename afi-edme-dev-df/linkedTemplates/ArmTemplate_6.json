@@ -13,6 +13,5468 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_HomesColton')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get_Max_CustomerMasterID_HomesColton",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesColton].CustomerInfo WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Max_CustomerMasterId_CustomerInfo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_HomesColton_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get_Max_CustomerMasterID_HomesColton",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesColton').output.firstRow.MAX_ID,null))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "HomesColton_Data_Not_Found_Logs_Stored_Procedure",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "HomesColton_Data_Not_Found_Logs_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": "404",
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No RAW Data Available For HomesColton",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": "404",
+												"type": "String"
+											},
+											"FailureType": {
+												"value": "Data Not available",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Load_HomesColton_RetailCustomers",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE \nFROM HomesColton.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesColton').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWFIRSTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_FIRST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWLASTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_LAST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWMIDDLENAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_MIDDLE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_RetailCustomersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_RETAIL_CUSTOMER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesColton_EmailAddresses",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_RetailCustomers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesColton.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesColton').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWEMAILADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_EmailAddressesIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_EMAIL_ADDRESS",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesColton_PhoneNumbers",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_EmailAddresses",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesColton.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesColton').output.firstRow.MAX_ID}'\n",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWPHONENUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_PhoneNumbersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_PHONE_NUMBER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesColton_AddressLocations",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_PhoneNumbers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesColton.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesColton').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTREETADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STREET_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWADDRESSLINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ADDRESS_LINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_CITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTATEORPROVINCECODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STATE_OR_PROV_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWZIPOSTALCODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ZIP_POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCOUNTRYCODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "RAW_COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_AddressLocationsIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_ADDRESS_LOCATION",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_AddressLocations",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "RetailCustomerLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Delete_Data_HomesColton_CustomerInfo",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM HomesColton.CustomerInfo WHERE customerMasterId<=@{activity('Get_Max_CustomerMasterID_HomesColton').output.firstRow.MAX_ID};\nselect 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Delete_Staging_CustomerInfo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "RetailCustomers_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_RetailCustomers",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_RetailCustomers').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_RetailCustomers').error.message}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesColton_RetailCustomers').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_RetailCustomers').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_RETAIL_CUSTOMER",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_RetailCustomers').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesColton.RetailCustomersIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_RetailCustomers').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "EmailAddresses_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_EmailAddresses",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_EmailAddresses').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_EmailAddresses').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesColton_EmailAddresses').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_EmailAddresses').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_EMAIL_ADDRESS",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_EmailAddresses').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesColton.EmailAddressesIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_EmailAddresses').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "PhoneNumbers_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_PhoneNumbers",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_PhoneNumbers').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_PhoneNumbers').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesColton_PhoneNumbers').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_PhoneNumbers').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_PHONE_NUMBER",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_PhoneNumbers').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesColton.PhoneNumbersIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_PhoneNumbers').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "AddressLocations_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesColton_AddressLocations",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_AddressLocations').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_AddressLocations').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesColton_AddressLocations').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_AddressLocations').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_ADDRESS_LOCATION",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_AddressLocations').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesColton.AddressLocationsIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesColton_AddressLocations').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "SD_Cancel_LoadId_Stored_Procedure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Check_HomesColton_Count",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+							"storedProcedureParameters": {
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					},
+					"Count": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_HomesLasVegas')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get_Max_CustomerMasterID_HomesLasVegas",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesLasVegas].CustomerInfo WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Max_CustomerMasterId_CustomerInfo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_HomesLasVegas_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get_Max_CustomerMasterID_HomesLasVegas",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesLasVegas').output.firstRow.MAX_ID,null))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "HomesLasVegas_Data_Not_Found_Logs_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": "404",
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No RAW Data Available For HomesLasVegas",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": "404",
+												"type": "String"
+											},
+											"FailureType": {
+												"value": "Data Not available",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Load_HomesLasVegas_RetailCustomers",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE \nFROM HomesLasVegas.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesLasVegas').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWFIRSTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_FIRST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWLASTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_LAST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWMIDDLENAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_MIDDLE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_RetailCustomersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_RETAIL_CUSTOMER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesLasVegas_EmailAddresses",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_RetailCustomers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesLasVegas.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesLasVegas').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWEMAILADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_EmailAddressesIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_EMAIL_ADDRESS",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesLasVegas_PhoneNumbers",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_EmailAddresses",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesLasVegas.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesLasVegas').output.firstRow.MAX_ID}'\n",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWPHONENUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_PhoneNumbersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_PHONE_NUMBER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesLasVegas_AddressLocations",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_PhoneNumbers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesLasVegas.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesLasVegas').output.firstRow.MAX_ID}'\n",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTREETADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STREET_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWADDRESSLINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ADDRESS_LINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_CITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTATEORPROVINCECODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STATE_OR_PROV_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWZIPOSTALCODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ZIP_POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCOUNTRYCODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "RAW_COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_AddressLocationsIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_ADDRESS_LOCATION",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_AddressLocations",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "RetailCustomerLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Delete_Data_HomesLasVegas_CustomerInfo",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM HomesLasVegas.CustomerInfo WHERE customerMasterId<=@{activity('Get_Max_CustomerMasterID_HomesLasVegas').output.firstRow.MAX_ID};\nselect 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Delete_Staging_CustomerInfo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "RetailCustomers_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_RetailCustomers",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_RetailCustomers').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_RetailCustomers').error.message}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesLasVegas_RetailCustomers').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_RetailCustomers').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_RETAIL_CUSTOMER",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_RetailCustomers').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesLasVegas.RetailCustomersIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_RetailCustomers').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "EmailAddresses_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_EmailAddresses",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_EmailAddresses').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_EmailAddresses').error.message}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesLasVegas_EmailAddresses').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_EmailAddresses').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_EMAIL_ADDRESS",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_EmailAddresses').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesLasVegas.EmailAddressesIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_EmailAddresses').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "PhoneNumbers_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_PhoneNumbers",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_PhoneNumbers').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_PhoneNumbers').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesLasVegas_PhoneNumbers').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_PhoneNumbers').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_PHONE_NUMBER",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_PhoneNumbers').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesLasVegas.PhoneNumbersIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_PhoneNumbers').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "AddressLocations_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesLasVegas_AddressLocations",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_AddressLocations').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_AddressLocations').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesLasVegas_AddressLocations').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_AddressLocations').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_ADDRESS_LOCATION",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_AddressLocations').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesLasVegas.AddressLocationsIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesLasVegas_AddressLocations').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "SD_Cancel_LoadId_Stored_Procedure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Check_HomesLasVegas_Count",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+							"storedProcedureParameters": {
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					},
+					"Count": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_HomesPNW')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get_Max_CustomerMasterID_HomesPNW",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesPNW].CustomerInfo WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Max_CustomerMasterId_CustomerInfo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_HomesPNW_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get_Max_CustomerMasterID_HomesPNW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID,null))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "HomesPNW_Data_Not_Found_Logs_Stored_Procedure",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "HomesPNW_Data_Not_Found_Logs_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": "404",
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No RAW Data Available For HomesPNW",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": "404",
+												"type": "String"
+											},
+											"FailureType": {
+												"value": "Data Not available",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Load_HomesPNW_RetailCustomers",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE \nFROM HomesPNW.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWFIRSTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_FIRST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWLASTNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_LAST_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWMIDDLENAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_MIDDLE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_RetailCustomersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_RETAIL_CUSTOMER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesPNW_EmailAddresses",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_RetailCustomers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesPNW.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWEMAILADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_EmailAddressesIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_EMAIL_ADDRESS",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesPNW_PhoneNumbers",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_EmailAddresses",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesPNW.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID}'\n",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWPHONENUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_PhoneNumbersIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_PHONE_NUMBER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "Load_HomesPNW_AddressLocations",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_PhoneNumbers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesPNW.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTREETADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STREET_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWADDRESSLINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ADDRESS_LINE2",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_CITY",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWSTATEORPROVINCECODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_STATE_OR_PROV_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWZIPOSTALCODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_ZIP_POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAWCOUNTRYCODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "RAW_COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "FP_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FS_RETAIL_CUSTOMER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Raw_AddressLocationsIncremental",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_ADDRESS_LOCATION",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_AddressLocations",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "RetailCustomerLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Delete_Data_HomesPNW_CustomerInfo",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM HomesPNW.CustomerInfo WHERE customerMasterId<=@{activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID};\nselect 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Delete_Staging_CustomerInfo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "RetailCustomers_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_RetailCustomers",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_RetailCustomers').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_RetailCustomers').error.message}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesPNW_RetailCustomers').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_RetailCustomers').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_RETAIL_CUSTOMER",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_RetailCustomers').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesPNW.RetailCustomersIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_RetailCustomers').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "EmailAddresses_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_EmailAddresses",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_EmailAddresses').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_EmailAddresses').error.message}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesPNW_EmailAddresses').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_EmailAddresses').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_EMAIL_ADDRESS",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_EmailAddresses').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesPNW.EmailAddressesIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_EmailAddresses').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "PhoneNumbers_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_PhoneNumbers",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_PhoneNumbers').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_PhoneNumbers').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesPNW_PhoneNumbers').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_PhoneNumbers').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_PHONE_NUMBER",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_PhoneNumbers').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesPNW.PhoneNumbersIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_PhoneNumbers').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "AddressLocations_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_HomesPNW_AddressLocations",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_AddressLocations').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_AddressLocations').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_HomesPNW_AddressLocations').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_AddressLocations').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SD_ADDRESS_LOCATION",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_AddressLocations').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "HomesPNW.AddressLocationsIncremental",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_HomesPNW_AddressLocations').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "SD_Cancel_LoadId_Stored_Procedure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Check_HomesPNW_Count",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+							"storedProcedureParameters": {
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					},
+					"Count": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_HomesPhoenix')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -21931,8 +27393,11 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesSaltLake')]",
+				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesLasVegas')]",
 				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesPhoenix')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesSacramento')]"
+				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesPNW')]",
+				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesSacramento')]",
+				"[concat(variables('factoryId'), '/pipelines/Load_RetailCustomer_HomesColton')]"
 			]
 		},
 		{
@@ -22026,596 +27491,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/Load_Retail_Customer_InitialLoad')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_ProductMasterLoad')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Load_Retail_PIM_EDW_InitialLoad",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Load_Retail_PIM_EDW_InitialLoad",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Load_Retail_PIM_EDW",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Load_Retail_PIM_EDW_InitialLoad",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Load_Retail_PIM_EDW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "SPCallStoreDetailsErrorMsg",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Load_Retail_PIM_EDW",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('Load_Retail_PIM_EDW').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('Load_Retail_PIM_EDW').error.message}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('Load_Retail_PIM_EDW').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('Load_Retail_PIM_EDW').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": null,
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": null,
-									"type": "String"
-								},
-								"Source": {
-									"value": null,
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": null,
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "SPCallStoreDetailsErrorMsg_InitialLoad",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Load_Retail_PIM_EDW_InitialLoad",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.message}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": null,
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": null,
-									"type": "String"
-								},
-								"Source": {
-									"value": null,
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": null,
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_InitialLoad",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Load_Retail_PIM_EDW_InitialLoad",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineRunId']",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineName']",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionStartTime",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('Load_Retail_PIM_EDW_InitialLoad').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionEndTime",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Duration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_MasterLoad",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Load_Retail_PIM_EDW",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": {
-									"value": "afi-edme-rg",
-									"type": "Expression"
-								},
-								"runId": {
-									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineRunId']",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineName']",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Load_Retail_PIM_EDW').ExecutionStartTime",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Load_Retail_PIM_EDW').Status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('Load_Retail_PIM_EDW').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('Load_Retail_PIM_EDW').ExecutionEndTime",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Load_Retail_PIM_EDW').Duration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Load_Retail_PIM_EDW_InitialLoad')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_Retail_PIM_EDW')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Orchestrate_ReProcess_Initial_Load_RetailCustomer')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "ReProcess_Initial_Load_RetailCustomer",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "ReProcess_Initial_Load_RetailCustomer",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_HomesBoise",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "ReProcess_Initial_Load_RetailCustomer",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').output['pipelineRunId']",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').output['pipelineName']",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').ExecutionStartTime",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').Status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('ReProcess_Initial_Load_RetailCustomer').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').ExecutionEndTime",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('ReProcess_Initial_Load_RetailCustomer').Duration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"folder": {
-					"name": "Retail_Customer_Flow"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/ReProcess_Initial_Load_RetailCustomer')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Orchestrate_Remove_Archive_Files')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Remove_Archive_Files",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Remove_Archive_Files",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_HomesBoise",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Remove_Archive_Files",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@activity('Remove_Archive_Files').output['pipelineRunId']",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@activity('Remove_Archive_Files').output['pipelineName']",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Remove_Archive_Files').ExecutionStartTime",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Remove_Archive_Files').Status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('Remove_Archive_Files').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('Remove_Archive_Files').ExecutionEndTime",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Remove_Archive_Files').Duration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"folder": {
-					"name": "Retail_Customer_Flow"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Remove_Archive_Files')]"
 			]
 		}
 	]
