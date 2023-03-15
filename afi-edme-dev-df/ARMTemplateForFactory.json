@@ -1297,7 +1297,7 @@
 						"type": "Copy",
 						"dependsOn": [
 							{
-								"activity": "Set_LoadID_Variable",
+								"activity": "usp_PreLoad_DROP_SD_Indexes",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -2270,7 +2270,7 @@
 						"type": "SqlServerStoredProcedure",
 						"dependsOn": [
 							{
-								"activity": "Initial_Load_Addresses",
+								"activity": "usp_PreSemarchy_ADD_SD_Indexes",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -2338,6 +2338,62 @@
 							"referenceName": "semarchy_staging",
 							"type": "LinkedServiceReference"
 						}
+					},
+					{
+						"name": "usp_PreLoad_DROP_SD_Indexes",
+						"description": "Drop SD table index",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_PreLoad_DROP_SD_Indexes]"
+						},
+						"linkedServiceName": {
+							"referenceName": "Retail_CustomerMaster",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "usp_PreSemarchy_ADD_SD_Indexes",
+						"description": "Add indexing in SD table",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Initial_Load_Addresses",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_PreSemarchy_ADD_SD_Indexes]"
+						},
+						"linkedServiceName": {
+							"referenceName": "Retail_CustomerMaster",
+							"type": "LinkedServiceReference"
+						}
 					}
 				],
 				"policy": {
@@ -2366,7 +2422,8 @@
 				"[concat(variables('factoryId'), '/datasets/INITIAL_SD_ADDRESS_LOCATION')]",
 				"[concat(variables('factoryId'), '/datasets/Semarchy_Repo')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
+				"[concat(variables('factoryId'), '/linkedServices/Retail_CustomerMaster')]"
 			]
 		},
 		{
@@ -61380,7 +61437,7 @@
 						"type": "AzureBlobFSLocation",
 						"fileSystem": "retail-customer"
 					},
-					"columnDelimiter": ",",
+					"columnDelimiter": "\t",
 					"escapeChar": "\\",
 					"firstRowAsHeader": true,
 					"quoteChar": "\""
@@ -65040,6 +65097,37 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/CustomerArchiveFilesRemove')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Remove_Archive_Files",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-03-14T06:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/pipelines/Remove_Archive_Files')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/CustomerIncrementalLoad')]",
 			"type": "Microsoft.DataFactory/factories/triggers",
 			"apiVersion": "2018-06-01",
@@ -65058,8 +65146,8 @@
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
-						"frequency": "Minute",
-						"interval": 15,
+						"frequency": "Hour",
+						"interval": 2,
 						"startTime": "2023-01-03T14:24:00Z",
 						"timeZone": "UTC"
 					}
@@ -65121,8 +65209,8 @@
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
-						"frequency": "Minute",
-						"interval": 15,
+						"frequency": "Hour",
+						"interval": 1,
 						"startTime": "2023-01-03T14:25:00Z",
 						"timeZone": "UTC"
 					}
@@ -65131,6 +65219,37 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_Customer_InitialLoad')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CustomerReprocessErrorFiles')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "ReProcess_Initial_Load_RetailCustomer",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 2,
+						"startTime": "2023-03-15T00:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/pipelines/ReProcess_Initial_Load_RetailCustomer')]"
 			]
 		},
 		{
