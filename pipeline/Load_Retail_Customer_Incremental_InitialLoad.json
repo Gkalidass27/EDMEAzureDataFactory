@@ -1,11 +1,18 @@
 {
-	"name": "Load_Retail_Customer_InitialLoad",
+	"name": "Load_Retail_Customer_Incremental_InitialLoad",
 	"properties": {
 		"activities": [
 			{
 				"name": "Get_All_Storages_Files",
 				"type": "GetMetadata",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "CurrentUTCTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -25,6 +32,14 @@
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@activity('GetLastTriggerTime').output.firstRow.LasteTriggerDateTime",
+							"type": "Expression"
+						},
+						"modifiedDatetimeEnd": {
+							"value": "@variables('ToDateTime')",
+							"type": "Expression"
+						},
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -1751,6 +1766,131 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "GetLastTriggerTime",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT MAX(LasteTriggerDateTime) AS LasteTriggerDateTime FROM Audit.ADFRetailCustomerWatermark WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "GetLastTriggerTime",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "CurrentUTCTime",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetLastTriggerTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ToDateTime",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "UpdateTriggerTime",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Get_All_Storages_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LasteTriggerDateTime",
+								"value": {
+									"value": "@variables('ToDateTime')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "SELECT MAX(LasteTriggerDateTime) AS DateTime FROM Audit.ADFRetailCustomerWatermark WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE Audit.ADFRetailCustomerWatermark",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LasteTriggerDateTime"
+								},
+								"sink": {
+									"name": "LasteTriggerDateTime",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GetLastTriggerTime",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ADFRetailCustomerWatermark",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
@@ -1760,7 +1900,7 @@
 			"TableSchema": {
 				"type": "String"
 			},
-			"LoadID": {
+			"ToDateTime": {
 				"type": "String"
 			}
 		},
