@@ -35388,7 +35388,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Load_Retail_Customer_InitialLoad')]",
+			"name": "[concat(parameters('factoryName'), '/Load_Retail_Customer_Incremental_InitialLoad')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -35396,7 +35396,14 @@
 					{
 						"name": "Get_All_Storages_Files",
 						"type": "GetMetadata",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "CurrentUTCTime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -35417,6 +35424,14 @@
 							"storeSettings": {
 								"type": "AzureBlobFSReadSettings",
 								"recursive": true,
+								"modifiedDatetimeStart": {
+									"value": "@activity('GetLastTriggerTime').output.firstRow.LasteTriggerDateTime",
+									"type": "Expression"
+								},
+								"modifiedDatetimeEnd": {
+									"value": "@variables('ToDateTime')",
+									"type": "Expression"
+								},
 								"enablePartitionDiscovery": false
 							},
 							"formatSettings": {
@@ -37157,6 +37172,134 @@
 								}
 							]
 						}
+					},
+					{
+						"name": "GetLastTriggerTime",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT MAX(LasteTriggerDateTime) AS LasteTriggerDateTime FROM Audit.ADFRetailCustomerWatermark WITH(NOLOCK)",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "GetLastTriggerTime",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "CurrentUTCTime",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetLastTriggerTime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ToDateTime",
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "UpdateTriggerTime",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Get_All_Storages_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"additionalColumns": [
+									{
+										"name": "LasteTriggerDateTime",
+										"value": {
+											"value": "@variables('ToDateTime')",
+											"type": "Expression"
+										}
+									}
+								],
+								"sqlReaderQuery": "SELECT MAX(LasteTriggerDateTime) AS DateTime FROM Audit.ADFRetailCustomerWatermark WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE Audit.ADFRetailCustomerWatermark",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "LasteTriggerDateTime"
+										},
+										"sink": {
+											"name": "LasteTriggerDateTime",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "GetLastTriggerTime",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ADFRetailCustomerWatermark",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
 					}
 				],
 				"policy": {
@@ -37170,7 +37313,7 @@
 					"TableSchema": {
 						"type": "String"
 					},
-					"LoadID": {
+					"ToDateTime": {
 						"type": "String"
 					}
 				},
@@ -37182,6 +37325,8 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/datasets/Retail_Customers_Blob')]",
+				"[concat(variables('factoryId'), '/datasets/GetLastTriggerTime')]",
+				"[concat(variables('factoryId'), '/datasets/ADFRetailCustomerWatermark')]",
 				"[concat(variables('factoryId'), '/datasets/Retail_Customer_Files')]",
 				"[concat(variables('factoryId'), '/datasets/D365ECM_CustomerInfo')]",
 				"[concat(variables('factoryId'), '/datasets/Archive_ASHCOMM_Source_Files')]",
@@ -51399,7 +51544,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "Load_Retail_Customer_InitialLoad",
+								"referenceName": "Load_Retail_Customer_Incremental_InitialLoad",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -51477,7 +51622,7 @@
 			},
 			"dependsOn": [
 				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_Retail_Customer_InitialLoad')]",
+				"[concat(variables('factoryId'), '/pipelines/Load_Retail_Customer_Incremental_InitialLoad')]",
 				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]"
 			]
 		},
@@ -54538,6 +54683,35 @@
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
 				"[concat(variables('factoryId'), '/datasets/DAC_Location_Details_Read1')]",
 				"[concat(variables('factoryId'), '/datasets/DAC_Location_Details_Write1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ADFRetailCustomerWatermark')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "LasteTriggerDateTime",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Audit",
+					"table": "ADFRetailCustomerWatermark"
+				}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
 			]
 		},
 		{
@@ -58687,6 +58861,25 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/linkedServices/Enterprise_ReferenceMaster')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/GetLastTriggerTime')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
 			]
 		},
 		{
