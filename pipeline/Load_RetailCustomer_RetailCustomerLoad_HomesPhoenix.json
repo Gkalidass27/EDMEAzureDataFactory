@@ -1,9 +1,9 @@
 {
-	"name": "Load_RetailCustomer_D365Ecm",
+	"name": "Load_RetailCustomer_RetailCustomerLoad_HomesPhoenix",
 	"properties": {
 		"activities": [
 			{
-				"name": "GetNewLoadId",
+				"name": "Get_Max_CustomerMasterID_HomesPhoenix",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -17,62 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-							"type": "Expression"
-						},
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Semarchy_Repo",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
-				"name": "Set_LoadID_Variable",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "GetNewLoadId",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "LoadID",
-					"value": {
-						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Get_Max_CustomerMasterID_D365Ecm",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Set_LoadID_Variable",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [D365ECM].CustomerInfo WITH(NOLOCK)",
+						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesPhoenix].CustomerInfo WITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -83,11 +28,11 @@
 				}
 			},
 			{
-				"name": "Check_D365Ecm_Count",
+				"name": "Check_HomesPhoenix_Count",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Get_Max_CustomerMasterID_D365Ecm",
+						"activity": "Get_Max_CustomerMasterID_HomesPhoenix",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -96,12 +41,12 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@not(equals(activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID,null))",
+						"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesPhoenix').output.firstRow.MAX_ID,null))",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
 						{
-							"name": "D365Ecm_Data_Not_Found_Logs_Stored_Procedure",
+							"name": "HomesPhoenix_Data_Not_Found_Logs_Stored_Procedure",
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [],
 							"policy": {
@@ -120,7 +65,10 @@
 										"type": "String"
 									},
 									"ErrorMsg": {
-										"value": "No RAW Data Available For D365Ecm",
+										"value": {
+											"value": "No RAW Data Available For HomesPhoenix",
+											"type": "Expression"
+										},
 										"type": "String"
 									},
 									"ErrorStatusCode": {
@@ -195,56 +143,20 @@
 								"referenceName": "semarchy_staging",
 								"type": "LinkedServiceReference"
 							}
-						},
+						}
+					],
+					"ifTrueActivities": [
 						{
-							"name": "Cancel_LoadId_Stored_Procedure",
-							"type": "SqlServerStoredProcedure",
+							"name": "Load_HomesPhoenix_RetailCustomers",
+							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "D365Ecm_Data_Not_Found_Logs_Stored_Procedure",
+									"activity": "Set_LoadID_Variable",
 									"dependencyConditions": [
 										"Succeeded"
 									]
 								}
 							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"storedProcedureName": "[dbo].[CANCEL_LOAD]",
-								"storedProcedureParameters": {
-									"P_LOAD_ID": {
-										"value": {
-											"value": "@variables('LoadID')",
-											"type": "Expression"
-										},
-										"type": "Decimal"
-									},
-									"P_USERNAME": {
-										"value": {
-											"value": "semadmin",
-											"type": "Expression"
-										},
-										"type": "String"
-									}
-								}
-							},
-							"linkedServiceName": {
-								"referenceName": "semarchy_repo",
-								"type": "LinkedServiceReference"
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "Load_D365Ecm_RetailCustomers",
-							"type": "Copy",
-							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -266,7 +178,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE \nFROM D365Ecm.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID}'\n",
+										"value": "SELECT B_SOURCEID,\nRAWFIRSTNAME,\nRAWMIDDLENAME,\nRAWLASTNAME,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE \nFROM HomesPhoenix.RetailCustomersIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPhoenix').output.firstRow.MAX_ID}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -447,11 +359,11 @@
 							]
 						},
 						{
-							"name": "Load_D365Ecm_EmailAddresses",
+							"name": "Load_HomesPhoenix_EmailAddresses",
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_RetailCustomers",
+									"activity": "Load_HomesPhoenix_RetailCustomers",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -478,7 +390,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM D365Ecm.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID}'\n",
+										"value": "SELECT B_SOURCEID,\nRAWEMAILADDRESS,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesPhoenix.EmailAddressesIncremental \nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPhoenix').output.firstRow.MAX_ID}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -659,11 +571,11 @@
 							]
 						},
 						{
-							"name": "Load_D365Ecm_PhoneNumbers",
+							"name": "Load_HomesPhoenix_PhoneNumbers",
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_EmailAddresses",
+									"activity": "Load_HomesPhoenix_EmailAddresses",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -690,7 +602,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM D365Ecm.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID}'\n",
+										"value": "SELECT B_SOURCEID,\nRAWPHONENUMBER,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesPhoenix.PhoneNumbersIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPhoenix').output.firstRow.MAX_ID}'\n",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -871,11 +783,11 @@
 							]
 						},
 						{
-							"name": "Load_D365Ecm_AddressLocations",
+							"name": "Load_HomesPhoenix_AddressLocations",
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_PhoneNumbers",
+									"activity": "Load_HomesPhoenix_PhoneNumbers",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -902,7 +814,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM D365Ecm.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID}'\n",
+										"value": "SELECT B_SOURCEID,\nRAWSTREETADDRESS,\nRAWADDRESSLINE2,\nRAWCITY,\nRAWSTATEORPROVINCECODE,\nRAWZIPOSTALCODE,\nRAWCOUNTRYCODE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATE,\nB_UPDATOR,\nB_CREDATE,\nB_UPDATE AS SRC_UPDATE,\nFP_RETAIL_CUSTOMER,\nFS_RETAIL_CUSTOMER\nFROM HomesPhoenix.AddressLocationsIncremental\nWITH(NOLOCK) WHERE customerMasterId<='@{activity('Get_Max_CustomerMasterID_HomesPhoenix').output.firstRow.MAX_ID}'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -1147,7 +1059,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_AddressLocations",
+									"activity": "Load_HomesPhoenix_AddressLocations",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -1197,7 +1109,7 @@
 							}
 						},
 						{
-							"name": "Delete_Data_D365Ecm_CustomerInfo",
+							"name": "Delete_Data_HomesPhoenix_CustomerInfo",
 							"type": "Lookup",
 							"dependsOn": [
 								{
@@ -1219,7 +1131,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "DELETE FROM D365Ecm.CustomerInfo WHERE customerMasterId<=@{activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID};\nselect 1 as success;",
+										"value": "DELETE FROM HomesPhoenix.CustomerInfo WHERE customerMasterId<=@{activity('Get_Max_CustomerMasterID_HomesPhoenix').output.firstRow.MAX_ID};\nselect 1 as success;",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -1236,7 +1148,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_RetailCustomers",
+									"activity": "Load_HomesPhoenix_RetailCustomers",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1255,28 +1167,28 @@
 								"storedProcedureParameters": {
 									"ErrorCode": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').error.errorCode}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').error.errorCode}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorMsg": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').error.message}\n",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').error.message}\n",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorStatusCode": {
 										"value": {
-											"value": "@activity('Load_D365Ecm_RetailCustomers').StatusCode",
+											"value": "@activity('Load_HomesPhoenix_RetailCustomers').StatusCode",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"FailureType": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').error.failureType}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').error.failureType}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1304,21 +1216,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.RetailCustomersIncremental",
+											"value": "HomesPhoenix.RetailCustomersIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1363,7 +1275,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_EmailAddresses",
+									"activity": "Load_HomesPhoenix_EmailAddresses",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1382,28 +1294,28 @@
 								"storedProcedureParameters": {
 									"ErrorCode": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').error.errorCode}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').error.errorCode}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorMsg": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').error.message}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').error.message}\n",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorStatusCode": {
 										"value": {
-											"value": "@activity('Load_D365Ecm_EmailAddresses').StatusCode",
+											"value": "@activity('Load_HomesPhoenix_EmailAddresses').StatusCode",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"FailureType": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').error.failureType}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').error.failureType}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1431,21 +1343,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.EmailAddressesIncremental",
+											"value": "HomesPhoenix.EmailAddressesIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1490,7 +1402,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_PhoneNumbers",
+									"activity": "Load_HomesPhoenix_PhoneNumbers",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1509,28 +1421,28 @@
 								"storedProcedureParameters": {
 									"ErrorCode": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').error.errorCode}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').error.errorCode}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorMsg": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').error.message}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').error.message}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorStatusCode": {
 										"value": {
-											"value": "@activity('Load_D365Ecm_PhoneNumbers').StatusCode",
+											"value": "@activity('Load_HomesPhoenix_PhoneNumbers').StatusCode",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"FailureType": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').error.failureType}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').error.failureType}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1558,21 +1470,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.PhoneNumbersIncremental",
+											"value": "HomesPhoenix.PhoneNumbersIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1617,7 +1529,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_AddressLocations",
+									"activity": "Load_HomesPhoenix_AddressLocations",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1636,28 +1548,28 @@
 								"storedProcedureParameters": {
 									"ErrorCode": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').error.errorCode}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').error.errorCode}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorMsg": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').error.message}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').error.message}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorStatusCode": {
 										"value": {
-											"value": "@activity('Load_D365Ecm_AddressLocations').StatusCode",
+											"value": "@activity('Load_HomesPhoenix_AddressLocations').StatusCode",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"FailureType": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').error.failureType}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').error.failureType}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1685,21 +1597,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.AddressLocationsIncremental",
+											"value": "HomesPhoenix.AddressLocationsIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -1744,7 +1656,7 @@
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_RetailCustomers",
+									"activity": "Load_HomesPhoenix_RetailCustomers",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1772,15 +1684,15 @@
 										"type": "Expression"
 									},
 									"triggerTime": {
-										"value": "@activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].start",
+										"value": "@activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].start",
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].status",
+										"value": "@activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].status",
 										"type": "Expression"
 									},
 									"message": {
-										"value": "@replace(activity('Load_D365Ecm_RetailCustomers').error.message,'\"','')",
+										"value": "@replace(activity('Load_HomesPhoenix_RetailCustomers').error.message,'\"','')",
 										"type": "Expression"
 									},
 									"executionEndTime": {
@@ -1788,7 +1700,7 @@
 										"type": "Expression"
 									},
 									"runDuration": {
-										"value": "@activity('Load_D365Ecm_RetailCustomers').output.copyDuration",
+										"value": "@activity('Load_HomesPhoenix_RetailCustomers').output.copyDuration",
 										"type": "Expression"
 									},
 									"teamWebhookUrl": {
@@ -1803,7 +1715,7 @@
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_EmailAddresses",
+									"activity": "Load_HomesPhoenix_EmailAddresses",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1831,15 +1743,15 @@
 										"type": "Expression"
 									},
 									"triggerTime": {
-										"value": "@activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].start",
+										"value": "@activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].start",
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].status",
+										"value": "@activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].status",
 										"type": "Expression"
 									},
 									"message": {
-										"value": "@replace(activity('Load_D365Ecm_EmailAddresses').error.message,'\"','')",
+										"value": "@replace(activity('Load_HomesPhoenix_EmailAddresses').error.message,'\"','')",
 										"type": "Expression"
 									},
 									"executionEndTime": {
@@ -1847,7 +1759,7 @@
 										"type": "Expression"
 									},
 									"runDuration": {
-										"value": "@activity('Load_D365Ecm_EmailAddresses').output.copyDuration",
+										"value": "@activity('Load_HomesPhoenix_EmailAddresses').output.copyDuration",
 										"type": "Expression"
 									},
 									"teamWebhookUrl": {
@@ -1862,7 +1774,7 @@
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_PhoneNumbers",
+									"activity": "Load_HomesPhoenix_PhoneNumbers",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1890,15 +1802,15 @@
 										"type": "Expression"
 									},
 									"triggerTime": {
-										"value": "@activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].start",
+										"value": "@activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].start",
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].status",
+										"value": "@activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].status",
 										"type": "Expression"
 									},
 									"message": {
-										"value": "@replace(activity('Load_D365Ecm_PhoneNumbers').error.message,'\"','')",
+										"value": "@replace(activity('Load_HomesPhoenix_PhoneNumbers').error.message,'\"','')",
 										"type": "Expression"
 									},
 									"executionEndTime": {
@@ -1906,7 +1818,7 @@
 										"type": "Expression"
 									},
 									"runDuration": {
-										"value": "@activity('Load_D365Ecm_PhoneNumbers').output.copyDuration",
+										"value": "@activity('Load_HomesPhoenix_PhoneNumbers').output.copyDuration",
 										"type": "Expression"
 									},
 									"teamWebhookUrl": {
@@ -1921,7 +1833,7 @@
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_AddressLocations",
+									"activity": "Load_HomesPhoenix_AddressLocations",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -1949,15 +1861,15 @@
 										"type": "Expression"
 									},
 									"triggerTime": {
-										"value": "@activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].start",
+										"value": "@activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].start",
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].status",
+										"value": "@activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].status",
 										"type": "Expression"
 									},
 									"message": {
-										"value": "@replace(activity('Load_D365Ecm_AddressLocations').error.message,'\"','')",
+										"value": "@replace(activity('Load_HomesPhoenix_AddressLocations').error.message,'\"','')",
 										"type": "Expression"
 									},
 									"executionEndTime": {
@@ -1965,7 +1877,7 @@
 										"type": "Expression"
 									},
 									"runDuration": {
-										"value": "@activity('Load_D365Ecm_AddressLocations').output.copyDuration",
+										"value": "@activity('Load_HomesPhoenix_AddressLocations').output.copyDuration",
 										"type": "Expression"
 									},
 									"teamWebhookUrl": {
@@ -1980,7 +1892,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_RetailCustomers",
+									"activity": "Load_HomesPhoenix_RetailCustomers",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -2006,28 +1918,28 @@
 									},
 									"CopyActivity_Start_Time": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].start}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].start}",
 											"type": "Expression"
 										},
 										"type": "DateTime"
 									},
 									"CopyActivity_transferDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0]. detailedDurations.transferDuration}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0]. detailedDurations.transferDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"CopyDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.copyDuration}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.copyDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"Execution_Status": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].status}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].status}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2041,14 +1953,14 @@
 									},
 									"RowsCopied": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.rowsCopied}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.rowsCopied}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"RowsRead": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.rowsRead}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.rowsRead}",
 											"type": "Expression"
 										},
 										"type": "Int32"
@@ -2069,21 +1981,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.RetailCustomersIncremental",
+											"value": "HomesPhoenix.RetailCustomersIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_RetailCustomers').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_RetailCustomers').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2128,7 +2040,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_EmailAddresses",
+									"activity": "Load_HomesPhoenix_EmailAddresses",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -2154,28 +2066,28 @@
 									},
 									"CopyActivity_Start_Time": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].start}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].start}",
 											"type": "Expression"
 										},
 										"type": "DateTime"
 									},
 									"CopyActivity_transferDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0]. detailedDurations.transferDuration}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0]. detailedDurations.transferDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"CopyDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.copyDuration}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.copyDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"Execution_Status": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].status}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].status}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2189,14 +2101,14 @@
 									},
 									"RowsCopied": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.rowsCopied}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.rowsCopied}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"RowsRead": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.rowsRead}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.rowsRead}",
 											"type": "Expression"
 										},
 										"type": "Int32"
@@ -2217,21 +2129,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.EmailAddressesIncremental",
+											"value": "HomesPhoenix.EmailAddressesIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_EmailAddresses').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_EmailAddresses').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2276,7 +2188,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_PhoneNumbers",
+									"activity": "Load_HomesPhoenix_PhoneNumbers",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -2302,28 +2214,28 @@
 									},
 									"CopyActivity_Start_Time": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].start}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].start}",
 											"type": "Expression"
 										},
 										"type": "DateTime"
 									},
 									"CopyActivity_transferDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0]. detailedDurations.transferDuration}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0]. detailedDurations.transferDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"CopyDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.copyDuration}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.copyDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"Execution_Status": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].status}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].status}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2337,14 +2249,14 @@
 									},
 									"RowsCopied": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.rowsCopied}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.rowsCopied}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"RowsRead": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.rowsRead}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.rowsRead}",
 											"type": "Expression"
 										},
 										"type": "Int32"
@@ -2365,21 +2277,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.PhoneNumbersIncremental",
+											"value": "HomesPhoenix.PhoneNumbersIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_PhoneNumbers').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_PhoneNumbers').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2424,7 +2336,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_D365Ecm_AddressLocations",
+									"activity": "Load_HomesPhoenix_AddressLocations",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -2450,28 +2362,28 @@
 									},
 									"CopyActivity_Start_Time": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].start}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].start}",
 											"type": "Expression"
 										},
 										"type": "DateTime"
 									},
 									"CopyActivity_transferDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0]. detailedDurations.transferDuration}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0]. detailedDurations.transferDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"CopyDuration_in_secs": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.copyDuration}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.copyDuration}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"Execution_Status": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].status}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].status}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2485,14 +2397,14 @@
 									},
 									"RowsCopied": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.rowsCopied}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.rowsCopied}",
 											"type": "Expression"
 										},
 										"type": "Int32"
 									},
 									"RowsRead": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.rowsRead}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.rowsRead}",
 											"type": "Expression"
 										},
 										"type": "Int32"
@@ -2513,21 +2425,21 @@
 									},
 									"Sink_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].sink.type}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].sink.type}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source": {
 										"value": {
-											"value": "D365Ecm.AddressLocationsIncremental",
+											"value": "HomesPhoenix.AddressLocationsIncremental",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"Source_Type": {
 										"value": {
-											"value": "@{activity('Load_D365Ecm_AddressLocations').output.executionDetails[0].source.type}",
+											"value": "@{activity('Load_HomesPhoenix_AddressLocations').output.executionDetails[0].source.type}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -2566,6 +2478,54 @@
 								"referenceName": "semarchy_staging",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "GetNewLoadId",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Repo",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Set_LoadID_Variable",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "GetNewLoadId",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LoadID",
+								"value": {
+									"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
@@ -2575,7 +2535,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Check_D365Ecm_Count",
+						"activity": "Check_HomesPhoenix_Count",
 						"dependencyConditions": [
 							"Failed"
 						]
