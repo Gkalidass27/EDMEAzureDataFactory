@@ -501,7 +501,20 @@
 			{
 				"name": "GetNewLoadId",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Get_Email_Chunk",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get_Phone_Chunk",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -1271,6 +1284,62 @@
 							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
 							"type": "Expression"
 						}
+					}
+				}
+			},
+			{
+				"name": "Get_Email_Chunk",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel ='email'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Email_Chunk",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get_Phone_Chunk",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel ='Phone'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Phone_Chunk",
+						"type": "DatasetReference"
 					}
 				}
 			}
