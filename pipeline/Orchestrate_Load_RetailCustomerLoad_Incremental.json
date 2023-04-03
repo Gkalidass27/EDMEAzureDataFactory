@@ -319,6 +319,12 @@
 						"dependencyConditions": [
 							"Succeeded"
 						]
+					},
+					{
+						"activity": "Get_Max_CustomerMasterID_HomesBrandon",
+						"dependencyConditions": [
+							"Succeeded"
+						]
 					}
 				],
 				"userProperties": [],
@@ -327,7 +333,17 @@
 						"referenceName": "Load_RetailCustomer_RetailCustomerLoad_HomesBrandon",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true
+					"waitOnCompletion": true,
+					"parameters": {
+						"HomesBrandon": {
+							"value": "@activity('Get_Max_CustomerMasterID_HomesBrandon').output.firstRow.MAX_ID",
+							"type": "Expression"
+						},
+						"LoadID": {
+							"value": "@variables('LoadID')",
+							"type": "Expression"
+						}
+					}
 				}
 			},
 			{
@@ -1292,6 +1308,31 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesSacramento].CustomerInfo WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Max_CustomerMasterId_CustomerInfo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get_Max_CustomerMasterID_HomesBrandon",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesBrandon].CustomerInfo WITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
