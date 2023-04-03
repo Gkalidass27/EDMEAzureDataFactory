@@ -3,45 +3,13 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Get_Max_CustomerMasterID_HomesPNW",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesPNW].CustomerInfo WITH(NOLOCK)",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Max_CustomerMasterId_CustomerInfo",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
 				"name": "Check_HomesPNW_Count",
 				"type": "IfCondition",
-				"dependsOn": [
-					{
-						"activity": "Get_Max_CustomerMasterID_HomesPNW",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@not(equals(activity('Get_Max_CustomerMasterID_HomesPNW').output.firstRow.MAX_ID,null))",
+						"value": "@not(equals(pipeline().parameters.HomesPNW,null))",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -2666,6 +2634,14 @@
 				}
 			}
 		],
+		"parameters": {
+			"HomesPNW": {
+				"type": "string"
+			},
+			"LoadID": {
+				"type": "string"
+			}
+		},
 		"variables": {
 			"LoadID": {
 				"type": "String"
