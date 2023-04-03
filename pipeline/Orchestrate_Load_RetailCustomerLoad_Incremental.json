@@ -11,6 +11,12 @@
 						"dependencyConditions": [
 							"Succeeded"
 						]
+					},
+					{
+						"activity": "Get_Max_CustomerMasterID_D365Ecm",
+						"dependencyConditions": [
+							"Succeeded"
+						]
 					}
 				],
 				"userProperties": [],
@@ -19,7 +25,17 @@
 						"referenceName": "Load_RetailCustomer_RetailCustomerLoad_D3365Ecm",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true
+					"waitOnCompletion": true,
+					"parameters": {
+						"D3365Ecm": {
+							"value": "@activity('Get_Max_CustomerMasterID_D365Ecm').output.firstRow.MAX_ID",
+							"type": "Expression"
+						},
+						"LoadID": {
+							"value": "@variables('LoadID')",
+							"type": "Expression"
+						}
+					}
 				}
 			},
 			{
@@ -1374,6 +1390,31 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesColton].CustomerInfo WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Max_CustomerMasterId_CustomerInfo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get_Max_CustomerMasterID_D365Ecm",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [D365ECM].CustomerInfo WITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
