@@ -103,6 +103,12 @@
 						"dependencyConditions": [
 							"Succeeded"
 						]
+					},
+					{
+						"activity": "Get_Max_CustomerMasterID_HomesSaltLake",
+						"dependencyConditions": [
+							"Succeeded"
+						]
 					}
 				],
 				"userProperties": [],
@@ -111,7 +117,17 @@
 						"referenceName": "Load_RetailCustomer_RetailCustomerLoad_HomesSaltLake",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true
+					"waitOnCompletion": true,
+					"parameters": {
+						"HomesSaltLake": {
+							"value": "@activity('Get_Max_CustomerMasterID_HomesSaltLake').output.firstRow.MAX_ID",
+							"type": "Expression"
+						},
+						"LoadID": {
+							"value": "@variables('LoadID')",
+							"type": "Expression"
+						}
+					}
 				}
 			},
 			{
@@ -1046,6 +1062,31 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesBoise].CustomerInfo WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Max_CustomerMasterId_CustomerInfo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Get_Max_CustomerMasterID_HomesSaltLake",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [HomesSaltLake].CustomerInfo WITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
