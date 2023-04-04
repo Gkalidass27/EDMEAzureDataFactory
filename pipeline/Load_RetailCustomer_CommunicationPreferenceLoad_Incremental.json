@@ -1525,6 +1525,177 @@
 									}
 								}
 							}
+						},
+						{
+							"name": "CDP_Customer_Preference_Email",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "SubmitLoadID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)\nwhere contactType = 'email' AND dtec=<'@{activity('SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate').output.firstRow.MaxDate}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Masterdata_CDP_Cdp_Customer_Preference_Query",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Masterdata_CDP_cdp_customer_preferences_archive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "CDP_Customer_Preference_Phone",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "CDP_Customer_Preference_Email",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)\nwhere contactType <> 'email'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Masterdata_CDP_Cdp_Customer_Preference_Query",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Masterdata_CDP_cdp_customer_preferences_archive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "CDP_OptOut",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "CDP_Customer_Preference_Phone",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "select CustomerKey,\nEmailAddress,\nEmailChannelOptOutFlag,\nEmailChannelOptStatusDate,\nDSG_Brand_Flag,\nEAGR_Brand_Flag\nfrom [Masterdata_CDP].[OptOut] WITH(NOLOCK)",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Masterdata_CDP_OptOut_Query",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Masterdata_CDP_OptOut_archive",
+									"type": "DatasetReference"
+								}
+							]
 						}
 					]
 				}
