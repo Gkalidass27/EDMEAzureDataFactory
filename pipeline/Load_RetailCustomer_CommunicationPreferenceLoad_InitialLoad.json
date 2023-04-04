@@ -38,7 +38,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "Semarchy_Repo1",
+						"referenceName": "Semarchy_Repo",
 						"type": "DatasetReference"
 					}
 				}
@@ -161,7 +161,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel = 'Phone'",
+							"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel = 'SMS'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -895,7 +895,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'Phone'",
+										"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS'",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -1474,7 +1474,14 @@
 						{
 							"name": "Update_Phone_Chunk",
 							"type": "Lookup",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -1487,7 +1494,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'Phone';\nselect 1 as success;",
+										"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS';\nselect 1 as success;",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
