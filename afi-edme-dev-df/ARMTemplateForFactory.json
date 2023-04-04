@@ -5419,14 +5419,14 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "InitialLoad_CommPref1",
+											"referenceName": "Masterdata_CDP_preferences",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
 									],
 									"outputs": [
 										{
-											"referenceName": "SD_COMMUNICTN_PREFERNC_EMAIL1",
+											"referenceName": "SD_COMMUNICTN_PREFERNC_EMAIL",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
@@ -5669,14 +5669,14 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "InitialLoad_CommPref1",
+											"referenceName": "Masterdata_CDP_preferences",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
 									],
 									"outputs": [
 										{
-											"referenceName": "SD_COMMUNICTN_PREFERNC_PHONE1",
+											"referenceName": "SD_COMMUNICTN_PREFERNC_PHONE",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
@@ -5705,7 +5705,7 @@
 											"partitionOption": "None"
 										},
 										"dataset": {
-											"referenceName": "Semarchy_Repo2",
+											"referenceName": "Semarchy_Repo",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
@@ -6526,10 +6526,10 @@
 				"[concat(variables('factoryId'), '/datasets/Masterdata_CDP_Prefrence_MaxDate')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
-				"[concat(variables('factoryId'), '/datasets/InitialLoad_CommPref1')]",
-				"[concat(variables('factoryId'), '/datasets/SD_COMMUNICTN_PREFERNC_EMAIL1')]",
-				"[concat(variables('factoryId'), '/datasets/SD_COMMUNICTN_PREFERNC_PHONE1')]",
-				"[concat(variables('factoryId'), '/datasets/Semarchy_Repo2')]",
+				"[concat(variables('factoryId'), '/datasets/Masterdata_CDP_preferences')]",
+				"[concat(variables('factoryId'), '/datasets/SD_COMMUNICTN_PREFERNC_EMAIL')]",
+				"[concat(variables('factoryId'), '/datasets/SD_COMMUNICTN_PREFERNC_PHONE')]",
+				"[concat(variables('factoryId'), '/datasets/Semarchy_Repo')]",
 				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]"
 			]
 		},
@@ -6575,7 +6575,7 @@
 								"partitionOption": "None"
 							},
 							"dataset": {
-								"referenceName": "Semarchy_Repo1",
+								"referenceName": "Semarchy_Repo",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
@@ -6700,7 +6700,7 @@
 							"source": {
 								"type": "AzureSqlSource",
 								"sqlReaderQuery": {
-									"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel = 'Phone'",
+									"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel = 'SMS'",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -7438,7 +7438,7 @@
 												}
 											],
 											"sqlReaderQuery": {
-												"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'Phone'",
+												"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS'",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -8019,7 +8019,14 @@
 								{
 									"name": "Update_Phone_Chunk",
 									"type": "Lookup",
-									"dependsOn": [],
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
 									"policy": {
 										"timeout": "0.12:00:00",
 										"retry": 0,
@@ -8032,7 +8039,7 @@
 										"source": {
 											"type": "AzureSqlSource",
 											"sqlReaderQuery": {
-												"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'Phone';\nselect 1 as success;",
+												"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS';\nselect 1 as success;",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -8065,7 +8072,7 @@
 			},
 			"dependsOn": [
 				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/datasets/Semarchy_Repo1')]",
+				"[concat(variables('factoryId'), '/datasets/Semarchy_Repo')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]",
 				"[concat(variables('factoryId'), '/datasets/Email_Chunk')]",
 				"[concat(variables('factoryId'), '/datasets/Get_Phone_Chunk')]",
@@ -53848,7 +53855,7 @@
 								"partitionOption": "None"
 							},
 							"dataset": {
-								"referenceName": "Prefrence_EDW_Query1",
+								"referenceName": "EDME_DataFactory_Cdp_Customer_Preferences",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
@@ -53884,7 +53891,7 @@
 								"partitionOption": "None"
 							},
 							"dataset": {
-								"referenceName": "Prefrence_EDW_Query1",
+								"referenceName": "EDME_DataFactory_OptOut",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
@@ -54134,7 +54141,7 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "EDME_DataFactory_Cdp_Customer_Preferences2",
+											"referenceName": "EDME_DataFactory_Cdp_Customer_Preferences",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
@@ -54719,7 +54726,7 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "EDME_DataFactory_OptOut2",
+											"referenceName": "EDME_DataFactory_OptOut",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
@@ -55085,12 +55092,11 @@
 			"dependsOn": [
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/datasets/Prefrence_MaxDate')]",
-				"[concat(variables('factoryId'), '/datasets/Prefrence_EDW_Query1')]",
+				"[concat(variables('factoryId'), '/datasets/EDME_DataFactory_Cdp_Customer_Preferences')]",
+				"[concat(variables('factoryId'), '/datasets/EDME_DataFactory_OptOut')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
-				"[concat(variables('factoryId'), '/datasets/EDME_DataFactory_Cdp_Customer_Preferences2')]",
 				"[concat(variables('factoryId'), '/datasets/Masterdata_CDP_Cdp_Customer_Preferences_INC')]",
 				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]",
-				"[concat(variables('factoryId'), '/datasets/EDME_DataFactory_OptOut2')]",
 				"[concat(variables('factoryId'), '/datasets/Masterdata_CDP_OptOut_INC')]"
 			]
 		},
@@ -56135,7 +56141,7 @@
 								"type": "Expression"
 							},
 							"isSequential": false,
-							"batchCount": 50,
+							"batchCount": 20,
 							"activities": [
 								{
 									"name": "Process_Ashcomm_Files",
@@ -60966,83 +60972,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_Cdp_Customer_Preferences1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_Cdp_Customer_Preferences2')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_OptOut')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_OptOut1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_OptOut2')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -64908,25 +64838,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/InitialLoad_CommPref1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Last_Thirty_Days_Files')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -67241,6 +67152,25 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Masterdata_CDP_preferences')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Max_CustomerMasterId_CustomerInfo')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -67405,25 +67335,6 @@
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Prefrence_EDW_Query')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Ashley_EDW')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Prefrence_EDW_Query1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -68894,263 +68805,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/SD_COMMUNICTN_PREFERNC_EMAIL1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "B_LOADID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_PUBID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_SOURCEID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CLASSNAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ERROR_STATUS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ORIGINALBATCHID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_OPERATIONID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETETYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_DELETEAUTHOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEOPERATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEPATH",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CREDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_UPDDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_CREATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_UPDATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "EMAIL_ADDRESS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "OPTED_IN",
-						"type": "bit"
-					},
-					{
-						"name": "ORGANIZATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "PURPOSE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CHANNEL",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAW_EMAIL_ADDRESS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "EMAIL_COMMUNICATION_ID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "EMAIL_ERROR",
-						"type": "nvarchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "Masterdata_CDP",
-					"table": "cdp_customer_preferences"
-				}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/SD_COMMUNICTN_PREFERNC_PHONE')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Retail_CustomerMaster",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "B_LOADID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_PUBID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_SOURCEID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CLASSNAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ERROR_STATUS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ORIGINALBATCHID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_OPERATIONID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETETYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_DELETEAUTHOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEOPERATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEPATH",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CREDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_UPDDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_CREATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_UPDATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "PHONE_NUMBER",
-						"type": "nvarchar"
-					},
-					{
-						"name": "OPTED_IN",
-						"type": "bit"
-					},
-					{
-						"name": "ORGANIZATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "PURPOSE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CHANNEL",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAW_PHONE_NUMBER",
-						"type": "nvarchar"
-					},
-					{
-						"name": "PHONE_COMM_ID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "PHONE_ERROR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "IS_VALID",
-						"type": "bit"
-					}
-				],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "SD_COMMUNICTN_PREFERNC_PHONE"
-				}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Retail_CustomerMaster')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/SD_COMMUNICTN_PREFERNC_PHONE1')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -69873,44 +69528,6 @@
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Semarchy_Repo')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_repo",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Semarchy_Repo1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_repo",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Semarchy_Repo2')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -71847,8 +71464,8 @@
 				"typeProperties": {
 					"recurrence": {
 						"frequency": "Hour",
-						"interval": 2,
-						"startTime": "2023-01-03T14:24:00Z",
+						"interval": 4,
+						"startTime": "2023-01-03T00:00:00Z",
 						"timeZone": "UTC"
 					}
 				}
@@ -71972,7 +71589,7 @@
 					"recurrence": {
 						"frequency": "Hour",
 						"interval": 1,
-						"startTime": "2023-01-03T14:25:00Z",
+						"startTime": "2023-01-03T00:00:00Z",
 						"timeZone": "UTC"
 					}
 				}
