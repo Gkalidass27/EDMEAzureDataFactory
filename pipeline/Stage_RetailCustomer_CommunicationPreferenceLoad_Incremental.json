@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT MAX(dtec) AS MaxDate FROM Masterdata_CDP.cdp_customer_preferences WITH(NOLOCK)",
+							"value": "SELECT MAX(dtec) AS MaxDate FROM [Masterdata_CDP].[cdp_customer_preferences_archive] WITH(NOLOCK)",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -46,7 +46,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT MAX(EmailChannelOptStatusDate) AS MaxDate FROM Masterdata_CDP.OptOut WITH(NOLOCK)",
+							"value": "SELECT MAX(EmailChannelOptStatusDate) AS MaxDate FROM [Masterdata_CDP].[OptOut_archive] WITH(NOLOCK)",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -719,6 +719,29 @@
 									}
 								}
 							}
+						},
+						{
+							"name": "Fail_Cdp_Customer_Preferences",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Teams_Failed_Notification_Cdp_Customer_Preferences",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('Cdp_Customer_Preferences').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('Cdp_Customer_Preferences').error.errorCode}",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
@@ -1300,6 +1323,29 @@
 										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
 										"type": "Expression"
 									}
+								}
+							}
+						},
+						{
+							"name": "Fail_OptOut",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Teams_Failed_Notification_OptOut",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('OptOut').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('OptOut').error.errorCode}",
+									"type": "Expression"
 								}
 							}
 						}
