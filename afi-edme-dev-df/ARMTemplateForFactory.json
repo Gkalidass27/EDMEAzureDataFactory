@@ -4927,7 +4927,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate",
+						"name": "Masterdata_CDP_InitialLoadCommPrefEmail_MaxDate",
 						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
@@ -4942,21 +4942,21 @@
 							"source": {
 								"type": "AzureSqlSource",
 								"sqlReaderQuery": {
-									"value": "SELECT MAX(SRC_UPDATE) AS MaxDate FROM [dbo].[SD_COMMUNICTN_PREFERNC_EMAIL] WITH(NOLOCK)",
+									"value": "SELECT COUNT(1) as Count FROM [Masterdata_CDP].[IncrementalLoadCommPrefEmail] WITH(NOLOCK)\n",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
 								"partitionOption": "None"
 							},
 							"dataset": {
-								"referenceName": "SD_Prefrence_MaxDate",
+								"referenceName": "Masterdata_CDP_Prefrence_MaxDate",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
 						}
 					},
 					{
-						"name": "SD_COMMUNICTN_PREFERNC_PHONE_MaxDate",
+						"name": "Masterdata_CDP_InitialLoadCommPrefPhone_MaxDate",
 						"type": "Lookup",
 						"dependsOn": [
 							{
@@ -4978,79 +4978,7 @@
 							"source": {
 								"type": "AzureSqlSource",
 								"sqlReaderQuery": {
-									"value": "SELECT MAX(SRC_UPDATE) AS MaxDate FROM [dbo].[SD_COMMUNICTN_PREFERNC_PHONE] WITH(NOLOCK)",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "SD_Prefrence_MaxDate",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Masterdata_CDP_InitialLoadCommPrefEmail_MaxDate",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "SELECT COUNT(1) as Count FROM [Masterdata_CDP].[InitialLoadCommPrefEmail] WITH(NOLOCK) WHERE B_CREDATE>'@{activity('SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate').output.firstRow.MaxDate}'\n",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Masterdata_CDP_Prefrence_MaxDate",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Masterdata_CDP_InitialLoadCommPrefPhone_MaxDate",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "SD_COMMUNICTN_PREFERNC_PHONE_MaxDate",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "SELECT COUNT(1) as Count FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE B_CREDATE>'@{activity('SD_COMMUNICTN_PREFERNC_PHONE_MaxDate').output.firstRow.MaxDate}'\n",
+									"value": "SELECT COUNT(1) as Count FROM [Masterdata_CDP].[IncrementalLoadCommPrefPhone] WITH(NOLOCK)\n",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -5214,7 +5142,7 @@
 												}
 											],
 											"sqlReaderQuery": {
-												"value": "SELECT EmailAddress AS RAW_EMAIL_ADDRESS,\nCAST(OptedIn as bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nEmailCommunicationId AS EMAIL_COMMUNICATION_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefEmail] WITH(NOLOCK) WHERE SRC_UPDATE>'@{activity('SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate').output.firstRow.MaxDate}'",
+												"value": "SELECT EmailAddress AS RAW_EMAIL_ADDRESS,\nCAST(OptedIn as bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nEmailCommunicationId AS EMAIL_COMMUNICATION_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[IncrementalLoadCommPrefEmail] WITH(NOLOCK)",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -5464,7 +5392,7 @@
 												}
 											],
 											"sqlReaderQuery": {
-												"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE SRC_UPDATE>'@{activity('SD_COMMUNICTN_PREFERNC_PHONE_MaxDate').output.firstRow.MaxDate}'",
+												"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[IncrementalLoadCommPrefPhone] WITH(NOLOCK)",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -5886,7 +5814,7 @@
 											},
 											"Source": {
 												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefEmail]",
+													"value": "[[Masterdata_CDP].[IncrementalLoadCommPrefEmail]",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -6013,7 +5941,7 @@
 											},
 											"Source": {
 												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefEmail]",
+													"value": "[[Masterdata_CDP].[IncrementalLoadCommPrefEmail]",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -6161,7 +6089,7 @@
 											},
 											"Source": {
 												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefPhone]",
+													"value": "[[Masterdata_CDP].[IncrementalLoadCommPrefPhone]",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -6288,7 +6216,7 @@
 											},
 											"Source": {
 												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefPhone]",
+													"value": "[[Masterdata_CDP].[IncrementalLoadCommPrefPhone]",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -6460,7 +6388,7 @@
 									}
 								},
 								{
-									"name": "Archive_Customer_Preference_Email",
+									"name": "Archive_Customer_Preference",
 									"type": "Copy",
 									"dependsOn": [
 										{
@@ -6482,152 +6410,7 @@
 										"source": {
 											"type": "AzureSqlSource",
 											"sqlReaderQuery": {
-												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)\nwhere contactType = 'email' AND dtec >'@{activity('SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate').output.firstRow.MaxDate}'",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"sink": {
-											"type": "AzureSqlSink",
-											"writeBehavior": "insert",
-											"sqlWriterUseTableLock": false
-										},
-										"enableStaging": false,
-										"translator": {
-											"type": "TabularTranslator",
-											"mappings": [
-												{
-													"source": {
-														"name": "globalId",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "globalId",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "customerContact",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "customerContact",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "opt_in",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "opt_in",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "opt_in_type",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "opt_in_type",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "sourceSystem",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "sourceSystem",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "dtec",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "dtec",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													}
-												},
-												{
-													"source": {
-														"name": "contactType",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "contactType",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												}
-											],
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "Masterdata_CDP_Cdp_Customer_Preference_Query",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "Masterdata_CDP_cdp_customer_preferences_archive",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									]
-								},
-								{
-									"name": "Archive_Customer_Preference_Phone",
-									"type": "Copy",
-									"dependsOn": [
-										{
-											"activity": "Archive_Customer_Preference_Email",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"sqlReaderQuery": {
-												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)\nwhere contactType <> 'email' AND dtec >'@{activity('SD_COMMUNICTN_PREFERNC_PHONE_MaxDate').output.firstRow.MaxDate}'",
+												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -6754,7 +6537,7 @@
 									"type": "Copy",
 									"dependsOn": [
 										{
-											"activity": "Archive_Customer_Preference_Phone",
+											"activity": "Archive_Customer_Preference",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -6772,7 +6555,7 @@
 										"source": {
 											"type": "AzureSqlSource",
 											"sqlReaderQuery": {
-												"value": "select CustomerKey,\nEmailAddress,\nEmailChannelOptOutFlag,\nEmailChannelOptStatusDate,\nDSG_Brand_Flag,\nEAGR_Brand_Flag\nfrom [Masterdata_CDP].[OptOut] WITH(NOLOCK)\nwhere EmailChannelOptStatusDate >'@{activity('SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate').output.firstRow.MaxDate}'",
+												"value": "select CustomerKey,\nEmailAddress,\nEmailChannelOptOutFlag,\nEmailChannelOptStatusDate,\nDSG_Brand_Flag,\nEAGR_Brand_Flag\nfrom [Masterdata_CDP].[OptOut] WITH(NOLOCK)",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -6902,23 +6685,7 @@
 									},
 									"userProperties": [],
 									"typeProperties": {
-										"storedProcedureName": "[[Masterdata_CDP].[usp_DeleteIncrementalPreferenceLoad]",
-										"storedProcedureParameters": {
-											"SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate": {
-												"value": {
-													"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL_MaxDate').output.firstRow.MaxDate",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"SD_COMMUNICTN_PREFERNC_PHONE_MaxDate": {
-												"value": {
-													"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE_MaxDate').output.firstRow.MaxDate",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											}
-										}
+										"storedProcedureName": "[[Masterdata_CDP].[usp_DeleteIncrementalPreferenceLoad]"
 									},
 									"linkedServiceName": {
 										"referenceName": "semarchy_staging",
@@ -6972,11 +6739,11 @@
 									}
 								},
 								{
-									"name": "Archive_Customer_Preference_Email_SuccessLogging",
+									"name": "Archive_Customer_Preference_SuccessLogging",
 									"type": "SqlServerStoredProcedure",
 									"dependsOn": [
 										{
-											"activity": "Archive_Customer_Preference_Email",
+											"activity": "Archive_Customer_Preference",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -7002,28 +6769,28 @@
 											},
 											"CopyActivity_Start_Time": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0].start}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0].start}",
 													"type": "Expression"
 												},
 												"type": "DateTime"
 											},
 											"CopyActivity_transferDuration_in_secs": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0]. detailedDurations.transferDuration}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0]. detailedDurations.transferDuration}",
 													"type": "Expression"
 												},
 												"type": "Int32"
 											},
 											"CopyDuration_in_secs": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.copyDuration}",
+													"value": "@{activity('Archive_Customer_Preference').output.copyDuration}",
 													"type": "Expression"
 												},
 												"type": "Int32"
 											},
 											"Execution_Status": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0].status}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0].status}",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -7037,14 +6804,14 @@
 											},
 											"RowsCopied": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.rowsCopied}",
+													"value": "@{activity('Archive_Customer_Preference').output.rowsCopied}",
 													"type": "Expression"
 												},
 												"type": "Int32"
 											},
 											"RowsRead": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.rowsRead}",
+													"value": "@{activity('Archive_Customer_Preference').output.rowsRead}",
 													"type": "Expression"
 												},
 												"type": "Int32"
@@ -7065,7 +6832,7 @@
 											},
 											"Sink_Type": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0].sink.type}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0].sink.type}",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -7079,7 +6846,7 @@
 											},
 											"Source_Type": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0].source.type}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0].source.type}",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -7120,11 +6887,11 @@
 									}
 								},
 								{
-									"name": "Archive_Customer_Preference_Email_ErrorLoags",
+									"name": "Archive_Customer_Preference_ErrorLoags",
 									"type": "SqlServerStoredProcedure",
 									"dependsOn": [
 										{
-											"activity": "Archive_Customer_Preference_Email",
+											"activity": "Archive_Customer_Preference",
 											"dependencyConditions": [
 												"Failed"
 											]
@@ -7143,28 +6910,28 @@
 										"storedProcedureParameters": {
 											"ErrorCode": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').error.errorCode}",
+													"value": "@{activity('Archive_Customer_Preference').error.errorCode}",
 													"type": "Expression"
 												},
 												"type": "String"
 											},
 											"ErrorMsg": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').error.message}",
+													"value": "@{activity('Archive_Customer_Preference').error.message}",
 													"type": "Expression"
 												},
 												"type": "String"
 											},
 											"ErrorStatusCode": {
 												"value": {
-													"value": "@activity('Archive_Customer_Preference_Email').StatusCode",
+													"value": "@activity('Archive_Customer_Preference').StatusCode",
 													"type": "Expression"
 												},
 												"type": "String"
 											},
 											"FailureType": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').error.failureType}",
+													"value": "@{activity('Archive_Customer_Preference').error.failureType}",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -7192,7 +6959,7 @@
 											},
 											"Sink_Type": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0].sink.type}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0].sink.type}",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -7206,7 +6973,7 @@
 											},
 											"Source_Type": {
 												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Email').output.executionDetails[0].source.type}",
+													"value": "@{activity('Archive_Customer_Preference').output.executionDetails[0].source.type}",
 													"type": "Expression"
 												},
 												"type": "String"
@@ -7247,11 +7014,11 @@
 									}
 								},
 								{
-									"name": "Teams_Failed_Notification_Archive_Preference_Email",
+									"name": "Teams_Failed_Notification_Archive_Preference",
 									"type": "ExecutePipeline",
 									"dependsOn": [
 										{
-											"activity": "Archive_Customer_Preference_Email",
+											"activity": "Archive_Customer_Preference",
 											"dependencyConditions": [
 												"Failed"
 											]
@@ -7282,23 +7049,23 @@
 												"type": "Expression"
 											},
 											"triggerTime": {
-												"value": "@activity('Archive_Customer_Preference_Email').ExecutionStartTime",
+												"value": "@activity('Archive_Customer_Preference').ExecutionStartTime",
 												"type": "Expression"
 											},
 											"status": {
-												"value": "@activity('Archive_Customer_Preference_Email').Status",
+												"value": "@activity('Archive_Customer_Preference').Status",
 												"type": "Expression"
 											},
 											"message": {
-												"value": "@replace(activity('Archive_Customer_Preference_Email').error.message,'\"','')",
+												"value": "@replace(activity('Archive_Customer_Preference').error.message,'\"','')",
 												"type": "Expression"
 											},
 											"executionEndTime": {
-												"value": "@activity('Archive_Customer_Preference_Email').ExecutionEndTime",
+												"value": "@activity('Archive_Customer_Preference').ExecutionEndTime",
 												"type": "Expression"
 											},
 											"runDuration": {
-												"value": "@activity('Archive_Customer_Preference_Email').Duration",
+												"value": "@activity('Archive_Customer_Preference').Duration",
 												"type": "Expression"
 											},
 											"teamWebhookUrl": {
@@ -7309,11 +7076,11 @@
 									}
 								},
 								{
-									"name": "Fail_Archive_Preference_Email",
+									"name": "Fail_Archive_Preference",
 									"type": "Fail",
 									"dependsOn": [
 										{
-											"activity": "Teams_Failed_Notification_Archive_Preference_Email",
+											"activity": "Teams_Failed_Notification_Archive_Preference",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -7322,349 +7089,12 @@
 									"userProperties": [],
 									"typeProperties": {
 										"message": {
-											"value": "@replace(activity('Archive_Customer_Preference_Email').error.message,'\"','')",
+											"value": "@replace(activity('Archive_Customer_Preference').error.message,'\"','')",
 											"type": "Expression"
 										},
 										"errorCode": {
-											"value": "@{activity('Archive_Customer_Preference_Email').error.errorCode}",
+											"value": "@{activity('Archive_Customer_Preference').error.errorCode}",
 											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "Archive_Customer_Preference_Phone_SuccessLogging",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "Archive_Customer_Preference_Phone",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
-										"storedProcedureParameters": {
-											"CopyActivity_End_Time": {
-												"value": {
-													"value": "@{utcNow()}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"CopyActivity_Start_Time": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0].start}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"CopyActivity_transferDuration_in_secs": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0]. detailedDurations.transferDuration}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"CopyDuration_in_secs": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.copyDuration}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"Execution_Status": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0].status}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Pipeline_Name": {
-												"value": {
-													"value": "@{pipeline().Pipeline}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RowsCopied": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.rowsCopied}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"RowsRead": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.rowsRead}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"RunId": {
-												"value": {
-													"value": "@{pipeline().RunId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "Masterdata_CDP.cdp_customer_preferences_archive",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0].sink.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "[[Masterdata_CDP].[cdp_customer_preferences]",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0].source.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "Archive_Customer_Preference_Phone_ErrorLoags",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "Archive_Customer_Preference_Phone",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-										"storedProcedureParameters": {
-											"ErrorCode": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').error.errorCode}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorMsg": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').error.message}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorStatusCode": {
-												"value": {
-													"value": "@activity('Archive_Customer_Preference_Phone').StatusCode",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"FailureType": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').error.failureType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"PipelineName": {
-												"value": {
-													"value": "@pipeline().Pipeline",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RunID": {
-												"value": {
-													"value": "@{pipeline().RunId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "Masterdata_CDP.cdp_customer_preferences_archive",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0].sink.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "[[Masterdata_CDP].[cdp_customer_preferences]",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@{activity('Archive_Customer_Preference_Phone').output.executionDetails[0].source.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "Teams_Failed_Notification_Archive_Preference_Phone",
-									"type": "ExecutePipeline",
-									"dependsOn": [
-										{
-											"activity": "Archive_Customer_Preference_Phone",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Teams_Channale_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": {
-												"value": "afi-edme-rg",
-												"type": "Expression"
-											},
-											"runId": {
-												"value": "@pipeline().RunId",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().Pipeline",
-												"type": "Expression"
-											},
-											"triggerTime": {
-												"value": "@activity('Archive_Customer_Preference_Phone').ExecutionStartTime",
-												"type": "Expression"
-											},
-											"status": {
-												"value": "@activity('Archive_Customer_Preference_Phone').Status",
-												"type": "Expression"
-											},
-											"message": {
-												"value": "@replace(activity('Archive_Customer_Preference_Phone').error.message,'\"','')",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@activity('Archive_Customer_Preference_Phone').ExecutionEndTime",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "@activity('Archive_Customer_Preference_Phone').Duration",
-												"type": "Expression"
-											},
-											"teamWebhookUrl": {
-												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-												"type": "Expression"
-											}
 										}
 									}
 								},
@@ -8006,29 +7436,6 @@
 									}
 								},
 								{
-									"name": "Fail_Archive_Preference_Phone",
-									"type": "Fail",
-									"dependsOn": [
-										{
-											"activity": "Teams_Failed_Notification_Archive_Preference_Phone",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"message": {
-											"value": "@replace(activity('Archive_Customer_Preference_Phone').error.message,'\"','')",
-											"type": "Expression"
-										},
-										"errorCode": {
-											"value": "@{activity('Archive_Customer_Preference_Phone').error.errorCode}",
-											"type": "Expression"
-										}
-									}
-								},
-								{
 									"name": "Fail_Archive_OptOut",
 									"type": "Fail",
 									"dependsOn": [
@@ -8114,7 +7521,6 @@
 			},
 			"dependsOn": [
 				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/datasets/SD_Prefrence_MaxDate')]",
 				"[concat(variables('factoryId'), '/datasets/Masterdata_CDP_Prefrence_MaxDate')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
@@ -44088,7 +43494,13 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"PRODUCT_PKG_CROSSWALK_ID"
+									]
+								},
 								"sqlWriterUseTableLock": false,
 								"disableMetricsCollection": false
 							},
@@ -44285,7 +43697,13 @@
 							},
 							"sink": {
 								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
+								"writeBehavior": "upsert",
+								"upsertSettings": {
+									"useTempDB": true,
+									"keys": [
+										"PRODUCT_KIT_CROSSWALK_ID"
+									]
+								},
 								"sqlWriterUseTableLock": false,
 								"disableMetricsCollection": false
 							},
@@ -71014,25 +70432,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/SD_Prefrence_MaxDate')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Retail_CustomerMaster",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]",
-				"[concat(variables('factoryId'), '/linkedServices/Retail_CustomerMaster')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/SD_RETAIL_CUSTOMER')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -73303,7 +72702,7 @@
 				"typeProperties": {
 					"recurrence": {
 						"frequency": "Hour",
-						"interval": 4,
+						"interval": 2,
 						"startTime": "2023-01-03T00:00:00Z",
 						"timeZone": "UTC"
 					}
