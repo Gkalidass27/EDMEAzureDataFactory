@@ -57189,6 +57189,294 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Stage_Retail_Customer_Failure_Notification')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Check_Error_Type",
+						"type": "IfCondition",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@contains(pipeline().parameters.ErrorMsg,'The specified path does not exist' )",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Teams_Failed_Notification",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "ASHCOMM_ErrorLogs",
+											"dependencyConditions": [
+												"Completed"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": "afi-edme-rg",
+											"runId": {
+												"value": "@pipeline().parameters.RunID",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().parameters.PipelineName",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@pipeline().parameters.TriggerTime",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@pipeline().parameters.status",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@replace(pipeline().parameters.ErrorMsg,'\"','')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@pipeline().parameters.executionEndTime",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@pipeline().parameters.runDuration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "ASHCOMM_ErrorLogs",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@pipeline().parameters.ErrorCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@pipeline().parameters.ErrorMsg",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@pipeline().parameters.ErrorStatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@pipeline().parameters.FailureType",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().parameters.PipelineName",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().parameters.RunID",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "@pipeline().parameters.Sink",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@pipeline().parameters.Sink_Type",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "@pipeline().parameters.Source",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@pipeline().parameters.Source_Type",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerName",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerTime",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerType",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "FileNotFound_Igonre_This_Error",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "FileNotFound",
+										"value": {
+											"value": "@pipeline().parameters.ErrorMsg",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ErrorCode": {
+						"type": "string"
+					},
+					"ErrorMsg": {
+						"type": "string"
+					},
+					"ErrorStatusCode": {
+						"type": "string"
+					},
+					"FailureType": {
+						"type": "string"
+					},
+					"PipelineName": {
+						"type": "string"
+					},
+					"RunID": {
+						"type": "string"
+					},
+					"Sink": {
+						"type": "string"
+					},
+					"Sink_Type": {
+						"type": "string"
+					},
+					"Source": {
+						"type": "string"
+					},
+					"Source_Type": {
+						"type": "string"
+					},
+					"TriggerId": {
+						"type": "string"
+					},
+					"TriggerName": {
+						"type": "string"
+					},
+					"TriggerTime": {
+						"type": "string"
+					},
+					"TriggerType": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"runDuration": {
+						"type": "string"
+					},
+					"executionEndTime": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"FileNotFound": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Stage_Retail_Customer_RetailCustomerLoad_Incremental')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -58011,197 +58299,11 @@
 												}
 											},
 											{
-												"name": "ASHCOMM_ErrorLogs",
-												"type": "SqlServerStoredProcedure",
-												"dependsOn": [
-													{
-														"activity": "Load_ASHCOMM_Data_In_Staging",
-														"dependencyConditions": [
-															"Failed"
-														]
-													}
-												],
-												"policy": {
-													"timeout": "0.12:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-													"storedProcedureParameters": {
-														"ErrorCode": {
-															"value": {
-																"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.errorCode}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"ErrorMsg": {
-															"value": {
-																"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.message}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"ErrorStatusCode": {
-															"value": {
-																"value": "@activity('Load_ASHCOMM_Data_In_Staging').StatusCode",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"FailureType": {
-															"value": {
-																"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.failureType}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"PipelineName": {
-															"value": {
-																"value": "@{pipeline().Pipeline}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"RunID": {
-															"value": {
-																"value": "@{pipeline().RunId}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Sink": {
-															"value": {
-																"value": "@concat(split(item().name,'_')[0],'.CustomerInfo')",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Sink_Type": {
-															"value": {
-																"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].sink.type}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Source": {
-															"value": {
-																"value": "@string(item().name)",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Source_Type": {
-															"value": {
-																"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].source.type}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerId": {
-															"value": {
-																"value": "@{pipeline().TriggerId}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerName": {
-															"value": {
-																"value": "@{pipeline().TriggerName}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerTime": {
-															"value": {
-																"value": "@{pipeline().TriggerTime}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerType": {
-															"value": {
-																"value": "@{pipeline().TriggerType}",
-																"type": "Expression"
-															},
-															"type": "String"
-														}
-													}
-												},
-												"linkedServiceName": {
-													"referenceName": "semarchy_staging",
-													"type": "LinkedServiceReference"
-												}
-											},
-											{
-												"name": "Teams_Failed_Notification_Ashcomm",
-												"type": "ExecutePipeline",
-												"dependsOn": [
-													{
-														"activity": "Load_ASHCOMM_Data_In_Staging",
-														"dependencyConditions": [
-															"Failed"
-														]
-													}
-												],
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "Notify_Teams_Channale_Pipeline",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"subscription": {
-															"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-															"type": "Expression"
-														},
-														"resourceGroup": "afi-edme-rg",
-														"runId": {
-															"value": "@pipeline().RunId",
-															"type": "Expression"
-														},
-														"name": {
-															"value": "@pipeline().Pipeline",
-															"type": "Expression"
-														},
-														"triggerTime": {
-															"value": "@activity('Load_ASHCOMM_Data_In_Staging').ExecutionStartTime",
-															"type": "Expression"
-														},
-														"status": {
-															"value": "@activity('Load_ASHCOMM_Data_In_Staging').Status",
-															"type": "Expression"
-														},
-														"message": {
-															"value": "@replace(activity('Load_ASHCOMM_Data_In_Staging').error.message,'\"','')",
-															"type": "Expression"
-														},
-														"executionEndTime": {
-															"value": "@activity('Load_ASHCOMM_Data_In_Staging').ExecutionEndTime",
-															"type": "Expression"
-														},
-														"runDuration": {
-															"value": "@activity('Load_ASHCOMM_Data_In_Staging').Duration",
-															"type": "Expression"
-														},
-														"teamWebhookUrl": {
-															"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-															"type": "Expression"
-														}
-													}
-												}
-											},
-											{
 												"name": "Fail_Ashcom_Files",
 												"type": "Fail",
 												"dependsOn": [
 													{
-														"activity": "Teams_Failed_Notification_Ashcomm",
+														"activity": "Stage_Retail_Customer_Failure_Notification_ASHCOMM",
 														"dependencyConditions": [
 															"Succeeded"
 														]
@@ -58216,6 +58318,96 @@
 													"errorCode": {
 														"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.errorCode}",
 														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Stage_Retail_Customer_Failure_Notification_ASHCOMM",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Load_ASHCOMM_Data_In_Staging",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "Stage_Retail_Customer_Failure_Notification",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"ErrorCode": {
+															"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.errorCode}",
+															"type": "Expression"
+														},
+														"ErrorMsg": {
+															"value": "@replace(activity('Load_ASHCOMM_Data_In_Staging').error.message,'\"','')",
+															"type": "Expression"
+														},
+														"ErrorStatusCode": {
+															"value": "@activity('Load_ASHCOMM_Data_In_Staging').StatusCode",
+															"type": "Expression"
+														},
+														"FailureType": {
+															"value": "@{activity('Load_ASHCOMM_Data_In_Staging').error.failureType}",
+															"type": "Expression"
+														},
+														"PipelineName": {
+															"value": "@{pipeline().Pipeline}",
+															"type": "Expression"
+														},
+														"RunID": {
+															"value": "@{pipeline().RunId}",
+															"type": "Expression"
+														},
+														"Sink": {
+															"value": "@concat(split(item().name,'_')[0],'.CustomerInfo')",
+															"type": "Expression"
+														},
+														"Sink_Type": {
+															"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].sink.type}",
+															"type": "Expression"
+														},
+														"Source": {
+															"value": "@string(item().name)",
+															"type": "Expression"
+														},
+														"Source_Type": {
+															"value": "@{activity('Load_ASHCOMM_Data_In_Staging').output.executionDetails[0].source.type}",
+															"type": "Expression"
+														},
+														"TriggerId": {
+															"value": "@{pipeline().TriggerId}",
+															"type": "Expression"
+														},
+														"TriggerName": {
+															"value": "@{pipeline().TriggerName}",
+															"type": "Expression"
+														},
+														"TriggerTime": {
+															"value": "@{pipeline().TriggerTime}",
+															"type": "Expression"
+														},
+														"TriggerType": {
+															"value": "@{pipeline().TriggerType}",
+															"type": "Expression"
+														},
+														"status": {
+															"value": "@activity('Load_ASHCOMM_Data_In_Staging').Status",
+															"type": "Expression"
+														},
+														"runDuration": {
+															"value": "@activity('Load_ASHCOMM_Data_In_Staging').Duration",
+															"type": "Expression"
+														},
+														"executionEndTime": {
+															"value": "@activity('Load_ASHCOMM_Data_In_Staging').ExecutionEndTime",
+															"type": "Expression"
+														}
 													}
 												}
 											}
@@ -58972,197 +59164,11 @@
 												}
 											},
 											{
-												"name": "RET_ADF_Error_Logs_Process",
-												"type": "SqlServerStoredProcedure",
-												"dependsOn": [
-													{
-														"activity": "Load_RET_Data_In_Staging",
-														"dependencyConditions": [
-															"Failed"
-														]
-													}
-												],
-												"policy": {
-													"timeout": "0.12:00:00",
-													"retry": 0,
-													"retryIntervalInSeconds": 30,
-													"secureOutput": false,
-													"secureInput": false
-												},
-												"userProperties": [],
-												"typeProperties": {
-													"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-													"storedProcedureParameters": {
-														"ErrorCode": {
-															"value": {
-																"value": "@{activity('Load_RET_Data_In_Staging').error.errorCode}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"ErrorMsg": {
-															"value": {
-																"value": "@{activity('Load_RET_Data_In_Staging').error.message}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"ErrorStatusCode": {
-															"value": {
-																"value": "@activity('Load_RET_Data_In_Staging').StatusCode",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"FailureType": {
-															"value": {
-																"value": "@{activity('Load_RET_Data_In_Staging').error.failureType}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"PipelineName": {
-															"value": {
-																"value": "@{pipeline().Pipeline}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"RunID": {
-															"value": {
-																"value": "@{pipeline().RunId}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Sink": {
-															"value": {
-																"value": "@concat(split(item().name,'_')[0],'.CustomerInfo')",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Sink_Type": {
-															"value": {
-																"value": "@{activity('Load_RET_Data_In_Staging').output.executionDetails[0].sink.type}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Source": {
-															"value": {
-																"value": "@string(item().name)",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"Source_Type": {
-															"value": {
-																"value": "@{activity('Load_RET_Data_In_Staging').output.executionDetails[0].source.type}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerId": {
-															"value": {
-																"value": "@{pipeline().TriggerId}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerName": {
-															"value": {
-																"value": "@{pipeline().TriggerName}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerTime": {
-															"value": {
-																"value": "@{pipeline().TriggerTime}",
-																"type": "Expression"
-															},
-															"type": "String"
-														},
-														"TriggerType": {
-															"value": {
-																"value": "@{pipeline().TriggerType}",
-																"type": "Expression"
-															},
-															"type": "String"
-														}
-													}
-												},
-												"linkedServiceName": {
-													"referenceName": "semarchy_staging",
-													"type": "LinkedServiceReference"
-												}
-											},
-											{
-												"name": "Teams_Failed_Notification_RET",
-												"type": "ExecutePipeline",
-												"dependsOn": [
-													{
-														"activity": "Load_RET_Data_In_Staging",
-														"dependencyConditions": [
-															"Failed"
-														]
-													}
-												],
-												"userProperties": [],
-												"typeProperties": {
-													"pipeline": {
-														"referenceName": "Notify_Teams_Channale_Pipeline",
-														"type": "PipelineReference"
-													},
-													"waitOnCompletion": true,
-													"parameters": {
-														"subscription": {
-															"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-															"type": "Expression"
-														},
-														"resourceGroup": "afi-edme-rg",
-														"runId": {
-															"value": "@pipeline().RunId",
-															"type": "Expression"
-														},
-														"name": {
-															"value": "@pipeline().Pipeline",
-															"type": "Expression"
-														},
-														"triggerTime": {
-															"value": "@activity('Load_RET_Data_In_Staging').ExecutionStartTime",
-															"type": "Expression"
-														},
-														"status": {
-															"value": "@activity('Load_RET_Data_In_Staging').Status",
-															"type": "Expression"
-														},
-														"message": {
-															"value": "@replace(activity('Load_RET_Data_In_Staging').error.message,'\"','')",
-															"type": "Expression"
-														},
-														"executionEndTime": {
-															"value": "@activity('Load_RET_Data_In_Staging').ExecutionEndTime",
-															"type": "Expression"
-														},
-														"runDuration": {
-															"value": "@activity('Load_RET_Data_In_Staging').Duration",
-															"type": "Expression"
-														},
-														"teamWebhookUrl": {
-															"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-															"type": "Expression"
-														}
-													}
-												}
-											},
-											{
 												"name": "Fail_RET_Files",
 												"type": "Fail",
 												"dependsOn": [
 													{
-														"activity": "Teams_Failed_Notification_RET",
+														"activity": "Stage_Retail_Customer_Failure_Notification_Homes",
 														"dependencyConditions": [
 															"Succeeded"
 														]
@@ -59177,6 +59183,96 @@
 													"errorCode": {
 														"value": "@{activity('Load_RET_Data_In_Staging').error.errorCode}",
 														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "Stage_Retail_Customer_Failure_Notification_Homes",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Load_RET_Data_In_Staging",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "Stage_Retail_Customer_Failure_Notification",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"ErrorCode": {
+															"value": "@{activity('Load_RET_Data_In_Staging').error.errorCode}",
+															"type": "Expression"
+														},
+														"ErrorMsg": {
+															"value": "@replace(activity('Load_RET_Data_In_Staging').error.message,'\"','')",
+															"type": "Expression"
+														},
+														"ErrorStatusCode": {
+															"value": "@activity('Load_RET_Data_In_Staging').StatusCode",
+															"type": "Expression"
+														},
+														"FailureType": {
+															"value": "@{activity('Load_RET_Data_In_Staging').error.failureType}",
+															"type": "Expression"
+														},
+														"PipelineName": {
+															"value": "@{pipeline().Pipeline}",
+															"type": "Expression"
+														},
+														"RunID": {
+															"value": "@{pipeline().RunId}",
+															"type": "Expression"
+														},
+														"Sink": {
+															"value": "@concat(split(item().name,'_')[0],'.CustomerInfo')",
+															"type": "Expression"
+														},
+														"Sink_Type": {
+															"value": "@{activity('Load_RET_Data_In_Staging').output.executionDetails[0].sink.type}",
+															"type": "Expression"
+														},
+														"Source": {
+															"value": "@string(item().name)",
+															"type": "Expression"
+														},
+														"Source_Type": {
+															"value": "@{activity('Load_RET_Data_In_Staging').output.executionDetails[0].source.type}",
+															"type": "Expression"
+														},
+														"TriggerId": {
+															"value": "@{pipeline().TriggerId}",
+															"type": "Expression"
+														},
+														"TriggerName": {
+															"value": "@{pipeline().TriggerName}",
+															"type": "Expression"
+														},
+														"TriggerTime": {
+															"value": "@{pipeline().TriggerTime}",
+															"type": "Expression"
+														},
+														"TriggerType": {
+															"value": "@{pipeline().TriggerType}",
+															"type": "Expression"
+														},
+														"status": {
+															"value": "@activity('Load_RET_Data_In_Staging').Status",
+															"type": "Expression"
+														},
+														"runDuration": {
+															"value": "@activity('Load_RET_Data_In_Staging').Duration",
+															"type": "Expression"
+														},
+														"executionEndTime": {
+															"value": "@activity('Load_RET_Data_In_Staging').ExecutionEndTime",
+															"type": "Expression"
+														}
 													}
 												}
 											}
@@ -59390,7 +59486,7 @@
 				"[concat(variables('factoryId'), '/datasets/Remove_ASHCOMM_Files_From_Source')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]",
 				"[concat(variables('factoryId'), '/datasets/Move_ASHCOMM_File_Error_Folder')]",
-				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]",
+				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_Customer_Failure_Notification')]",
 				"[concat(variables('factoryId'), '/datasets/Homes_CustomerInfo')]",
 				"[concat(variables('factoryId'), '/datasets/Archive_Homes_Source_Files')]",
 				"[concat(variables('factoryId'), '/datasets/Remove_Homes_Files_From_Source')]",
