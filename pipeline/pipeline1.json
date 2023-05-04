@@ -7,7 +7,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Current_UTCTime",
+						"activity": "Update_Trigger_Time",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -3324,6 +3324,84 @@
 				"outputs": [
 					{
 						"referenceName": "HomesBoise_testing",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Update_Trigger_Time",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Current_UTCTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LasteTriggerDateTime",
+								"value": {
+									"value": "@variables('ToDateTime')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "SELECT MAX(LasteTriggerDateTime) AS DateTime FROM Audit.ADFRetailCustomerWatermark WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE Audit.ADFRetailCustomerWatermark",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LasteTriggerDateTime",
+									"type": "String"
+								},
+								"sink": {
+									"name": "LasteTriggerDateTime",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GetLastTriggerTime",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ADFRetailCustomerWatermark",
 						"type": "DatasetReference"
 					}
 				]
