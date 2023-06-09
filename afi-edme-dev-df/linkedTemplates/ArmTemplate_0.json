@@ -26,6 +26,11 @@
 			"metadata": "Secure string for 'connectionString' of 'Retail_CustomerMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_CustomerMaster"
 		},
+		"Retail_ProductMaster_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Retail_ProductMaster'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_ProductMaster"
+		},
 		"Sink_ReferenceMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
@@ -269,6 +274,19 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('Retail_CustomerMaster_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Retail_ProductMaster')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('Retail_ProductMaster_connectionString')]"
 				}
 			},
 			"dependsOn": []
@@ -1436,48 +1454,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"ContainerName": {
-						"type": "String"
-					},
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().ContainerName",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
 			]
 		}
 	]
