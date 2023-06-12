@@ -4,7 +4,7 @@
 		"description": "Load ds tracking from edw to cosmosdb",
 		"activities": [
 			{
-				"name": "Copy data1",
+				"name": "Stage_EDW_DS_Tracking",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -16,8 +16,37 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
-				}
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "CosmosDbSqlApiSink",
+						"writeBehavior": "upsert",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2
+				},
+				"inputs": [
+					{
+						"referenceName": "dstrackingsample",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "dstrackingcosmos",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"folder": {
