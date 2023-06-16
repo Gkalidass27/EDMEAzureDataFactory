@@ -724,6 +724,65 @@
 					"referenceName": "semarchy_repo",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "Teams_Failed_Notification_SITE_MAIN",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteMainView",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@activity('IncrementalSiteMainView').output['pipelineRunId']",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@activity('IncrementalSiteMainView').output['pipelineName']",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('IncrementalSiteMainView').ExecutionStartTime",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('IncrementalSiteMainView').Status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('IncrementalSiteMainView').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@activity('IncrementalSiteMainView').ExecutionEndTime",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('IncrementalSiteMainView').Duration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
 			}
 		],
 		"variables": {
