@@ -4650,6 +4650,12 @@
 								]
 							}
 						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "LoadID",
@@ -5882,6 +5888,12 @@
 											]
 										}
 									],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
 									"userProperties": [],
 									"typeProperties": {
 										"variableName": "LoadID",
@@ -6642,7 +6654,7 @@
 										"source": {
 											"type": "AzureSqlSource",
 											"sqlReaderQuery": {
-												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)",
+												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType,\nDTStamp\nfrom [Masterdata_CDP].[cdp_customer_preferences] WITH(NOLOCK)",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -6740,6 +6752,18 @@
 														"name": "contactType",
 														"type": "String",
 														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "DTStamp",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "DTStamp",
+														"type": "DateTime",
+														"physicalType": "datetime"
 													}
 												}
 											],
@@ -7814,6 +7838,12 @@
 								]
 							}
 						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "LoadID",
@@ -10739,6 +10769,12 @@
 											]
 										}
 									],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
 									"userProperties": [],
 									"typeProperties": {
 										"variableName": "LoadID",
@@ -14368,6 +14404,12 @@
 								]
 							}
 						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "LoadId",
@@ -15316,6 +15358,12 @@
 								]
 							}
 						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "LoadID",
@@ -24530,7 +24578,7 @@
 							"source": {
 								"type": "AzureSqlSource",
 								"sqlReaderQuery": {
-									"value": "SELECT MAX(dtec) AS MaxDate FROM [Masterdata_CDP].[cdp_customer_preferences_archive] WITH(NOLOCK)",
+									"value": "SELECT MAX(DTStamp) AS MaxDate FROM [Masterdata_CDP].[cdp_customer_preferences_archive] WITH(NOLOCK)",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -24595,7 +24643,7 @@
 							"source": {
 								"type": "SqlDWSource",
 								"sqlReaderQuery": {
-									"value": "SELECT COUNT(1) AS CDPCustomerPreferencesCount FROM EDME_DataFactory.cdp_customer_preferences with(nolock) where dtec<>'null.null' and dtec>'@{activity('Cdp_Customer_Preferences_MaxDate').output.firstRow.MaxDate}'",
+									"value": "SELECT COUNT(1) AS CDPCustomerPreferencesCount FROM EDME_DataFactory.cdp_customer_preferences_v2 with(nolock) where DTStamp is not null AND DTStamp>'@{activity('Cdp_Customer_Preferences_MaxDate').output.firstRow.MaxDate}'",
 									"type": "Expression"
 								},
 								"queryTimeout": "02:00:00",
@@ -24779,7 +24827,7 @@
 										"source": {
 											"type": "SqlDWSource",
 											"sqlReaderQuery": {
-												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType \nfrom EDME_DataFactory.cdp_customer_preferences WITH(NOLOCK) WHERE dtec<>'null.null' and dtec >'@{activity('Cdp_Customer_Preferences_MaxDate').output.firstRow.MaxDate}'",
+												"value": "select globalId,\ncustomerContact,\nopt_in,\nopt_in_type,\nsourceSystem,\ndtec,\ncontactType ,\nDTStamp\nfrom EDME_DataFactory.cdp_customer_preferences_v2 WITH(NOLOCK) WHERE DTStamp is not null AND DTStamp >'@{activity('Cdp_Customer_Preferences_MaxDate').output.firstRow.MaxDate}'",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -24858,13 +24906,13 @@
 												{
 													"source": {
 														"name": "dtec",
-														"type": "String",
-														"physicalType": "nvarchar"
+														"type": "DateTime",
+														"physicalType": "datetime2"
 													},
 													"sink": {
 														"name": "dtec",
-														"type": "String",
-														"physicalType": "nvarchar"
+														"type": "DateTime",
+														"physicalType": "datetime"
 													}
 												},
 												{
@@ -24877,6 +24925,18 @@
 														"name": "contactType",
 														"type": "String",
 														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "DTStamp",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "DTStamp",
+														"type": "DateTime",
+														"physicalType": "datetime"
 													}
 												}
 											],
@@ -26897,6 +26957,12 @@
 								]
 							}
 						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "ToDateTime",
@@ -28407,6 +28473,12 @@
 											]
 										}
 									],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
 									"userProperties": [],
 									"typeProperties": {
 										"variableName": "ErrorMsg",
