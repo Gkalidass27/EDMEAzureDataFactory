@@ -2,6 +2,36 @@
 	"name": "PL_Email_Pref_Comm_Orch",
 	"properties": {
 		"description": "Step by Step pipeline for Email Preference Communication Zeta CDP",
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT COMM_PREFERNC_EMAIL_ID CommunicationPreferenceEmailID,\r\nCHANNEL Channel,\r\nEMAIL_ADDRESS EmailAddress,\r\nSRC_UPDATE LastUpdated,\r\nCASE WHEN OPTED_IN = '1' THEN 'true' ELSE 'false' END OptedIn,\r\nORGANIZATION Organization,\r\nPURPOSE Purpose,\r\nB_PUBID SourceSystem\r\nFROM [dbo].[GD_COMMUNICTN_PREFERNC_EMAIL] b with(nolock)\r\nWHERE cast(SRC_UPDATE as date) = cast(DATEADD(day,-1, getdate()) as date)",
+						"queryTimeout": "00:10:00",
+						"partitionOption": "None"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "COMMUNICTN_PREFERNC_EMAIL",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
 		"annotations": []
 	}
 }
