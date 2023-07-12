@@ -226,8 +226,6 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -240,14 +238,30 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select (SELECT \r\na.CommunicationPreferenceEmailID,\r\na.Channel,\r\na.EmailAddress,\r\na.LastUpdated,\r\na.OptedIn,\r\na.Organization,\r\na.Purpose,\r\na.SourceSystem FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)\r\nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\r\ninner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
 					},
 					"enableStaging": false
 				},
 				"inputs": [
 					{
 						"referenceName": "EmailCommunicationPreference_Wrk",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Json1",
 						"type": "DatasetReference"
 					}
 				]
