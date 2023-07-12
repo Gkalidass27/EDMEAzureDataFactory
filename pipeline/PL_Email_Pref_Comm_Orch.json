@@ -6,6 +6,8 @@
 			{
 				"name": "Email_Comm_Preference",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -199,6 +201,8 @@
 			{
 				"name": "usp_Write_Email_Comm_Pre_Wrk",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
@@ -226,14 +230,7 @@
 			{
 				"name": "Load_Jsonl_Email_Container",
 				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "usp_Write_Email_Comm_Pre_Wrk",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -245,7 +242,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select (SELECT \r\na.CommunicationPreferenceEmailID,\r\na.Channel,\r\na.EmailAddress,\r\na.LastUpdated,\r\na.OptedIn,\r\na.Organization,\r\na.Purpose,\r\na.SourceSystem FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)\r\nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\r\ninner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID",
+						"sqlReaderQuery": "SELECT \r\na.CommunicationPreferenceEmailID,\r\na.Channel,\r\na.EmailAddress,\r\na.LastUpdated,\r\na.OptedIn,\r\na.Organization,\r\na.Purpose,\r\na.SourceSystem \r\nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
