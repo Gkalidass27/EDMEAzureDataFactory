@@ -3,36 +3,11 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Get_Max_CustomerMasterID",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Max_CustomerMasterId_CustomerInfo",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
 				"name": "Check_CustomerInfo_Count",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Get_Max_CustomerMasterID",
+						"activity": "Check_Count_Data",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -146,7 +121,14 @@
 						{
 							"name": "GetNewLoadId",
 							"type": "Lookup",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Get_Max_CustomerMasterID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -182,6 +164,10 @@
 									]
 								}
 							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
 							"userProperties": [],
 							"typeProperties": {
 								"variableName": "LoadID",
@@ -2807,8 +2793,58 @@
 									"type": "DatasetReference"
 								}
 							}
+						},
+						{
+							"name": "Get_Max_CustomerMasterID",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Max_CustomerMasterId_CustomerInfo",
+									"type": "DatasetReference"
+								}
+							}
 						}
 					]
+				}
+			},
+			{
+				"name": "Check_Count_Data",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT COUNT(1) As COUNT FROM [Masterdata_CDP].[RetailCustomersIncremental]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Max_CustomerMasterId_CustomerInfo",
+						"type": "DatasetReference"
+					}
 				}
 			}
 		],
