@@ -8,7 +8,14 @@
 				"type": "Copy",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Set File Name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -231,6 +238,8 @@
 			{
 				"name": "Load_Jsonl_Email_Container",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "usp_Write_Email_Comm_Pre_Wrk",
@@ -279,7 +288,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"FileName": {
-								"value": "@pipeline().parameters.FIleName",
+								"value": "@variables('FileName')",
 								"type": "Expression"
 							}
 						}
@@ -293,7 +302,7 @@
 				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Get Metadata1",
+						"activity": "Load_Jsonl_Email_Container",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -321,47 +330,21 @@
 				}
 			},
 			{
-				"name": "Get Metadata1",
-				"type": "GetMetadata",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"dataset": {
-						"referenceName": "JsonLFileName",
-						"type": "DatasetReference"
-					},
-					"fieldList": [
-						"lastModified",
-						"childItems"
-					],
-					"storeSettings": {
-						"type": "AzureBlobStorageReadSettings",
-						"recursive": true,
-						"enablePartitionDiscovery": false
-					},
-					"formatSettings": {
-						"type": "JsonReadSettings"
-					}
-				}
-			},
-			{
-				"name": "Set variable1",
+				"name": "Set File Name",
 				"type": "SetVariable",
 				"dependsOn": [],
 				"policy": {
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "FileName",
+					"value": {
+						"value": "@concat('emai-comm-prefere-', formatDateTime(utcnow(), 'ddMMyyyyhhmm'), '.jsonl')",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -371,8 +354,7 @@
 		},
 		"variables": {
 			"FileName": {
-				"type": "String",
-				"defaultValue": "@concat('emai-comm-prefere-', formatDateTime(utcnow(), 'ddMMyyyyhhmm'), '.jsonl')"
+				"type": "String"
 			}
 		},
 		"annotations": []
