@@ -345,7 +345,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Put_File_in_File_Share",
+						"activity": "Put_File_From_S_To_V",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -630,6 +630,38 @@
 				},
 				"linkedServiceName": {
 					"referenceName": "MarketingHub",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Put_File_From_S_To_V",
+				"type": "AzureFunctionActivity",
+				"dependsOn": [
+					{
+						"activity": "Put_File_in_File_Share",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 50,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"functionName": "mcmh-file-export-dfs-vendor-func",
+					"method": "POST",
+					"body": {
+						"value": "@concat('{\"FileName\":\"',variables('FileName'),'\"}') ",
+						"type": "Expression"
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "adf_http_trigger_demo",
 					"type": "LinkedServiceReference"
 				}
 			}
