@@ -255,7 +255,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\nselect (SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)\nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\ninner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID",
+						"sqlReaderQuery": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\n",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -345,7 +345,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Email_Comm_Preference",
+						"activity": "Put_File_in_File_Share",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -494,6 +494,24 @@
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "Load_Jsonl_Email_Container",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "Put_File_in_File_Share",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "usp_Write_Email_Comm_Pre_Wrk",
 						"dependencyConditions": [
 							"Failed"
 						]
