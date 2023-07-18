@@ -6,6 +6,8 @@
 			{
 				"name": "Email_Comm_Preference",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Set File Name",
@@ -209,6 +211,8 @@
 			{
 				"name": "usp_Write_Email_Comm_Pre_Wrk",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
@@ -236,6 +240,8 @@
 			{
 				"name": "Load_Jsonl_Email_Container",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "usp_Write_Email_Comm_Pre_Wrk",
@@ -294,9 +300,17 @@
 			{
 				"name": "Put_File_in_File_Share",
 				"type": "AzureFunctionActivity",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load_Jsonl_Email_Container",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Create JSONL from table",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -326,6 +340,8 @@
 			{
 				"name": "Set File Name",
 				"type": "SetVariable",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"secureOutput": false,
@@ -343,6 +359,8 @@
 			{
 				"name": "Email_Comm_Pref_Succeed_log",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Put_File_From_S_To_V",
@@ -491,6 +509,8 @@
 			{
 				"name": "Email_Comm_Pref_Error_log",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
@@ -642,6 +662,8 @@
 			{
 				"name": "Put_File_From_S_To_V",
 				"type": "AzureFunctionActivity",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Put_File_in_File_Share",
@@ -665,6 +687,35 @@
 						"value": "@concat('{\"FileName\":\"',variables('FileName'),'\"}') ",
 						"type": "Expression"
 					}
+				},
+				"linkedServiceName": {
+					"referenceName": "adf_http_trigger_demo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Create JSONL from table",
+				"type": "AzureFunctionActivity",
+				"dependsOn": [
+					{
+						"activity": "usp_Write_Email_Comm_Pre_Wrk",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"functionName": "mcmh-file-export-blob-func",
+					"method": "POST",
+					"body": "hello"
 				},
 				"linkedServiceName": {
 					"referenceName": "adf_http_trigger_demo",
