@@ -209,8 +209,6 @@
 			{
 				"name": "usp_Write_Email_Comm_Pre_Wrk",
 				"type": "SqlServerStoredProcedure",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
@@ -238,9 +236,14 @@
 			{
 				"name": "Load_Jsonl_Email_Container",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "usp_Write_Email_Comm_Pre_Wrk",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -252,7 +255,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\n",
+						"sqlReaderQuery": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\nwhere a.LastUpdated > '@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}'",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -291,11 +294,15 @@
 			{
 				"name": "Put_File_in_File_Share",
 				"type": "AzureFunctionActivity",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Create JSONL from table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Load_Jsonl_Email_Container",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -349,11 +356,9 @@
 			{
 				"name": "Email_Comm_Pref_Succeed_log",
 				"type": "SqlServerStoredProcedure",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Put_File_From_S_To_V",
+						"activity": "Get_Max_Last_Updated_copy1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -488,6 +493,20 @@
 								"type": "Expression"
 							},
 							"type": "String"
+						},
+						"Dataset": {
+							"value": {
+								"value": "EmailCommunicationPreference",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"SourceDate": {
+							"value": {
+								"value": "@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}",
+								"type": "Expression"
+							},
+							"type": "Datetime"
 						}
 					}
 				},
@@ -499,8 +518,6 @@
 			{
 				"name": "Email_Comm_Pref_Error_log",
 				"type": "SqlServerStoredProcedure",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
@@ -652,8 +669,6 @@
 			{
 				"name": "Put_File_From_S_To_V",
 				"type": "AzureFunctionActivity",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Put_File_in_File_Share",
@@ -718,38 +733,6 @@
 				}
 			},
 			{
-				"name": "Water Mark Lookup",
-				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [
-					{
-						"name": "Source",
-						"value": "Source"
-					}
-				],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select top 1 * from [Audit].[ADFLogging] with(nolock)\norder  by id desc",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "ADFLoggingWaterMark",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
 				"name": "Get_Max_Last_Updated",
 				"type": "Lookup",
 				"dependsOn": [],
@@ -778,11 +761,16 @@
 				}
 			},
 			{
-				"name": "Lookup1",
+				"name": "Get_Max_Last_Updated_copy1",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Put_File_From_S_To_V",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -795,14 +783,14 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT COMM_PREFERNC_EMAIL_ID CommunicationPreferenceEmailID,\nCHANNEL Channel,\nEMAIL_ADDRESS EmailAddress,\nSRC_UPDATE LastUpdated,\nOPTED_IN,\nORGANIZATION Organization,\nPURPOSE Purpose,\nB_PUBID SourceSystem,\nGetdate() CreatedDate,\n'afi-edme-dev-df' CreatedBy,\nGetdate() UpdatedDate,\n'afi-edme-dev-df' UpdatedBy\nFROM [dbo].[GD_COMMUNICTN_PREFERNC_EMAIL] b  with(nolock) where b.SRC_UPDATE > '@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}'",
+							"value": "select max(LastUpdated) lastRunDateTime from [dbo].[EmailCommunicationPreference_Wrk]",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "RetailCustomer_DataSet",
+						"referenceName": "ADFLoggingWaterMark",
 						"type": "DatasetReference"
 					}
 				}
