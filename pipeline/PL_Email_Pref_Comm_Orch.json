@@ -25,10 +25,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "SELECT COMM_PREFERNC_EMAIL_ID CommunicationPreferenceEmailID,\nCHANNEL Channel,\nEMAIL_ADDRESS EmailAddress,\nSRC_UPDATE LastUpdated,\nOPTED_IN,\nORGANIZATION Organization,\nPURPOSE Purpose,\nB_PUBID SourceSystem,\nGetdate() CreatedDate,\n'afi-edme-dev-df' CreatedBy,\nGetdate() UpdatedDate,\n'afi-edme-dev-df' UpdatedBy\nFROM [dbo].[GD_COMMUNICTN_PREFERNC_EMAIL] b  with(nolock) \n--where b.SRC_UPDATE > '@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}'",
-							"type": "Expression"
-						},
+						"sqlReaderQuery": "SELECT COMM_PREFERNC_EMAIL_ID CommunicationPreferenceEmailID,\nCHANNEL Channel,\nEMAIL_ADDRESS EmailAddress,\nSRC_UPDATE LastUpdated,\nOPTED_IN,\nORGANIZATION Organization,\nPURPOSE Purpose,\nB_PUBID SourceSystem,\nGetdate() CreatedDate,\n'afi-edme-dev-df' CreatedBy,\nGetdate() UpdatedDate,\n'afi-edme-dev-df' UpdatedBy\nFROM [dbo].[GD_COMMUNICTN_PREFERNC_EMAIL] b  with(nolock) \nwhere b.SRC_UPDATE > '@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}'",
 						"queryTimeout": "00:10:00",
 						"partitionOption": "None"
 					},
@@ -258,10 +255,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\n--where a.LastUpdated > '@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}'",
-							"type": "Expression"
-						},
+						"sqlReaderQuery": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\nwhere a.LastUpdated > '@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}'",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -301,6 +295,12 @@
 				"name": "Put_File_in_File_Share_S",
 				"type": "AzureFunctionActivity",
 				"dependsOn": [
+					{
+						"activity": "Create JSONL from table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
 					{
 						"activity": "Load_Jsonl_Email_Container",
 						"dependencyConditions": [
@@ -503,10 +503,10 @@
 						},
 						"SourceDate": {
 							"value": {
-								"value": "@{activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime}",
+								"value": "@{formatDateTime(activity('Get_Max_Last_Updated').output.firstRow.lastRunDateTime, 'yyyy-MM-dd hh:mm:ss tt')}\n\n",
 								"type": "Expression"
 							},
-							"type": "String"
+							"type": "Datetime"
 						}
 					}
 				},
@@ -518,6 +518,8 @@
 			{
 				"name": "Email_Comm_Pref_Error_log",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Email_Comm_Preference",
@@ -539,6 +541,12 @@
 					},
 					{
 						"activity": "Put_File_From_S_To_V",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "Create JSONL from table",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -703,7 +711,14 @@
 				"type": "AzureFunctionActivity",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "usp_Write_Email_Comm_Pre_Wrk",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
