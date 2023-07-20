@@ -3,110 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Set variable1",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "Water Mark Lookup",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					},
-					{
-						"activity": "GetNewLoadId",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "test",
-					"value": {
-						"value": "@activity('Water Mark Lookup').output",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Water Mark Lookup",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Get_Max_CustomerMasterID",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [
-					{
-						"name": "Source",
-						"value": "Source"
-					}
-				],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select top 1 * from [Audit].[ADFLogging] with(nolock)\norder  by id desc",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "ADFLoggingWaterMark",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
-				"name": "GetNewLoadId",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Get_Max_CustomerMasterID",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-							"type": "Expression"
-						},
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "ADFLoggingWaterMark",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
-				"name": "Get_Max_CustomerMasterID",
-				"type": "Lookup",
+				"name": "Copy data1",
+				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -119,15 +17,33 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
+						"sqlReaderQuery": "select c.RETAIL_CUSTOMER_ID, c.FIRST_NAME, c.MIDDLE_NAME, c.LAST_NAME, phoneNumber.PHONE_NUMBER  from [dbo].[GD_RETAIL_CUSTOMER] c, \n[dbo].[GD_PHONE_NUMBER] phoneNumber \nwhere F_RETAIL_CUSTOMER = c.RETAIL_CUSTOMER_ID\nand c.RETAIL_CUSTOMER_ID = 'E671FEF7-C7C4-4B96-91E1-FB7DBF62477D'",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
-					"dataset": {
-						"referenceName": "Max_CustomerMasterId_CustomerInfo",
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "RetailCustomer_DataSet",
 						"type": "DatasetReference"
 					}
-				}
+				],
+				"outputs": [
+					{
+						"referenceName": "JsonLFileName",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
