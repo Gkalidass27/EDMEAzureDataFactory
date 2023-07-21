@@ -13,6 +13,581 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Load_EnterpriseRef_DMA_InitialLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadId",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Dma_Sink_Max_Date",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Dma_Table_Name} WITH(NOLOCK)",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Master_Table_Max_Date_Sink",
+								"type": "DatasetReference",
+								"parameters": {
+									"Database_Name": {
+										"value": "@pipeline().parameters.Database_Name",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					},
+					{
+						"name": "Dma_Source_Count",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Dma_Sink_Max_Date",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT COUNT(1) as data FROM GD_ENTERPRISE_REF_DMA WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Dma_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Lookup_GD_Master_Table",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_Dma_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Dma_Source_Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(activity('Dma_Source_Count').output.firstRow.data,0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Dma_Data_Not_Found_Logs_Stored_Procedurered",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "404",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No Data Available For dma",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "404",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "No Data Available",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Dma_Data_Not_Found_Logs_Stored_Procedurered",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadId')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Dma_Copy_Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "@pipeline().parameters.Semarchy_Job_Name",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadId')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Dma_Copy_Data",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadId')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT \n'semadmin' AS B_CREATOR,\n'@{pipeline().parameters.Dma_Class_Name}' as B_CLASSNAME,\nENTERPRISE_REF_DMA_ID,\nB_CLASSNAME,\nB_BATCHID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nDMA_REGION\nFROM GD_ENTERPRISE_REF_DMA WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('Dma_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "upsert",
+											"upsertSettings": {
+												"useTempDB": true,
+												"keys": [
+													"EXTERNAL_REF_DMAID"
+												]
+											},
+											"sqlWriterUseTableLock": false,
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "ENTERPRISE_REF_DMA_ID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 10
+													},
+													"sink": {
+														"name": "EXTERNAL_REF_DMAID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 10
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "DMA_REGION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "DMA_REGION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "GD_Enterprise_REF_TABLE",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SA_EXTERNAL_REF_DMA",
+											"type": "DatasetReference",
+											"parameters": {
+												"Database_Name": {
+													"value": "@pipeline().parameters.Database_Name",
+													"type": "Expression"
+												},
+												"Dma_Table_Name": {
+													"value": "@pipeline().parameters.Sink_Dma_Table_Name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Database_Name": {
+						"type": "string"
+					},
+					"Sink_Dma_Table_Name": {
+						"type": "string"
+					},
+					"Semarchy_Job_Name": {
+						"type": "string"
+					},
+					"Dma_Class_Name": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"LoadId": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "EnterPriceRef_Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Load_EnterpriseRef_TIME_ZONE_EFF_DT_InitialLoad')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -19278,37 +19853,11 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Get_Max_CustomerMasterID",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Max_CustomerMasterId_CustomerInfo",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
 						"name": "Check_CustomerInfo_Count",
 						"type": "IfCondition",
 						"dependsOn": [
 							{
-								"activity": "Get_Max_CustomerMasterID",
+								"activity": "Get_Data_Count",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -19317,7 +19866,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"expression": {
-								"value": "@not(equals(activity('Get_Max_CustomerMasterID').output.firstRow.MAX_ID ,null))",
+								"value": "@not(equals(activity('Get_Data_Count').output.firstRow.COUNT ,'0'))",
 								"type": "Expression"
 							},
 							"ifFalseActivities": [
@@ -19422,7 +19971,20 @@
 								{
 									"name": "GetNewLoadId",
 									"type": "Lookup",
-									"dependsOn": [],
+									"dependsOn": [
+										{
+											"activity": "Get_Max_CustomerMasterID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Get_All_Max_rcm_CustomerMasterID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
 									"policy": {
 										"timeout": "0.12:00:00",
 										"retry": 0,
@@ -22063,8 +22625,60 @@
 									}
 								},
 								{
-									"name": "Remove_From_Stag_Table",
+									"name": "Get_Max_CustomerMasterID",
 									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "All_Max_CustomerMasterId_CustomerInfo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Get_All_Max_rcm_CustomerMasterID",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": "SELECT * FROM [rcm_cust_subscriber].[all_max_customer_id]",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "All_Max_CustomerMasterId_CustomerInfo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "archive_and_delete_customer_record",
+									"type": "SqlServerStoredProcedure",
 									"dependsOn": [
 										{
 											"activity": "SubmitLoadID",
@@ -22082,23 +22696,77 @@
 									},
 									"userProperties": [],
 									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"sqlReaderQuery": {
-												"value": "DELETE FROM [Masterdata_CDP].[AllSourceCustomers] where customerMasterId<=@{activity('Get_Max_CustomerMasterID').output.firstRow.MAX_ID} ;\nSELECT 1 as success;",
-												"type": "Expression"
+										"storedProcedureName": "[[rcm_cust_subscriber].[archive_and_delete_customer_record]",
+										"storedProcedureParameters": {
+											"MaxId_AddressLocations": {
+												"value": {
+													"value": "@activity('Get_All_Max_rcm_CustomerMasterID').output.firstRow.AddressLocations",
+													"type": "Expression"
+												},
+												"type": "Int32"
 											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"dataset": {
-											"referenceName": "Staging_AllSourceCustomers",
-											"type": "DatasetReference",
-											"parameters": {}
+											"MaxId_AllCustomer": {
+												"value": {
+													"value": "@activity('Get_All_Max_rcm_CustomerMasterID').output.firstRow.MAX_ID",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"MaxId_EmailAddresses": {
+												"value": {
+													"value": "@activity('Get_All_Max_rcm_CustomerMasterID').output.firstRow.EmailAddresses",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"MaxId_PhoneNumbers": {
+												"value": {
+													"value": "@activity('Get_All_Max_rcm_CustomerMasterID').output.firstRow.PhoneNumbers",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"MaxId_RetailCustomer": {
+												"value": {
+													"value": "@activity('Get_Max_CustomerMasterID').output.firstRow.RetailCustomer",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											}
 										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
 									}
 								}
 							]
+						}
+					},
+					{
+						"name": "Get_Data_Count",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT COUNT(1) AS [COUNT] FROM [Masterdata_CDP].[RetailCustomersIncremental]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Max_CustomerMasterId_CustomerInfo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
 						}
 					}
 				],
@@ -29508,407 +30176,6 @@
 						"type": "String"
 					},
 					"StageInitialLoadRetailChunkControl_TableName": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Retail_Customer_Flow"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/ReProcess_ErrorFiles_Stage_Retail_Customer_RetailCustomerLoad_Incremental')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Move_Error_Container_Files",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": false,
-									"wildcardFolderPath": "Error",
-									"wildcardFileName": {
-										"value": "*.csv",
-										"type": "Expression"
-									},
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "DelimitedTextSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "DelimitedTextWriteSettings",
-									"quoteAllText": true,
-									"fileExtension": ".csv"
-								}
-							},
-							"enableStaging": false,
-							"dataIntegrationUnits": 2,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Error_Files_From_ErrorFolder",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Move_Error_Files_RetailCustomer_Container",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Remove_Error_Files_From_ErrorFolder",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Move_Error_Container_Files",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "Remove_Error_Files",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobFSReadSettings",
-								"recursive": false,
-								"wildcardFileName": {
-									"value": "*.csv",
-									"type": "Expression"
-								},
-								"enablePartitionDiscovery": false
-							}
-						}
-					},
-					{
-						"name": "Error_Folder_Reprocess_Error_Logs",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Move_Error_Container_Files",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').error.message}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('Move_Error_Container_Files').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "@concat('retail-customer/','Files')",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "@concat('retail-customer/Error/','*.csv')",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Reprocess_SuccessLogging",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Move_Error_Container_Files",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
-							"storedProcedureParameters": {
-								"CopyActivity_End_Time": {
-									"value": {
-										"value": "@{utcnow()}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"CopyActivity_Start_Time": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0].start}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"CopyActivity_transferDuration_in_secs": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0]. detailedDurations.transferDuration}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"CopyDuration_in_secs": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.copyDuration}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"Execution_Status": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0].status}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Pipeline_Name": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RowsCopied": {
-									"value": null,
-									"type": "Int32"
-								},
-								"RowsRead": {
-									"value": null,
-									"type": "Int32"
-								},
-								"RunId": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "@concat('retail-customer/','Files')",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "@concat('retail-customer/Error/','*.csv')",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('Move_Error_Container_Files').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"variables": {
-					"FileCheck": {
-						"type": "String"
-					},
-					"TableSchema": {
-						"type": "String"
-					},
-					"LoadID": {
 						"type": "String"
 					}
 				},
