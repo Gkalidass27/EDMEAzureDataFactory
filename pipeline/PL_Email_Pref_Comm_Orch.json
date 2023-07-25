@@ -34,7 +34,7 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"preCopyScript": "truncate table EmailCommunicationPreference_Stg\ntruncate table EmailCommunicationPreference_Wrk\n",
+						"preCopyScript": "truncate table EmailCommunicationPreference_Stg\n\n",
 						"writeBehavior": "insert",
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
@@ -259,7 +259,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT \na.CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\nwhere a.LastUpdated > '@{activity('Get_Max_DataTime_log').output.firstRow.lastRunDateTime}'\norder by a.LastUpdated desc",
+							"value": "SELECT \nUPPER(a.CommunicationPreferenceEmailID) as CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\nwhere a.LastUpdated > '@{activity('Get_Max_DataTime_log').output.firstRow.lastRunDateTime}'\norder by a.LastUpdated desc",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
