@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "GetMaxId",
-				"type": "Lookup",
+				"name": "Load_Jsonl_Email_Container",
+				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -13,7 +13,42 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select top 10 c.RETAIL_CUSTOMER_ID, c.FIRST_NAME, c.LAST_NAME, p.phone_number from [dbo].[GD_RETAIL_CUSTOMER] c,\n[dbo].[GD_PHONE_NUMBER] p\nwhere c.RETAIL_CUSTOMER_ID = p.F_RETAIL_CUSTOMER\n--and c.RETAIL_CUSTOMER_ID = 'E671FEF7-C7C4-4B96-91E1-FB7DBF62477D'\nFOR JSON AUTO",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings",
+							"filePattern": "arrayOfObjects"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2
+				},
+				"inputs": [
+					{
+						"referenceName": "EmailCommunicationPreference_Wrk",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "emailCommPrefJsonl",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
