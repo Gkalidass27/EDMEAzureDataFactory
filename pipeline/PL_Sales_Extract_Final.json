@@ -30,6 +30,8 @@
 			{
 				"name": "Stored procedure1",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "SetFileName",
@@ -57,6 +59,8 @@
 			{
 				"name": "GenerateJsonl",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Stored procedure1",
@@ -110,7 +114,13 @@
 				"outputs": [
 					{
 						"referenceName": "SalesOrder",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@variables('FileName')",
+								"type": "Expression"
+							}
+						}
 					}
 				]
 			},
@@ -135,6 +145,48 @@
 					"value": {
 						"value": "@{activity('GetFileName').output.firstRow.FilesName}",
 						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "UpdateStatus",
+				"description": "",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GenerateJsonl",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SetFileName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "Update bp set status = 'Complete' from dbo.BatchProcess bp with(nolock) where FilesName = @variables('FileName')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Standard_MarketingHub_Dataset",
+						"type": "DatasetReference"
 					}
 				}
 			}
