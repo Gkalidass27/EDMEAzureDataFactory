@@ -1,5 +1,5 @@
 {
-	"name": "PL_SalesExtract_JSONL",
+	"name": "PL_SalesExtract_JSONL_Flatten",
 	"properties": {
 		"description": "Step by Step pipeline for Email Preference Communication Zeta CDP",
 		"activities": [
@@ -256,14 +256,14 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "select  \n(select a.*,(select * from [dbo].[Combined_InvoiceDetail_Wrk] c where a.SourceSystemID = c.SourceSystemID and a.OrderID = c.OrderID FOR JSON PATH) AS InvoiceDetail\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\n [dbo].[Combined_InvoiceHeader_Wrk]  a\ninner join [dbo].[Combined_InvoiceHeader_Wrk] b on a.SourceSystemID = b.SourceSystemID and a.OrderID = b.OrderID and a.CustomerName = b.CustomerName",
+							"value": "select  \n(select a.*,(select * from [dbo].SalesOrderLine_Wrk c where a.SourceSystemID = c.SourceSystemID and a.OrderID = c.OrderID FOR JSON PATH) AS InvoiceDetail\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  \nfrom\n [dbo].SalesOrderHeader_Wrk  a\ninner join [dbo].SalesOrderLine_Wrk b on a.SourceSystemID = b.SourceSystemID and a.OrderID = b.OrderID \n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
-						"type": "JsonSink",
+						"type": "DelimitedTextSink",
 						"storeSettings": {
 							"type": "AzureBlobStorageWriteSettings",
 							"metadata": [
@@ -276,12 +276,21 @@
 							]
 						},
 						"formatSettings": {
-							"type": "JsonWriteSettings",
-							"filePattern": "arrayOfObjects"
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".jsonl"
 						}
 					},
 					"enableStaging": false,
-					"dataIntegrationUnits": 2
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
@@ -291,14 +300,8 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "emailCommPrefJsonl",
-						"type": "DatasetReference",
-						"parameters": {
-							"FileName": {
-								"value": "@variables('FileName')",
-								"type": "Expression"
-							}
-						}
+						"referenceName": "FlattenSalesJSON",
+						"type": "DatasetReference"
 					}
 				]
 			},
