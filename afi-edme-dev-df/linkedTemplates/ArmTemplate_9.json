@@ -13,225 +13,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/Load_Retail_ExternalRefUSState')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Get_New_load",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'masterDataHub_Retail'\n,@P_PROGRAM_NAME = 'ExternalRefUSStateLoad'\n,@P_LOAD_DESCRIPTION = 'External Ref US State Load'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Semarchy_Repo",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Submit_Load",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "External_Ref_US_State",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
-							"storedProcedureParameters": {
-								"P_INTEGRATION_JOB_NAME": {
-									"value": {
-										"value": "ExternalRefUSStateLoad",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"P_LOAD_ID": {
-									"value": {
-										"value": "@activity('Get_New_load').output.firstRow.RETURN_VALUE_ARGUMENT",
-										"type": "Expression"
-									},
-									"type": "Decimal"
-								},
-								"P_USERNAME": {
-									"value": {
-										"value": "semadmin",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"return_value_argument": {
-									"value": null,
-									"type": "Decimal"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_repo",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "External_Ref_US_State",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Get_New_load",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "SELECT @{activity('Get_New_Load').output.firstRow.RETURN_VALUE_ARGUMENT} AS B_LoadID\n      ,'ExternalRefUSState' as B_CLASSNAME\n      ,[EXT_REF_US_STATE_ID]\n      ,[STATE_CODE]\n      ,[STATE_NAME]\n  FROM [ISO].[statecode]",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"dataIntegrationUnits": 2,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "B_LoadID",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "B_LOADID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										}
-									},
-									{
-										"source": {
-											"name": "EXT_REF_US_STATE_ID",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										},
-										"sink": {
-											"name": "EXTERNAL_REF_US_STATE_ID",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "STATE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "STATE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Semarchy_Staging_ISO_StateCode",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "masterDataHub_Retail_dbo_SA_EXTERNAL_REF_US_STATE",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": [],
-				"lastPublishTime": "2022-05-26T06:05:04Z"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Load_Retail_LegalEntityLoad_InitialLoad')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -19317,6 +19098,317 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_Customer_RetailCustomerLoad_Incremental')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_Retail_SiteMasterLoad_DAC')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetAllJsonFiles",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DAC_Location_List_Read",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "JsonReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEachJsonFile",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "SP_Truncate_DAC_Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetAllJsonFiles').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "LookupJsonFile",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"dataset": {
+											"referenceName": "Dac_Stage_Location_List_Load",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								},
+								{
+									"name": "Store_DAC_Store_Details",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "LookupJsonFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Store_DAC_Store_Details",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"item_param": {
+												"value": "@activity('LookupJsonFile').output.firstRow.Data",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "SP_Load_Stores_Details",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "ForEachJsonFile",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[Load_Stores_Data]"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SP_Truncate_DAC_Tables",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[Truncate_DAC_Tables]"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallStoreLocationDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('GetAllJsonFiles').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"location_id_var": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Site_Master"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:05Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Store_Details')]"
 			]
 		}
 	]

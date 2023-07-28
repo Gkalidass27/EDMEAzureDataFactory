@@ -13,25 +13,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/retailCustomer_dbo_CrossWalk_MD_OUT')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Retail_CustomerMaster",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "CrossWalk_MD_OUT"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Dedupe_CsvToTable')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -22868,9 +22849,7 @@
 				},
 				"annotations": []
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/retailCustomer_dbo_CrossWalk_MD_OUT')]"
-			]
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_RetailCustomerLoad_Incremental')]",
@@ -27186,6 +27165,225 @@
 						"outputs": [
 							{
 								"referenceName": "masterDataHub_Retail_dbo_SA_EXTERNAL_REF_COUNTRY",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:04Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_Retail_ExternalRefUSState')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get_New_load",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'masterDataHub_Retail'\n,@P_PROGRAM_NAME = 'ExternalRefUSStateLoad'\n,@P_LOAD_DESCRIPTION = 'External Ref US State Load'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Submit_Load",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "External_Ref_US_State",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+							"storedProcedureParameters": {
+								"P_INTEGRATION_JOB_NAME": {
+									"value": {
+										"value": "ExternalRefUSStateLoad",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@activity('Get_New_load').output.firstRow.RETURN_VALUE_ARGUMENT",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"return_value_argument": {
+									"value": null,
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "External_Ref_US_State",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Get_New_load",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT @{activity('Get_New_Load').output.firstRow.RETURN_VALUE_ARGUMENT} AS B_LoadID\n      ,'ExternalRefUSState' as B_CLASSNAME\n      ,[EXT_REF_US_STATE_ID]\n      ,[STATE_CODE]\n      ,[STATE_NAME]\n  FROM [ISO].[statecode]",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"dataIntegrationUnits": 2,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "B_LoadID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "B_LOADID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "EXT_REF_US_STATE_ID",
+											"type": "Guid",
+											"physicalType": "uniqueidentifier"
+										},
+										"sink": {
+											"name": "EXTERNAL_REF_US_STATE_ID",
+											"type": "Guid",
+											"physicalType": "uniqueidentifier"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "STATE_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "STATE_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "STATE_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "STATE_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Semarchy_Staging_ISO_StateCode",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "masterDataHub_Retail_dbo_SA_EXTERNAL_REF_US_STATE",
 								"type": "DatasetReference",
 								"parameters": {}
 							}

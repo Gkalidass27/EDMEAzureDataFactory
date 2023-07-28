@@ -65,315 +65,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/Stage_Retail_SiteMasterLoad_DAC')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "GetAllJsonFiles",
-						"type": "GetMetadata",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DAC_Location_List_Read",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"fieldList": [
-								"childItems"
-							],
-							"storeSettings": {
-								"type": "AzureBlobFSReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							},
-							"formatSettings": {
-								"type": "JsonReadSettings"
-							}
-						}
-					},
-					{
-						"name": "ForEachJsonFile",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "SP_Truncate_DAC_Tables",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('GetAllJsonFiles').output.childItems",
-								"type": "Expression"
-							},
-							"isSequential": false,
-							"batchCount": 10,
-							"activities": [
-								{
-									"name": "LookupJsonFile",
-									"type": "Lookup",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "JsonSource",
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "JsonReadSettings"
-											}
-										},
-										"dataset": {
-											"referenceName": "Dac_Stage_Location_List_Load",
-											"type": "DatasetReference",
-											"parameters": {
-												"fileName": {
-													"value": "@item().name",
-													"type": "Expression"
-												}
-											}
-										}
-									}
-								},
-								{
-									"name": "Store_DAC_Store_Details",
-									"type": "ExecutePipeline",
-									"dependsOn": [
-										{
-											"activity": "LookupJsonFile",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Store_DAC_Store_Details",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"item_param": {
-												"value": "@activity('LookupJsonFile').output.firstRow.Data",
-												"type": "Expression"
-											}
-										}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "SP_Load_Stores_Details",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "ForEachJsonFile",
-								"dependencyConditions": [
-									"Completed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[DAC].[Load_Stores_Data]"
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "SP_Truncate_DAC_Tables",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "GetAllJsonFiles",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[DAC].[Truncate_DAC_Tables]"
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "SPCallStoreLocationDetailsErrorMsg",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "GetAllJsonFiles",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('GetAllJsonFiles').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('GetAllJsonFiles').error.message}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('GetAllJsonFiles').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('GetAllJsonFiles').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": null,
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": null,
-									"type": "String"
-								},
-								"Source": {
-									"value": null,
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": null,
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"variables": {
-					"location_id_var": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Site_Master"
-				},
-				"annotations": [],
-				"lastPublishTime": "2022-05-26T06:05:05Z"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/CustomerInitialChunkLoad')]",
 			"type": "Microsoft.DataFactory/factories/triggers",
 			"apiVersion": "2018-06-01",
@@ -397,6 +88,36 @@
 						"interval": 3,
 						"startTime": "2023-02-03T10:00:00",
 						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LoadNASisterSKUColorwheelToEDW')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "LoadNASisterSKUColorwheelToEDW",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_NA_SisterSku_SemarchyToEDW",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-07-28T06:00:00",
+						"timeZone": "Eastern Standard Time",
+						"schedule": {}
 					}
 				}
 			},
@@ -1300,9 +1021,7 @@
 				"annotations": [],
 				"lastPublishTime": "2022-05-26T06:05:04Z"
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_SiteMasterLoad_DAC')]"
-			]
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Daily_Load_EnterpriseRef')]",
