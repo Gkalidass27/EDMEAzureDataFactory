@@ -32,14 +32,7 @@
 				"type": "SqlServerStoredProcedure",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "SetFileName",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -152,15 +145,11 @@
 				"name": "UpdateStatus",
 				"description": "",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "GenerateJsonl",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					},
-					{
-						"activity": "SetFileName",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -178,7 +167,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@Update bp set status = 'Complete' from dbo.BatchProcess bp with(nolock) where FilesName='variables('FileName')'",
+							"value": "Update bp set status = 'Complete' from dbo.BatchProcess bp with(nolock) where FilesName='@{variables('FileName')}'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -188,6 +177,42 @@
 						"referenceName": "Standard_MarketingHub_Dataset",
 						"type": "DatasetReference"
 					}
+				}
+			},
+			{
+				"name": "UpdateStatusa",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "SetFileName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "MarketingHub",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "Update bp set status = 'Complete' from dbo.BatchProcess bp with(nolock) where FilesName='@{variables('FileName')}'",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
 				}
 			}
 		],
