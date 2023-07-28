@@ -80,14 +80,62 @@
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
 						"referenceName": "Standard_MarketingHub_Dataset",
 						"type": "DatasetReference"
 					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SalesOrder",
+						"type": "DatasetReference"
+					}
 				]
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "FileName",
+							"value": {
+								"type": "String",
+								"content": "@{activity('FileName').output.firstRow.FilesName}"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
 			}
 		],
 		"annotations": []
