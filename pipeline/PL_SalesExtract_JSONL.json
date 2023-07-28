@@ -255,14 +255,18 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select  top 100 \n(select a.*,(select * from [dbo].[SalesOrderLine_Wrk] c where a.SourceSystemID = c.SourceSystemID and a.OrderID = c.OrderID FOR JSON PATH) AS InvoiceDetail\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\n [dbo].[SalesOrderHeader_Wrk]  a\ninner join [dbo].[SalesOrderHeader_Wrk] b on a.SourceSystemID = b.SourceSystemID and a.OrderID = b.OrderID and a.CustomerName = b.CustomerName",
+						"sqlReaderQuery": "select  top 10\n(select a.*,(select * from [dbo].[SalesOrderLine_Wrk] c where a.SourceSystemID = c.SourceSystemID and a.OrderID = c.OrderID FOR JSON PATH) AS InvoiceDetail\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\n [dbo].[SalesOrderHeader_Wrk]  a\ninner join [dbo].[SalesOrderHeader_Wrk] b on a.SourceSystemID = b.SourceSystemID and a.OrderID = b.OrderID and a.CustomerName = b.CustomerName",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "JsonSink",
 						"storeSettings": {
-							"type": "AzureBlobStorageWriteSettings"
+							"type": "AzureBlobStorageWriteSettings",
+							"copyBehavior": {
+								"value": "@replace('{\"jsonl\":\"','{\"jsonl\":\"','')",
+								"type": "Expression"
+							}
 						},
 						"formatSettings": {
 							"type": "JsonWriteSettings",
