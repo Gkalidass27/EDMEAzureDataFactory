@@ -3,56 +3,6 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "EndDate",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select top 1 EndDate from dbo.BatchProcess where status = ''",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Standard_MarketingHub_Dataset",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
-				"name": "StartDate",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select top 1 StartDate from dbo.BatchProcess where status = ''",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Standard_MarketingHub_Dataset",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
 				"name": "FileName",
 				"type": "Lookup",
 				"dependsOn": [],
@@ -82,18 +32,6 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "EndDate",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					},
-					{
-						"activity": "StartDate",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					},
-					{
 						"activity": "FileName",
 						"dependencyConditions": [
 							"Succeeded"
@@ -115,6 +53,41 @@
 					"referenceName": "MarketingHub",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "GenerateJsonl",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select  \r\n(select soh.*,\r\n(select sol.*, \r\n\t(select * from [dbo].[SalesOrderLineDiscount_Wrk]  sod  with(nolock) where sod.SourceSystemID = sol.SourceSystemID and sod.OrderID = sol.OrderID and sod.OrderLineNumber = sol.OrderLineNumber FOR JSON PATH) AS Discounts\r\nfrom [dbo].[SalesOrderLine_Wrk] sol with(nolock) where soh.SourceSystemID = sol.SourceSystemID and soh.OrderID = sol.OrderID FOR JSON PATH) AS OrderLines,\r\n(select sot.* from [dbo].[SalesOrderTender_Wrk] sot with(nolock) where soh.SourceSystemID = sot.SourceSystemID and soh.OrderID = sot.OrderID FOR JSON PATH) AS Tenders\r\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\r\n [dbo].[SalesOrderHeader_Wrk]  soh with(nolock)\r\ninner join [dbo].[SalesOrderHeader_Wrk] sohMap with(nolock) on soh.SourceSystemID = sohMap.SourceSystemID and soh.OrderID = sohMap.OrderID and soh.CustomerName = sohMap.CustomerName",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "Standard_MarketingHub_Dataset",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"annotations": []
