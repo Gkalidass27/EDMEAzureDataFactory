@@ -39444,7 +39444,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "AzureSqlSource",
-								"sqlReaderQuery": "select  \r\n(select soh.*,\r\n(select sol.* from [dbo].[SalesOrderLine_Wrk] sol with(nolock) where soh.SourceSystemID = sol.SourceSystemID and soh.OrderID = sol.OrderID FOR JSON PATH) AS OrderLines\r\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\r\n [dbo].[SalesOrderHeader_Wrk]  soh with(nolock)\r\ninner join [dbo].[SalesOrderHeader_Wrk] sohMap with(nolock) on soh.SourceSystemID = sohMap.SourceSystemID and soh.OrderID = sohMap.OrderID and soh.CustomerName = sohMap.CustomerName",
+								"sqlReaderQuery": "select  \r\n(select  soh.BillToAddress\r\n  ,soh.BillToCity\r\n  ,soh.BillToCountryCode\r\n  ,soh.BillToPostalCode\r\n  ,soh.BillToStateProvinceCode\r\n  ,soh.CompanyCode\r\n  ,soh.CustomerName\r\n  ,soh.Email EmailAddress\r\n  ,soh.HasProtectionPlan\r\n  ,soh.OrderDate\r\n  ,soh.OrderID\r\n  ,soh.OrderStatus\r\n  ,soh.Phone1\r\n  ,soh.Phone2\r\n  ,soh.Phone3\r\n  ,soh.SalesChannel\r\n  ,soh.SalespersonID\r\n  ,soh.SourceCustomerID\r\n  ,soh.SourceSystemID\r\n  ,soh.StoreID,\r\n(select sol.DeliveryDate\r\n,sol.DeliveryType\r\n,sol.InvoiceDate\r\n,sol.IsDeliveryScheduled\r\n,sol.ItemDescription\r\n,sol.ItemTotal\r\n,sol.OrderLineNumber\r\n,sol.OrderQuantity\r\n,sol.ShipToAddress\r\n,sol.ShipToAddress2\r\n,sol.ShipToCity\r\n,sol.ShipToCountryCode\r\n,sol.ShipToPostalCode\r\n,sol.ShipToStateProvinceCode\r\n,sol.SKU\r\n,sol.VendorID from [dbo].[SalesOrderLine_Wrk] sol with(nolock) where soh.SourceSystemID = sol.SourceSystemID and soh.OrderID = sol.OrderID FOR JSON PATH) AS OrderLines\r\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\r\n [dbo].[SalesOrderHeader_Wrk]  soh with(nolock)\r\ninner join [dbo].[SalesOrderHeader_Wrk] sohMap with(nolock) on soh.SourceSystemID = sohMap.SourceSystemID and soh.OrderID = sohMap.OrderID and soh.CustomerName = sohMap.CustomerName",
 								"queryTimeout": "02:00:00",
 								"partitionOption": "None"
 							},
@@ -39552,8 +39552,6 @@
 					{
 						"name": "SalesOrderError",
 						"type": "SqlServerStoredProcedure",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Stored procedure1",
@@ -39577,17 +39575,34 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
 							"storedProcedureParameters": {
 								"ErrorCode": {
+									"value": {
+										"value": "@{activity('GenerateJsonl').error.errorCode}",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('GenerateJsonl').error.message}",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('GenerateJsonl').StatusCode",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"FailureType": {
+									"value": {
+										"value": "@{activity('GenerateJsonl').error.failureType}\n",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"PipelineName": {
@@ -39606,22 +39621,30 @@
 								},
 								"Sink": {
 									"value": {
-										"value": "EmailCommunicationPreference_Stg",
+										"value": "SalesOrder",
 										"type": "Expression"
 									},
 									"type": "String"
 								},
 								"Sink_Type": {
+									"value": {
+										"value": "@{activity('GenerateJsonl').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"Source": {
 									"value": {
-										"value": "GD_COMMUNICTN_PREFERNC_EMAIL",
+										"value": "cdp_customer_deduped",
 										"type": "Expression"
 									},
 									"type": "String"
 								},
 								"Source_Type": {
+									"value": {
+										"value": "@{activity('GenerateJsonl').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"TriggerId": {
@@ -39655,7 +39678,7 @@
 							}
 						},
 						"linkedServiceName": {
-							"referenceName": "CDP_CustomerProfiling",
+							"referenceName": "MarketingHub",
 							"type": "LinkedServiceReference"
 						}
 					},
@@ -39708,7 +39731,8 @@
 				"[variables('factoryId')]",
 				"[concat(variables('factoryId'), '/datasets/cdp_customer_deduped')]",
 				"[concat(variables('factoryId'), '/linkedServices/CDP_CustomerProfiling')]",
-				"[concat(variables('factoryId'), '/datasets/SalesOrder')]"
+				"[concat(variables('factoryId'), '/datasets/SalesOrder')]",
+				"[concat(variables('factoryId'), '/linkedServices/MarketingHub')]"
 			]
 		},
 		{
