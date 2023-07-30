@@ -1,0 +1,333 @@
+{
+	"name": "PL_Sales_Extract_Final",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetFileName",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select top 1 FilesName from dbo.BatchProcess where status = ''",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "cdp_customer_deduped",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Stored procedure1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SetFileName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[uspTransferSalesFromStgToWrk]"
+				},
+				"linkedServiceName": {
+					"referenceName": "CDP_CustomerProfiling",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "GenerateJsonl",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select  \r\n(select soh.*,\r\n(select sol.* from [dbo].[SalesOrderLine_Wrk] sol with(nolock) where soh.SourceSystemID = sol.SourceSystemID and soh.OrderID = sol.OrderID FOR JSON PATH) AS OrderLines\r\nFOR JSON PATH , WITHOUT_ARRAY_WRAPPER) as jsonl  from\r\n [dbo].[SalesOrderHeader_Wrk]  soh with(nolock)\r\ninner join [dbo].[SalesOrderHeader_Wrk] sohMap with(nolock) on soh.SourceSystemID = sohMap.SourceSystemID and soh.OrderID = sohMap.OrderID and soh.CustomerName = sohMap.CustomerName",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".jsonl"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "cdp_customer_deduped",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SalesOrder",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@variables('FileName')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "SetFileName",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetFileName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "FileName",
+					"value": {
+						"value": "@{activity('GetFileName').output.firstRow.FilesName}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "UpdateStatusa",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Get_count_no_line",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "CDP_CustomerProfiling",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "Update bp set status = 'Complete',\nNoOrderLine='@{activity('Get_count_no_line').output.firstRow.NoOrderLine}' \nfrom dbo.BatchProcess bp with(nolock) where \nFilesName='@{variables('FileName')}'",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "SalesOrderError",
+				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure1",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "GenerateJsonl",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"type": "String"
+						},
+						"FailureType": {
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "EmailCommunicationPreference_Stg",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_COMMUNICTN_PREFERNC_EMAIL",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "CDP_CustomerProfiling",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get_count_no_line",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GenerateJsonl",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select count(*) as NoOrderLine from (\nselect distinct sohs.SourceSystemID,sohs.SourceCustomerID,sohs.OrderID from [dbo].[SalesOrderHeader_Wrk] sohs \nwhere sohs.OrderID not in (select distinct sohs.OrderID from [dbo].[SalesOrderLine_Wrk] sohs))temp",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "cdp_customer_deduped",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"variables": {
+			"FileName": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
