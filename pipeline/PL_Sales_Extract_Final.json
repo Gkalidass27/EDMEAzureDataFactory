@@ -5,8 +5,6 @@
 			{
 				"name": "GetFileName",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -32,8 +30,6 @@
 			{
 				"name": "Stored procedure1",
 				"type": "SqlServerStoredProcedure",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "SetFileName",
@@ -61,8 +57,6 @@
 			{
 				"name": "GenerateJsonl",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Stored procedure1",
@@ -129,8 +123,6 @@
 			{
 				"name": "SetFileName",
 				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "GetFileName",
@@ -155,11 +147,9 @@
 			{
 				"name": "UpdateStatusa",
 				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Set value NoOrderLineCount",
+						"activity": "Get_count_no_line",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -182,7 +172,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "Update bp set status = 'Complete',\nNoOrderLine='@{variables('NoOrderLineCount')}' \nfrom dbo.BatchProcess bp with(nolock) where \nFilesName='@{variables('FileName')}'",
+								"value": "Update bp set status = 'Complete',\nNoOrderLine='@{activity('Get_count_no_line').output.firstRow.NoOrderLine}' \nfrom dbo.BatchProcess bp with(nolock) where \nFilesName='@{variables('FileName')}'",
 								"type": "Expression"
 							}
 						}
@@ -331,37 +321,10 @@
 						"type": "DatasetReference"
 					}
 				}
-			},
-			{
-				"name": "Set value NoOrderLineCount",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "Get_count_no_line",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "NoOrderLineCount",
-					"value": {
-						"value": "@{activity('Get_count_no_line').output.firstRow.NoOrderLine}",
-						"type": "Expression"
-					}
-				}
 			}
 		],
 		"variables": {
 			"FileName": {
-				"type": "String"
-			},
-			"NoOrderLineCount": {
 				"type": "String"
 			}
 		},
