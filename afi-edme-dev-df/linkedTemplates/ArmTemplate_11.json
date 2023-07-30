@@ -1,0 +1,2522 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "afi-edme-dev-df"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Database_Name": {
+			"type": "string",
+			"defaultValue": "masterDataHub_POC"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_US_State_Table_Name": {
+			"type": "string",
+			"defaultValue": "SA_EXTERNAL_REF_US_STATE"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Time_Zone_EFF_DT_Table_Name": {
+			"type": "string",
+			"defaultValue": "SA_EXTERNAL_REF_TIME_ZONE_EF"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Time_Zone_Table_Name": {
+			"type": "string",
+			"defaultValue": "SA_EXTERNAL_REF_TIME_ZONE"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Currency_Table_Name": {
+			"type": "string",
+			"defaultValue": "SA_EXTERNAL_REF_CURRENCY"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Country_Table_Name": {
+			"type": "string",
+			"defaultValue": "SA_EXTERNAL_REF_COUNTRY"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Dma_Table_Name": {
+			"type": "string",
+			"defaultValue": "SA_EXTERNAL_REF_DMA"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Country_Class_Name": {
+			"type": "string",
+			"defaultValue": "ExternalRefCountry"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Currency_Class_Name": {
+			"type": "string",
+			"defaultValue": "ExternalRefCurrency"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Dma_Class_Name": {
+			"type": "string",
+			"defaultValue": "ExternalRefDMA"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Time_Zone_Class_Name": {
+			"type": "string",
+			"defaultValue": "ExternalRefTimeZone"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Time_Zone_EFF_DT_Class_Name": {
+			"type": "string",
+			"defaultValue": "ExternalRefTimeZoneEffectiveDate"
+		},
+		"Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_US_State_Class_Name": {
+			"type": "string",
+			"defaultValue": "ExternalRefUSState"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_ProductMasterLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Load_Retail_PIM_EDW_InitialLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_ProductMasterLoad_Retail_PIM_EDW_InitialLoad",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Load_Retail_PIM_EDW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_ProductMasterLoad_Retail_PIM_EDW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "SPCallStoreDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Load_Retail_PIM_EDW').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallStoreDetailsErrorMsg_InitialLoad",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Load_Retail_PIM_EDW_InitialLoad').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_InitialLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW_InitialLoad",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_Retail_PIM_EDW_InitialLoad').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_Retail_PIM_EDW_InitialLoad').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_MasterLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_Retail_PIM_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": {
+									"value": "afi-edme-rg",
+									"type": "Expression"
+								},
+								"runId": {
+									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_Retail_PIM_EDW').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_Retail_PIM_EDW').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_Retail_PIM_EDW').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_Retail_PIM_EDW').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_Retail_PIM_EDW').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_Retail_PIM_EDW').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Product_Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_PostalCode_ReferenceDataLoad_Incremental')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Stage_PostalCode_ReferenceDataLoad_Incremental",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_PostalCode_ReferenceDataLoad_Incremental",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"US_PostalCode_FileName": {
+									"value": "@pipeline().parameters.US_PostalCode_FileName",
+									"type": "Expression"
+								},
+								"CANADA_PostalCode_FileName": {
+									"value": "@pipeline().parameters.CANADA_PostalCode_FileName",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Load_PostalCode_ReferenceDataLoad_Incremental",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Stage_PostalCode_ReferenceDataLoad_Incremental",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_PostalCode_EnterpriseRefPostalCodeLoad_Incremental",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_Stage_PostalCode_Incremental",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Stage_PostalCode_ReferenceDataLoad_Incremental",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Stage_PostalCode_ReferenceDataLoad_Incremental').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Stage_PostalCode_ReferenceDataLoad_Incremental').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Stage_PostalCode_ReferenceDataLoad_Incremental').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Stage_PostalCode_ReferenceDataLoad_Incremental').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Stage_PostalCode_ReferenceDataLoad_Incremental').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Stage_PostalCode_ReferenceDataLoad_Incremental').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Stage_PostalCode_ReferenceDataLoad_Incremental').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_Load_PostalCode_Incremental",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Load_PostalCode_ReferenceDataLoad_Incremental",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Load_PostalCode_ReferenceDataLoad_Incremental').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Load_PostalCode_ReferenceDataLoad_Incremental').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Load_PostalCode_ReferenceDataLoad_Incremental').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Load_PostalCode_ReferenceDataLoad_Incremental').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Load_PostalCode_ReferenceDataLoad_Incremental').error.message,'\"','')\n",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Load_PostalCode_ReferenceDataLoad_Incremental').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Load_PostalCode_ReferenceDataLoad_Incremental').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"US_PostalCode_FileName": {
+						"type": "string",
+						"defaultValue": "z5max.txt"
+					},
+					"CANADA_PostalCode_FileName": {
+						"type": "string",
+						"defaultValue": "PCensusNWE.csv"
+					}
+				},
+				"folder": {
+					"name": "Postal_Code"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_RetailCustomer_CommunicationPreferenceLoad_Incremental')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Stage_RetailCustomer_CommunicationPreferenceLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_RetailCustomer_CommunicationPreferenceLoad_Incremental",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Load_RetailCustomer_CommunicationPreferenceLoad",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Stage_RetailCustomer_CommunicationPreferenceLoad",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_RetailCustomer_CommunicationPreferenceLoad_Incremental",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Communication_Preference_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_Stage_Retail_Customer_RetailCustomerLoad_Incremental')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Stage_Retail_Customer_RetailCustomerLoad_Incremental",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_Retail_Customer_RetailCustomerLoad_Incremental",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Stage_Retail_Customer_RetailCustomerLoad_Incremental",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Stage_Retail_Customer_RetailCustomerLoad_Incremental').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_Retail_SiteMasterLoad_DAC')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetAllJsonFiles",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DAC_Location_List_Read",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "JsonReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEachJsonFile",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "SP_Truncate_DAC_Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetAllJsonFiles').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "LookupJsonFile",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"dataset": {
+											"referenceName": "Dac_Stage_Location_List_Load",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								},
+								{
+									"name": "Store_DAC_Store_Details",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "LookupJsonFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Store_DAC_Store_Details",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"item_param": {
+												"value": "@activity('LookupJsonFile').output.firstRow.Data",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "SP_Load_Stores_Details",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "ForEachJsonFile",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[Load_Stores_Data]"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SP_Truncate_DAC_Tables",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[Truncate_DAC_Tables]"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallStoreLocationDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('GetAllJsonFiles').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"location_id_var": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Site_Master"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:05Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CustomerInitialChunkLoad')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Customer Chunk Load",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_RetailCustomer_RetailCustomerLoad_InitialLoad",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 3,
+						"startTime": "2023-02-03T10:00:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LoadNASisterSKUColorwheelToEDW')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "LoadNASisterSKUColorwheelToEDW",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_NA_SisterSku_SemarchyToEDW",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-07-28T06:00:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ReProcessErrorFilesRetailCustomerLoadIncremental')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ReProcess RetailCustomer Error Files from the error folder",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "ReProcess_ErrorFiles_Stage_Retail_Customer_RetailCustomerLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 2,
+						"startTime": "2023-03-15T00:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RemoveRetailCustomerLoadArchiveFiles')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Remove last 20 days old Retail Customer Archive CSV file from archive folder",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Remove_RetailCustomerLoad_Archive_Files",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-03-14T06:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Sales Extract every 2 min')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_Sales_Extract_Final",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 2,
+						"startTime": "2023-07-29T18:00:00",
+						"endTime": "2023-07-30T21:00:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Store_DAC_Location_Details')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "UntilLastPage",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "SetDataCount",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(variables('loop_var'),false)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "GetNextToken",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "CheckCount",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "CheckCount",
+									"type": "IfCondition",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@greater(int(variables('GetCountData')),0)",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "LoggingStoredProcedure",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+													"storedProcedureParameters": {
+														"ErrorCode": {
+															"value": "404",
+															"type": "String"
+														},
+														"ErrorMsg": {
+															"value": {
+																"value": "@concat('Data Not Found from Date ',variables('ModifiedDateFrom'),' to Date ',variables('ModifiedDateTo'))",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"ErrorStatusCode": {
+															"value": "404",
+															"type": "String"
+														},
+														"FailureType": {
+															"value": "Data Not Available",
+															"type": "String"
+														},
+														"PipelineName": {
+															"value": {
+																"value": "@{pipeline().Pipeline}",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"RunID": {
+															"value": {
+																"value": "@pipeline().RunId",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"Sink": {
+															"value": null,
+															"type": "String"
+														},
+														"Sink_Type": {
+															"value": null,
+															"type": "String"
+														},
+														"Source": {
+															"value": null,
+															"type": "String"
+														},
+														"Source_Type": {
+															"value": null,
+															"type": "String"
+														},
+														"TriggerId": {
+															"value": {
+																"value": "@{pipeline().TriggerId}",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"TriggerName": {
+															"value": {
+																"value": "@{pipeline().TriggerName}",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"TriggerTime": {
+															"value": {
+																"value": "@{pipeline().TriggerTime}",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"TriggerType": {
+															"value": {
+																"value": "@{pipeline().TriggerType}",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "semarchy_staging",
+													"type": "LinkedServiceReference"
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "CopyDACApiResponse",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "RestSource",
+														"httpRequestTimeout": "00:01:40",
+														"requestInterval": "00.00:00:00.010",
+														"requestMethod": "GET",
+														"additionalHeaders": {
+															"Ocp-Apim-Subscription-Key": {
+																"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+																"type": "Expression"
+															}
+														},
+														"paginationRules": {
+															"MaxRequestNumber": "48",
+															"supportRFC5988": "true"
+														}
+													},
+													"sink": {
+														"type": "JsonSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "JsonWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"dataIntegrationUnits": 2
+												},
+												"inputs": [
+													{
+														"referenceName": "DataAnyWhereProdRestResource",
+														"type": "DatasetReference",
+														"parameters": {
+															"relative_url_param": {
+																"value": "@concat('locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=')",
+																"type": "Expression"
+															},
+															"continuation_token_param": {
+																"value": "@variables('token_var')",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DAC_Location_List_Write",
+														"type": "DatasetReference",
+														"parameters": {
+															"FileName": {
+																"value": "@concat('Json_Output_', convertFromUtc(utcnow(), 'Eastern Standard Time'))",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "SetNextToken",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "GetNextToken",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "token_var",
+										"value": {
+											"value": "@activity('GetNextToken').output.ContinuationToken",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SetLoopValueTrue",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "SetNextToken",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "loop_var",
+										"value": true
+									}
+								},
+								{
+									"name": "SetLoopValueFalse",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "SetNextToken",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "loop_var",
+										"value": false
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "GetContinuationToken",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&&ContinuationToken=')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SetContinuationToken",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetContinuationToken",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "token_var",
+							"value": {
+								"value": "@activity('GetContinuationToken').output.ContinuationToken",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "DeleteJsonAPIs",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DAC_Location_List_Read",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"logStorageSettings": {
+								"linkedServiceName": {
+									"referenceName": "masterDataHubStg",
+									"type": "LinkedServiceReference"
+								}
+							},
+							"enableLogging": true,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "SetModifiedDateTo",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ModifiedDateTo",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(utcnow(),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "SetModifiedDateFrom",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "DeleteJsonAPIs",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ModifiedDateFrom",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(adddays(startOfDay(utcnow()),0),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "GetCountOfData",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "SetContinuationToken",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SetDataCount",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetCountOfData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "GetCountData",
+							"value": {
+								"value": "@string(activity('GetCountOfData').output.Count)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "CheckCountProcessPipeline",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "UntilLastPage",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(int(variables('GetCountData')),0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "NoDataFound",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "GetCountData",
+										"value": {
+											"value": "@string(activity('GetCountOfData').output.Count)",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Stage_Retail_SiteMasterLoad_DAC",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Stage_Retail_SiteMasterLoad_DAC",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {}
+									}
+								},
+								{
+									"name": "Load_Retail_SiteMasterLoad_DAC",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Stage_Retail_SiteMasterLoad_DAC",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Load_Retail_SiteMasterLoad_DAC",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {}
+									}
+								},
+								{
+									"name": "SPCallStoreLocationDetailsErrorMsg",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Stage_Retail_SiteMasterLoad_DAC",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Stage_Retail_SiteMasterLoad_DAC').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Stage_Retail_SiteMasterLoad_DAC').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Stage_Retail_SiteMasterLoad_DAC').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Stage_Retail_SiteMasterLoad_DAC').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "SPCallDacSiteMasterLoadErrorMsg",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_Retail_SiteMasterLoad_DAC",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_Retail_SiteMasterLoad_DAC').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_Retail_SiteMasterLoad_DAC').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_Retail_SiteMasterLoad_DAC').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_Retail_SiteMasterLoad_DAC').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"token_var": {
+						"type": "String"
+					},
+					"loop_var": {
+						"type": "Boolean",
+						"defaultValue": false
+					},
+					"ModifiedDateTo": {
+						"type": "String"
+					},
+					"ModifiedDateFrom": {
+						"type": "String"
+					},
+					"GetCountData": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Site_Master"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:04Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_SiteMasterLoad_DAC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Daily_Load_EnterpriseRef')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Load_EnterpriseRef",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"Database_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Database_Name')]",
+							"Sink_US_State_Table_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_US_State_Table_Name')]",
+							"Sink_Time_Zone_EFF_DT_Table_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Time_Zone_EFF_DT_Table_Name')]",
+							"Sink_Time_Zone_Table_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Time_Zone_Table_Name')]",
+							"Sink_Currency_Table_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Currency_Table_Name')]",
+							"Sink_Country_Table_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Country_Table_Name')]",
+							"Sink_Dma_Table_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Sink_Dma_Table_Name')]",
+							"Country_Class_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Country_Class_Name')]",
+							"Currency_Class_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Currency_Class_Name')]",
+							"Dma_Class_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Dma_Class_Name')]",
+							"Time_Zone_Class_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Time_Zone_Class_Name')]",
+							"Time_Zone_EFF_DT_Class_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_Time_Zone_EFF_DT_Class_Name')]",
+							"US_State_Class_Name": "[parameters('Daily_Load_EnterpriseRef_properties_Orchestrate_Load_EnterpriseRef_parameters_US_State_Class_Name')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-12-05T01:15:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDWPIMDailyLoad')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Load product data into Semarchy side from EDW",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Load_Retail_ProductMasterLoad",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-08-22T05:00:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_ProductMasterLoad')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LoadRetailCustomerCommunicationPreferenceLoadIncremental')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Load Incremental RetailCustomer Preference data into Semarchy SD table from staging table",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_RetailCustomer_CommunicationPreferenceLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 3,
+						"startTime": "2023-04-04T00:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_RetailCustomer_CommunicationPreferenceLoad_Incremental')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LoadRetailCustomerLoadIncremental')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Load Incremental RetailCustomer Data into the Semarchy SD table from staging table ",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Load_RetailCustomerLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 1,
+						"startTime": "2023-01-03T00:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StageRetailCustomerRetailCustomerLoadIncremental')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Load Incremental Retail Customer CSV files from storage to staging table",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Stage_Retail_Customer_RetailCustomerLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 30,
+						"startTime": "2023-01-03T00:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Stage_Retail_Customer_RetailCustomerLoad_Incremental')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Store_DAC_Location_Details",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Store_DAC_Location_Details",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "SPCallStoreDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Store_DAC_Location_Details",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Store_DAC_Location_Details').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Store_DAC_Location_Details').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Store_DAC_Location_Details').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Store_DAC_Location_Details').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Store_DAC_Location_Details",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@activity('Store_DAC_Location_Details').output['pipelineRunId']",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@activity('Store_DAC_Location_Details').output['pipelineName']",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Store_DAC_Location_Details').ExecutionStartTime",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Store_DAC_Location_Details').Status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Store_DAC_Location_Details').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Store_DAC_Location_Details').ExecutionEndTime",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Store_DAC_Location_Details').Duration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"StoreDetailsErrorMsg": {
+						"type": "String"
+					},
+					"StoreLocationDetailsErrorMsg": {
+						"type": "String"
+					},
+					"DacSiteMasterLoadErrorMsg": {
+						"type": "String"
+					},
+					"JsonCount": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Site_Master"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:07Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Store_DAC_Location_Details')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DacIncrementalDailyLoad')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Dac Incremental Daily Load",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Orchestrate_Load_Retail_SiteMasterLoad_DAC",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-05-23T02:55:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_SiteMasterLoad_DAC')]"
+			]
+		}
+	]
+}
