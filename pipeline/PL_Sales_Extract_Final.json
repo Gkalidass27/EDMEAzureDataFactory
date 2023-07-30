@@ -149,7 +149,7 @@
 				"type": "Script",
 				"dependsOn": [
 					{
-						"activity": "GenerateJsonl",
+						"activity": "Get count of No Order Line in table",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -172,7 +172,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "Update bp set status = 'Complete' from dbo.BatchProcess bp with(nolock) where FilesName='@{variables('FileName')}'",
+								"value": "Update bp set status = 'Complete',\nNoOrderLine = '@{activity('Get count of No Order Line in table').firstRowLine.output}' \nfrom dbo.BatchProcess bp with(nolock) where FilesName='@{variables('FileName')}'",
 								"type": "Expression"
 							}
 						}
@@ -288,6 +288,38 @@
 				"linkedServiceName": {
 					"referenceName": "CDP_CustomerProfiling",
 					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get count of No Order Line in table",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GenerateJsonl",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select count(*) as NoOrderLine from (\nselect distinct sohs.SourceSystemID,sohs.SourceCustomerID,sohs.OrderID from [dbo].[SalesOrderHeader_Wrk] sohs \nwhere sohs.OrderID not in (select distinct sohs.OrderID from [dbo].[SalesOrderLine_Wrk] sohs))temp",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "cdp_customer_deduped",
+						"type": "DatasetReference"
+					}
 				}
 			}
 		],
