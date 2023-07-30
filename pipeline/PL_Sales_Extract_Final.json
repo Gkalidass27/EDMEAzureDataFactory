@@ -149,7 +149,7 @@
 				"type": "Script",
 				"dependsOn": [
 					{
-						"activity": "Get count of No Order Line in table",
+						"activity": "Set value NoOrderLineCount ",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -172,7 +172,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "Update bp set status = 'Complete',\nNoOrderLine = '@{activity('Get count of No Order Line in table').firstRow.NoOrderLine}' \nfrom dbo.BatchProcess bp with(nolock) where FilesName='@{variables('FileName')}'",
+								"value": "Update bp set status = 'Complete',\nNoOrderLine = '@{variables('NoOrderLineCount')}' \nfrom dbo.BatchProcess bp with(nolock) where FilesName='@{variables('FileName')}'",
 								"type": "Expression"
 							}
 						}
@@ -319,6 +319,30 @@
 					"dataset": {
 						"referenceName": "cdp_customer_deduped",
 						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set value NoOrderLineCount",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get count of No Order Line in table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "NoOrderLineCount",
+					"value": {
+						"value": "@{activity('Get count of No Order Line in table').firstRow.NoOrderLine}",
+						"type": "Expression"
 					}
 				}
 			}
