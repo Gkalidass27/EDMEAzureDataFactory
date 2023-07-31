@@ -65,97 +65,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_RetailCustomerLoad_Incremental')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_Load_RetailCustomer",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').output['pipelineRunId']",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').output['pipelineName']",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').ExecutionStartTime",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').Status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').ExecutionEndTime",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').Duration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"folder": {
-					"name": "Retail_Customer_Flow"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_ProductMasterLoad')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1319,6 +1228,35 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Sales Extract every 2 min')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_Sales_Extract_Final",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 2,
+						"startTime": "2023-07-29T18:00:00",
+						"endTime": "2023-07-30T21:00:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Store_DAC_Location_Details')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2293,9 +2231,7 @@
 					}
 				}
 			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_RetailCustomerLoad_Incremental')]"
-			]
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/StageRetailCustomerRetailCustomerLoadIncremental')]",
