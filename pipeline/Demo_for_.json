@@ -5,6 +5,8 @@
 			{
 				"name": "Load_Jsonl_Email_Container",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -55,6 +57,53 @@
 				"outputs": [
 					{
 						"referenceName": "Demo_file_Txt",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "SELECT\n      LocationKey AS OperationID_ProfitCenter,\n      AFIAccountNumber + '-' + AFIShipToNumber AS StoreID\nFROM Retail_DW.DimLocation\nWHERE\n      AFIAccountNumber NOT IN ( '', '0')\n      AND AFIShipToNumber NOT IN ('', '0')",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "EDW_PIM_KitComponentCrosswalk",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SD_RETAIL_CUSTOMER",
 						"type": "DatasetReference"
 					}
 				]
