@@ -214,7 +214,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Email_Comm_Preference",
+						"activity": "Filter1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1015,11 +1015,61 @@
 					"referenceName": "MarketingHub",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "Filter1",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Set File Name_copy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@greater(variables('RowReadCount'),0)",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@greater(activity('Email_Comm_Preference').output.rowsRead,0)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set File Name_copy",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Email_Comm_Preference",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "RowReadCount",
+					"value": {
+						"value": "@{activity('Email_Comm_Preference').output.rowsRead}",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"variables": {
 			"FileName": {
 				"type": "String"
+			},
+			"RowReadCount": {
+				"type": "Array"
 			}
 		},
 		"annotations": []
