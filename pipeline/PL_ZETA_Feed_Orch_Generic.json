@@ -47,7 +47,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "SELECT COMM_PREFERNC_EMAIL_ID CommunicationPreferenceEmailID,\nCHANNEL Channel,\nEMAIL_ADDRESS EmailAddress,\nSRC_UPDATE LastUpdated,\nOPTED_IN,\nORGANIZATION Organization,\nPURPOSE Purpose,\nB_PUBID SourceSystem,\nGetdate() CreatedDate,\n'afi-edme-dev-df' CreatedBy,\nGetdate() UpdatedDate,\n'afi-edme-dev-df' UpdatedBy\nFROM [dbo].[GD_COMMUNICTN_PREFERNC_EMAIL] b  with(nolock) \nwhere b.SRC_UPDATE > '@{activity('Get_Max_DataTime_log').output.firstRow.lastRunDateTime}'",
+										"value": "@concat(item().Get_Date_Source_Query,activity('Get_Max_DataTime_log').output.firstRow.lastRunDateTime)",
 										"type": "Expression"
 									},
 									"queryTimeout": "00:10:00",
@@ -55,7 +55,10 @@
 								},
 								"sink": {
 									"type": "AzureSqlSink",
-									"preCopyScript": "truncate table EmailCommunicationPreference_Stg\n\n",
+									"preCopyScript": {
+										"value": "@{item().Pre_Stg_Query}",
+										"type": "Expression"
+									},
 									"writeBehavior": "insert",
 									"sqlWriterUseTableLock": false,
 									"disableMetricsCollection": false
@@ -252,7 +255,10 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"storedProcedureName": "[dbo].[usp_Write_Email_Comm_Pre_Wrk]"
+								"storedProcedureName": {
+									"value": "@item().SP_Stg_To_Wrk",
+									"type": "Expression"
+								}
 							},
 							"linkedServiceName": {
 								"referenceName": "MarketingHub",
@@ -284,7 +290,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "SELECT \nUPPER(a.CommunicationPreferenceEmailID) as CommunicationPreferenceEmailID,\na.Channel,\na.EmailAddress,\na.LastUpdated,\na.OptedIn,\na.Organization,\na.Purpose,\na.SourceSystem \nFROM [dbo].[EmailCommunicationPreference_Wrk] a with(nolock)\n--inner join [dbo].[EmailCommunicationPreference_Wrk] b on a.CommunicationPreferenceEmailID = b.CommunicationPreferenceEmailID\nwhere a.LastUpdated > '@{activity('Get_Max_DataTime_log').output.firstRow.lastRunDateTime}'\norder by a.LastUpdated desc",
+										"value": "@concat(item().Get_Data_Query_Jsonl,activity('Get_Max_DataTime_log').output.firstRow.lastRunDateTime)\n",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -596,7 +602,10 @@
 							"typeProperties": {
 								"source": {
 									"type": "AzureSqlSource",
-									"sqlReaderQuery": "select cast(max(LastUpdated) as datetime) lastRunDateTime from [dbo].[EmailCommunicationPreference_Wrk]",
+									"sqlReaderQuery": {
+										"value": "@item().Get_Max_Date_From_Wrk_Query",
+										"type": "Expression"
+									},
 									"queryTimeout": "02:00:00",
 									"partitionOption": "None"
 								},
