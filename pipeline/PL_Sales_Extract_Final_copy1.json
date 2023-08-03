@@ -1,0 +1,119 @@
+{
+	"name": "PL_Sales_Extract_Final_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "GenerateJsonl",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT  (\n    SELECT soh.*\n        FOR JSON PATH , WITHOUT_ARRAY_WRAPPER\n    ) as jsonl \nFROM [dbo].[MarketingProduct_Wrk] soh \n    INNER JOIN [dbo].[MarketingProduct_Wrk] sohMap ON soh.RetailMarketingProductID = sohMap.RetailMarketingProductID\nORDER BY soh.RetailMarketingProductID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".jsonl"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "cdp_customer_deduped",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "MarketingProduct",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GenerateJsonl_Category",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT  (\n    SELECT soh.*\n        FOR JSON PATH , WITHOUT_ARRAY_WRAPPER\n    ) as jsonl \nFROM [dbo].MarketingProductCategory_Wrk soh \n    INNER JOIN [dbo].MarketingProductCategory_Wrk sohMap ON soh.ProductCategory = sohMap.ProductCategory\nORDER BY soh.ProductCategory",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "cdp_customer_deduped",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "MarketingProductCategory",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"FileName": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
