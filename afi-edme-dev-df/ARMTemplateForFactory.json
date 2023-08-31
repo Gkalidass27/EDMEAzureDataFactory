@@ -7,18 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
-		"AGRMCMHFunctionsStg_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'AGRMCMHFunctionsStg'"
-		},
 		"Ashley_EDW_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Ashley_EDW'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=ashley-edw-dev.database.windows.net;Initial Catalog=ASHLEY_EDW_DEV"
-		},
-		"AzureBlobStorage1_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
 		},
 		"CDP_CustomerProfiling_connectionString": {
 			"type": "secureString",
@@ -71983,21 +71975,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/AGRMCMHFunctionsStg')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobStorage",
-				"typeProperties": {
-					"connectionString": "[parameters('AGRMCMHFunctionsStg_connectionString')]"
-				}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Ashley_EDW')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -72006,21 +71983,6 @@
 				"type": "AzureSqlDW",
 				"typeProperties": {
 					"connectionString": "[parameters('Ashley_EDW_connectionString')]"
-				}
-			},
-			"dependsOn": [
-				"[variables('factoryId')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobStorage",
-				"typeProperties": {
-					"connectionString": "[parameters('AzureBlobStorage1_connectionString')]"
 				}
 			},
 			"dependsOn": [
@@ -72382,7 +72344,15 @@
 			"properties": {
 				"annotations": [],
 				"runtimeState": "Stopped",
-				"pipelines": [],
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Stage_Retail_SiteMasterLoad_EDW",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
 				"type": "ScheduleTrigger",
 				"typeProperties": {
 					"recurrence": {
@@ -72402,7 +72372,8 @@
 				}
 			},
 			"dependsOn": [
-				"[variables('factoryId')]"
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/pipelines/Stage_Retail_SiteMasterLoad_EDW')]"
 			]
 		},
 		{
