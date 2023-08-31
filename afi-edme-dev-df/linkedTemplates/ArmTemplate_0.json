@@ -29,11 +29,6 @@
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Enterprise_ReferenceMaster"
 		},
-		"MarketingHub_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'MarketingHub'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=agr-dev-sql.database.windows.net;Initial Catalog=MarketingHub"
-		},
 		"Retail_CustomerMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Retail_CustomerMaster'",
@@ -54,13 +49,14 @@
 			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
 		},
-		"adf_http_trigger_demo_functionKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'functionKey' of 'adf_http_trigger_demo'"
-		},
 		"masterDataHubStg_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'masterDataHubStg'"
+		},
+		"masterDataHub_POC_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'masterDataHub_POC'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=masterDataHub_POC"
 		},
 		"masterDataHub_Retail_connectionString": {
 			"type": "secureString",
@@ -104,10 +100,6 @@
 		"EDW_Ashleylake_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
-		},
-		"adf_http_trigger_demo_properties_typeProperties_functionAppUrl": {
-			"type": "string",
-			"defaultValue": "https://agr-multi-channel-mktg-hub-customer-dev-func.azurewebsites.net"
 		},
 		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
@@ -339,19 +331,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/MarketingHub')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('MarketingHub_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Retail_CustomerMaster')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -409,24 +388,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/adf_http_trigger_demo')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureFunction",
-				"typeProperties": {
-					"functionAppUrl": "[parameters('adf_http_trigger_demo_properties_typeProperties_functionAppUrl')]",
-					"functionKey": {
-						"type": "SecureString",
-						"value": "[parameters('adf_http_trigger_demo_functionKey')]"
-					},
-					"authentication": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/masterDataHubStg')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -439,6 +400,19 @@
 						"type": "SecureString",
 						"value": "[parameters('masterDataHubStg_accountKey')]"
 					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHub_POC')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('masterDataHub_POC_connectionString')]"
 				}
 			},
 			"dependsOn": []
@@ -479,6 +453,34 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('semarchy_staging_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDWStageRetailSiteMasterLoad')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-08-31T14:32:00",
+						"timeZone": "Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								6
+							]
+						}
+					}
 				}
 			},
 			"dependsOn": []
