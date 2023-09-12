@@ -1374,7 +1374,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "SD_SITES",
+						"activity": "SA_LEGAL_ENTITY_SCD",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -2196,6 +2196,306 @@
 					"referenceName": "semarchy_repo",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "SA_LEGAL_ENTITY_SCD",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SD_SITES",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LOADID",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "SELECT \r\n'LegalEntitySCD' AS B_CLASSNAME,\r\nGETDATE() AS B_CREDATE,\r\nGETDATE() AS B_UPDDATE,\r\n'semadmin' AS B_CREATOR,\r\nid AS LEGAL_ENTITY_SCD_ID,\r\nsite_id\tAS F_SITES,\r\nlegal_entity_id AS F_LEGAL_ENTITIES,\r\neffective_from_date AS EFFECTIVE_FROM_DATE,\r\neffective_end_date AS EFFECTIVE_TO_DATE\r\nFROM retail.v_legal_entity_scd WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "LEGAL_ENTITY_SCD_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "LEGAL_ENTITY_SCD_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_ERROR_STATUS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_ORIGINALBATCHID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"sink": {
+									"name": "B_OPERATIONID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DUPSOPERATIONID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DUPSMERGETARGET",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEPATH",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_COPIEDFROM",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_FROM_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_FROM_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_TO_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_TO_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "F_LEGAL_ENTITIES",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "F_LEGAL_ENTITIES",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"sink": {
+									"name": "FD_LEGAL_ENTITIES",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_SITES",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "F_SITES",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"sink": {
+									"name": "FP_SITES",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "FS_SITES",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "FD_SITES",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "retail_v_legal_entity_scd",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SA_LEGAL_ENTITY_SCD",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
