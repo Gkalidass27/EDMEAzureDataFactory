@@ -3,16 +3,9 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Country_Source_Count",
+				"name": "Postalcode_Source_Count",
 				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Set_LoadID_Variable",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -42,7 +35,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Country_Source_Count",
+						"activity": "Postalcode_Source_Count",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -51,7 +44,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@greater(activity('Country_Source_Count').output.firstRow.data,0)",
+						"value": "@greater(activity('Postalcode_Source_Count').output.firstRow.data,0)",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
@@ -211,7 +204,14 @@
 						{
 							"name": "Country_Copy_Data",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Set_LoadID_Variable",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -484,60 +484,60 @@
 								"referenceName": "semarchy_repo",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "GetNewLoadId",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Repo",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Set_LoadID_Variable",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "GetNewLoadId",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LoadId",
+								"value": {
+									"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+									"type": "Expression"
+								}
+							}
 						}
 					]
-				}
-			},
-			{
-				"name": "GetNewLoadId",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-							"type": "Expression"
-						},
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Semarchy_Repo",
-						"type": "DatasetReference"
-					}
-				}
-			},
-			{
-				"name": "Set_LoadID_Variable",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "GetNewLoadId",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "LoadId",
-					"value": {
-						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
-						"type": "Expression"
-					}
 				}
 			}
 		],
