@@ -13,6 +13,593 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Load_Remove_PostalCode_ReferenceDataLoad_Incremental')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Enterprise_ReferenceMaster'\n,@P_PROGRAM_NAME = 'EnterpriseRefPostalCodeLoad'\n,@P_LOAD_DESCRIPTION = 'EnterpriseRefPostalCodeLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "usp_US_POSTAL_CODE_REMOVE_RECORDS",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_POSTAL_CODE_REMOVE_RECORDS]",
+							"storedProcedureParameters": {
+								"COUNTRY": {
+									"value": {
+										"value": "US",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "Enterprise_ReferenceMaster",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SubmitLoadID",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+							"storedProcedureParameters": {
+								"P_INTEGRATION_JOB_NAME": {
+									"value": {
+										"value": "EnterpriseRefPostalCodeLoad",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"return_value_argument": {
+									"value": null,
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "usp_US_POSTAL_CODE_REMOVE_RECORDS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_POSTAL_CODE_REMOVE_RECORDS]",
+							"storedProcedureParameters": {
+								"COUNTRY": {
+									"value": {
+										"value": "CA",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "Enterprise_ReferenceMaster",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_US_RemovePostalCode",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "usp_US_POSTAL_CODE_REMOVE_RECORDS",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_CA_RemovePostalCode",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "US_RemovePostalCode_ErrorLoags",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "usp_US_POSTAL_CODE_REMOVE_RECORDS",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('usp_US_POSTAL_CODE_REMOVE_RECORDS').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "SA_POSTAL_CODE_MASTER",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "CA_RemovePostalCode_ErrorLoags",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('usp_CA_POSTAL_CODE_REMOVE_RECORDS_copy1').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "SA_POSTAL_CODE_MASTER",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Postal_Code"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_CommunicationPreferenceLoad_Incremental')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -15720,1674 +16307,6 @@
 											"type": "String",
 											"physicalType": "nvarchar"
 										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cmauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cmauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_ername",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_ername",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_csdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_csdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cmatype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cmatype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_csduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_csduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_sactype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_sactype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_saccode",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_saccode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cmapuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cmapuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_csdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_csdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_ccsname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_ccsname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_eruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_eruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_ccsuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_ccsuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Subdivision_cmaname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Subdivision_cmaname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Aggregate_Dissemination_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Aggregate_Dissemination_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Aggregate_Dissemination_cdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Aggregate_Dissemination_cdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Aggregate_Dissemination_cdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Aggregate_Dissemination_cdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Aggregate_Dissemination_cduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Aggregate_Dissemination_cduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Aggregate_Dissemination_adauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Aggregate_Dissemination_adauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Aggregate_Dissemination_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Aggregate_Dissemination_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Ecumene_ecumene",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Ecumene_ecumene",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Ecumene_ecuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Ecumene_ecuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_cdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_cdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_cdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_cdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_ccsname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_ccsname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_cduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_cduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_ccsuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_ccsuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Consolidated_Subdivision_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Consolidated_Subdivision_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cmauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cmauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_ctuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_ctuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_ername",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_ername",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_csdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_csdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_ctname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_ctname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cmatype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cmatype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_csduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_csduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_dbuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_dbuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_sactype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_sactype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_adauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_adauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_saccode",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_saccode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_dauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_dauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cmapuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cmapuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_dbrplamx",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_dbrplamx",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_feduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_feduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_dbrplamy",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_dbrplamy",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_csdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_csdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_fedname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_fedname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_ccsname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_ccsname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_eruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_eruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_ccsuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_ccsuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Block_cmaname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Block_cmaname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmatype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmatype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmaname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmaname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmapuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmapuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Designated_Place_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Designated_Place_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Designated_Place_dpluid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Designated_Place_dpluid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Designated_Place_dplname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Designated_Place_dplname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Designated_Place_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Designated_Place_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Designated_Place_dpltype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Designated_Place_dpltype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Division_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Division_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Division_cdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Division_cdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Division_cdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Division_cdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Division_cduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Division_cduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Division_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Division_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_frname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_frname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_revdt",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_revdt",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_creadt",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_creadt",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_enname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_enname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_nid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_nid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_provcode",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_provcode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_quipopcnt",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_quipopcnt",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_fednum",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_fednum",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_decpopcnt",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_decpopcnt",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Federal_Election_reporder",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Federal_Election_reporder",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_cmauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_cmauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_ctuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_ctuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_cmatype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_cmatype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_ctname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_ctname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_cmaname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_cmaname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Tract_cmapuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Tract_cmapuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Economic_Region_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Economic_Region_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Economic_Region_ername",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Economic_Region_ername",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Economic_Region_eruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Economic_Region_eruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Economic_Region_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Economic_Region_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cmauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cmauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_ctuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_ctuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_ername",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_ername",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_csdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_csdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_ctname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_ctname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cmatype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cmatype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_csduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_csduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cdtype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cdtype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_sactype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_sactype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_adauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_adauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_saccode",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_saccode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_dauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_dauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cmapuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cmapuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_csdname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_csdname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cduid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cduid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_ccsname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_ccsname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_eruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_eruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_ccsuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_ccsuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Dissemination_Area_cmaname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Dissemination_Area_cmaname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_cmauid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_cmauid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_pcclass",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_pcclass",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_pcuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_pcuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_cmatype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_cmatype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_pcname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_pcname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_pctype",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_pctype",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_pcpuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_pcpuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_cmaname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_cmaname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Population_Centre_cmapuid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Population_Centre_cmapuid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Agricultural_pruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Agricultural_pruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Agricultural_caruid",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Agricultural_caruid",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Agricultural_carename",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Agricultural_carename",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Agricultural_carfname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Agricultural_carfname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Census_Agricultural_prname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Census_Agricultural_prname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ISED",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "ISED",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ISEDname",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "ISEDname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Provincial_Riding_of",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Provincial_Riding_of",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
 									}
 								],
 								"typeConversion": true,
@@ -25341,543 +24260,6 @@
 					"name": "Retail_Customer_Flow"
 				},
 				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Store_DAC_Store_Details')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "ForEachLocationIds",
-						"description": "Loop through location ids sequentially",
-						"type": "ForEach",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@pipeline().parameters.item_param",
-								"type": "Expression"
-							},
-							"isSequential": true,
-							"activities": [
-								{
-									"name": "WebLocationsAPI",
-									"type": "WebActivity",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"url": {
-											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
-											"type": "Expression"
-										},
-										"method": "GET",
-										"headers": {
-											"Ocp-Apim-Subscription-Key": {
-												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "SP_Load_Json_Payload",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "WebLocationsAPI",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[DAC].[Load_Json_Payload]",
-										"storedProcedureParameters": {
-											"JsonPayload": {
-												"value": {
-													"value": "@{activity('WebLocationsAPI').output}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"LocationID": {
-												"value": {
-													"value": "@item().locationID",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "LoadJsonFile",
-									"type": "Copy",
-									"dependsOn": [
-										{
-											"activity": "WebLocationsAPI",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "DelimitedTextSource",
-											"additionalColumns": [
-												{
-													"name": "input",
-													"value": {
-														"value": "@{activity('WebLocationsAPI').output}",
-														"type": "Expression"
-													}
-												}
-											],
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										},
-										"sink": {
-											"type": "DelimitedTextSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "DelimitedTextWriteSettings",
-												"quoteAllText": true,
-												"fileExtension": ".txt"
-											}
-										},
-										"enableStaging": false,
-										"dataIntegrationUnits": 2,
-										"translator": {
-											"type": "TabularTranslator",
-											"mappings": [
-												{
-													"source": {
-														"name": "input",
-														"type": "String"
-													},
-													"sink": {
-														"type": "String",
-														"physicalType": "String",
-														"ordinal": 1
-													}
-												}
-											],
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "DAC_Location_Details_Read1",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "DAC_Location_Details_Write1",
-											"type": "DatasetReference",
-											"parameters": {
-												"FileName": {
-													"value": "@concat('Store_Location_',item().LocationID,'.json')",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								},
-								{
-									"name": "SetErrorMsg",
-									"type": "SetVariable",
-									"dependsOn": [
-										{
-											"activity": "WebLocationsAPI",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"policy": {
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"variableName": "ErrorMsg",
-										"value": {
-											"value": "@activity('WebLocationsAPI').error.message",
-											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "WaitTime",
-									"type": "Wait",
-									"dependsOn": [
-										{
-											"activity": "SetErrorMsg",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"waitTimeInSeconds": 3
-									}
-								},
-								{
-									"name": "LoggingStoredProcedure",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "SetErrorMsg",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-										"storedProcedureParameters": {
-											"ErrorCode": {
-												"value": {
-													"value": "@{activity('WebLocationsAPI').error.errorCode}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorMsg": {
-												"value": {
-													"value": "@{activity('WebLocationsAPI').error.message}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorStatusCode": {
-												"value": {
-													"value": "@activity('WebLocationsAPI').StatusCode",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"FailureType": {
-												"value": {
-													"value": "@{activity('WebLocationsAPI').error.failureType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"PipelineName": {
-												"value": {
-													"value": "@{pipeline().Pipeline}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RunID": {
-												"value": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": null,
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": null,
-												"type": "String"
-											},
-											"Source": {
-												"value": null,
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": null,
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "WebLocationAPIFailed",
-									"type": "WebActivity",
-									"dependsOn": [
-										{
-											"activity": "WaitTime",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"url": {
-											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
-											"type": "Expression"
-										},
-										"method": "GET",
-										"headers": {
-											"Ocp-Apim-Subscription-Key": {
-												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "SP_Load_Json_Payload_AfterFailed",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "WebLocationAPIFailed",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[DAC].[Load_Json_Payload]",
-										"storedProcedureParameters": {
-											"JsonPayload": {
-												"value": {
-													"value": "@{activity('WebLocationAPIFailed').output}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"LocationID": {
-												"value": {
-													"value": "@item().locationID",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "LoadJsonFileAfterFailed",
-									"type": "Copy",
-									"dependsOn": [
-										{
-											"activity": "WebLocationAPIFailed",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "DelimitedTextSource",
-											"additionalColumns": [
-												{
-													"name": "input",
-													"value": {
-														"value": "@{activity('WebLocationAPIFailed').output}",
-														"type": "Expression"
-													}
-												}
-											],
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										},
-										"sink": {
-											"type": "DelimitedTextSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "DelimitedTextWriteSettings",
-												"quoteAllText": true,
-												"fileExtension": ".txt"
-											}
-										},
-										"enableStaging": false,
-										"dataIntegrationUnits": 2,
-										"translator": {
-											"type": "TabularTranslator",
-											"mappings": [
-												{
-													"source": {
-														"name": "input",
-														"type": "String"
-													},
-													"sink": {
-														"type": "String",
-														"physicalType": "String",
-														"ordinal": 1
-													}
-												}
-											],
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "DAC_Location_Details_Read1",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "DAC_Location_Details_Write1",
-											"type": "DatasetReference",
-											"parameters": {
-												"FileName": {
-													"value": "@concat('Store_Location_',item().LocationID,'.json')",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"item_param": {
-						"type": "array"
-					}
-				},
-				"variables": {
-					"FailedActivity": {
-						"type": "String"
-					},
-					"ErrorMsg": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Site_Master"
-				},
-				"annotations": [],
-				"lastPublishTime": "2022-05-26T06:05:04Z"
 			},
 			"dependsOn": []
 		}
