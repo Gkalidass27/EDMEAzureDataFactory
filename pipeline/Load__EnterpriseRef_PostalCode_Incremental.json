@@ -162,7 +162,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'ReferenceDataLoad'\n,@P_LOAD_DESCRIPTION = 'ReferenceDataLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+										"value": "@DECLARE RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\nRETURN_VALUE_ARGUMENT OUTPUT\n,P_DATA_LOCATION_NAME = @{pipeline().parameters.Sink_DatabaseName}\n,P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,P_LOAD_DESCRIPTION = @{pipeline().parameters.Semarchy_Job_Name}\n,P_USERNAME = 'semadmin'\nSELECT RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -230,7 +230,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT DISTINCT \nPOSTAL_CODE_MASTER_ID,\n'PostalCodeMaster' AS B_CLASSNAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nB_DELETEPATH,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLONGITUDE,\nIS_PREFERRED_CITY_NAME,\nPOSTAL_CODE_TYPE,\nMSA_CODE,\nFIPS_CODE,\nLATITUDE\nFROM [EntRef].[PostalCodes] WITH(NOLOCK)",
+										"value": "SELECT DISTINCT \nPOSTAL_CODE_MASTER_ID,\n'@{pipeline().parameters.Postalcode_Class_Name}' AS B_CLASSNAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nB_DELETEPATH,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLONGITUDE,\nIS_PREFERRED_CITY_NAME,\nPOSTAL_CODE_TYPE,\nMSA_CODE,\nFIPS_CODE,\nLATITUDE\nFROM [EntRef].[PostalCodes] WITH(NOLOCK)",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -574,8 +574,16 @@
 									"referenceName": "SA_POSTAL_CODE_MASTER_Sink",
 									"type": "DatasetReference",
 									"parameters": {
-										"DatabaseName": {
+										"Database_Name": {
 											"value": "@pipeline().parameters.Sink_DatabaseName",
+											"type": "Expression"
+										},
+										"PostalCode_Table_Name": {
+											"value": "@pipeline().parameters.Sink_Postalcode_Table_Name",
+											"type": "Expression"
+										},
+										"Table_Schema": {
+											"value": "@pipeline().parameters.Sink_TableSchemaName",
 											"type": "Expression"
 										}
 									}
@@ -894,6 +902,18 @@
 		],
 		"parameters": {
 			"Sink_DatabaseName": {
+				"type": "string"
+			},
+			"Sink_Postalcode_Table_Name": {
+				"type": "string"
+			},
+			"Semarchy_Job_Name": {
+				"type": "string"
+			},
+			"Postalcode_Class_Name": {
+				"type": "string"
+			},
+			"Sink_TableSchemaName": {
 				"type": "string"
 			}
 		},
