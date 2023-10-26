@@ -11,12 +11,79 @@
 					"expression": {
 						"value": "@greater(int(pipeline().parameters.EntityCount),0)",
 						"type": "Expression"
-					}
+					},
+					"ifTrueActivities": [
+						{
+							"name": "GetNewLoadId",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'RetailCustomerLoad'\n,@P_LOAD_DESCRIPTION = 'RetailCustomerLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Repo",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "usp_ASH_REMOVE_LOAD",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_ASH_REMOVE_LOAD]",
+								"storedProcedureParameters": {
+									"Entity": {
+										"value": "",
+										"type": "String"
+									},
+									"LoadID": {
+										"value": "",
+										"type": "Decimal"
+									},
+									"RecordsToDelete": {
+										"value": "",
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "Retail_CustomerMaster",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
 				}
 			}
 		],
 		"parameters": {
 			"EntityCount": {
+				"type": "string"
+			},
+			"EntityName": {
 				"type": "string"
 			}
 		},
