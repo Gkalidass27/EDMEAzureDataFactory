@@ -90,6 +90,60 @@
 								"referenceName": "Retail_CustomerMaster",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "SubmitLoadID",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "usp_ASH_REMOVE_LOAD",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+								"storedProcedureParameters": {
+									"P_INTEGRATION_JOB_NAME": {
+										"value": {
+											"value": "'Delete'+@{pipeline().parameters.EntityName}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@int(activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT)",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"return_value_argument": {
+										"value": null,
+										"type": "Decimal"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
 						}
 					]
 				}
