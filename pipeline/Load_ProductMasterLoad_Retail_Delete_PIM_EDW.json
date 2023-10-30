@@ -441,7 +441,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": ";WITH CTE AS (\nSELECT DISTINCT\nSUBSTRING(PackageID, 1, CASE WHEN CHARINDEX('_', PackageID, 1)=0 THEN LEN(PackageID) ELSE CHARINDEX('_', PackageID, 1)- 1 END )\nAS PACKAGE_ID\nFROM [Retail].[EDWProductPackage] WITH(NOLOCK) WHERE PackageStatus='Deleted' AND CAST(LastModifiedDateTimeUtc as date)>='@{variables('Date')}'\n)\nSELECT\nGETDATE() AS B_CREDATE,\n'ProductPackage' AS B_CLASSNAME,\nPACKAGE_ID,\n'SOFT_DELETE' AS B_DELETETYPE,\nnewID() AS B_DELETEOPERATION,\n'semadmin' AS B_DELETEAUTHOR,\nGETDATE() AS B_DELETEDATE\nFROM CTE",
+							"value": "SELECT \nPACKAGE_ID,\nLAST_MOD_DATE_TIME_UTC,\nB_CREDATE,\nB_CLASSNAME,\nB_DELETETYPE,\nB_DELETEOPERATION,\nB_DELETEAUTHOR,\nB_DELETEDATE\nFROM [Retail].[EDWProductPackageDelete] WITH(NOLOCK) WHERE CAST(LAST_MOD_DATE_TIME_UTC AS date)='@{variables('Date')}'\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -551,6 +551,18 @@
 								},
 								"sink": {
 									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "LAST_MOD_DATE_TIME_UTC",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "LAST_MOD_DATE_TIME_UTC",
 									"type": "DateTime",
 									"physicalType": "datetime2"
 								}
