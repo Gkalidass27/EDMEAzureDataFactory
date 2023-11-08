@@ -1,0 +1,151 @@
+{
+	"name": "Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental",
+	"properties": {
+		"activities": [
+			{
+				"name": "FetchEntityName",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@array(variables('Entity'))",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get_Entity_Count",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @RecordsToDelete INT; \nEXECUTE [dbo].[usp_ASH_REMOVE_LOAD] \n@Entity = @{item()}, \n@RecordsToDelete = @RecordsToDelete OUTPUT; \nSELECT @RecordsToDelete AS RecordsToDeleteADDRESS;",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "usp_ASH_REMOVE_LOAD",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Load_Entity_RCM_RFD_RetailCustomerLoad_Incremental",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Get_Entity_Count",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Load_Entity_RCM_RFD_RetailCustomerLoad_Incremental",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"EntityCount": {
+										"value": "@string(activity('Get_Entity_Count').output.firstRow.RecordsToDeleteADDRESS)",
+										"type": "Expression"
+									},
+									"EntityName": {
+										"value": "@{item()}",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Teams_Failed_Notification_Get_Entity_Count",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Get_Entity_Count",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": "0",
+									"status": {
+										"value": "Failed",
+										"type": "Expression"
+									},
+									"message": {
+										"value": "usp_DeleteRFDLocalStage Execution Failed",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Get_Entity_Count').output.executionDuration",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"Entity": {
+				"type": "Array",
+				"defaultValue": [
+					"AddressLocation",
+					"EmailAddress",
+					"PhoneNumber",
+					"RetailCustomer"
+				]
+			}
+		},
+		"folder": {
+			"name": "Retail_Customer_Flow/RCM_RFD_Flow"
+		},
+		"annotations": []
+	}
+}
