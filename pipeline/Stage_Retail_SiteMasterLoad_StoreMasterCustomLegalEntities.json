@@ -75,7 +75,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"FileName": {
-								"value": "@pipeline().parameters.FileName",
+								"value": "@pipeline().parameters.LegalEntitiesMapping_FileName",
 								"type": "Expression"
 							}
 						}
@@ -87,11 +87,129 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "StoreMasterCustom_LegalEntities_CompanyCodes",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "StoreMasterCustom_LegalEntities_Mapping",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE EDW.StoreMasterCustom_LegalEntities_CompanyCodes",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "legal_entity_id",
+									"type": "String"
+								},
+								"sink": {
+									"name": "LegalEntityID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "name",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EntityName",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "lic_contact",
+									"type": "String"
+								},
+								"sink": {
+									"name": "LicContact",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "company_code",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CompanyCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "StoreMasterCustom_LegalEntities_CompanyCodes",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@pipeline().parameters.LegalEntitiesCompanyCodes_FileName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "EDW_StoreMasterCustom_LegalEntities_CompanyCodes",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"parameters": {
-			"FileName": {
-				"type": "String"
+			"LegalEntitiesMapping_FileName": {
+				"type": "String",
+				"defaultValue": "StoreMasterCustom_LegalEntities_Mapping.csv"
+			},
+			"LegalEntitiesCompanyCodes_FileName": {
+				"type": "string",
+				"defaultValue": "LegalEntitiesCompanyCodes.csv"
 			}
 		},
 		"folder": {
