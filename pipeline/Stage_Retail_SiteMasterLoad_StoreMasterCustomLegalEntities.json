@@ -232,6 +232,11 @@
 							"type": "DelimitedTextReadSettings"
 						}
 					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
@@ -239,24 +244,33 @@
 							{
 								"source": {
 									"name": "Location",
-									"type": "String"
+									"type": "String",
+									"physicalType": "String"
 								},
 								"sink": {
 									"name": "Location",
-									"type": "String"
+									"type": "String",
+									"physicalType": "varchar"
 								}
 							},
 							{
 								"source": {
 									"name": "Join Code",
-									"type": "String"
+									"type": "String",
+									"physicalType": "String"
 								},
 								"sink": {
 									"name": "JoinCode",
-									"type": "String"
+									"type": "String",
+									"physicalType": "varchar"
 								}
 							}
-						]
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
 					}
 				},
 				"inputs": [
@@ -266,6 +280,12 @@
 						"parameters": {
 							"FileName": "@pipeline().parameters.Sites_JoinCodes_Filename"
 						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "EDW_StoreMasterCustom_Sites_JoinCodes",
+						"type": "DatasetReference"
 					}
 				]
 			}
