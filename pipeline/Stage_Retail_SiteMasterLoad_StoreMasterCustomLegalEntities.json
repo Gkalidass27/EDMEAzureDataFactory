@@ -200,6 +200,89 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE [EDW].[StoreMasterCustom_Stores_JoinCodes]",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Location",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Location",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Join Code",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "JoinCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "StoreMasterCustom_JoinCodes_Mapping",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": "@pipeline().parameters.Stores_JoinCode"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "EDW_StoreMasterCustom_JoinCodes",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"parameters": {
@@ -210,6 +293,10 @@
 			"LegalEntitiesCompanyCodes_FileName": {
 				"type": "string",
 				"defaultValue": "LegalEntitiesCompanyCodes.csv"
+			},
+			"Stores_JoinCode": {
+				"type": "string",
+				"defaultValue": "StoreMasterCustom_JoinCode_Mapping.csv"
 			}
 		},
 		"folder": {
