@@ -13,6 +13,58 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Orchestrate_Load_Retail_RetailSiteDataLoad_EDW')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Stage_Retail_RetailSiteDataLoad_EDW",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_Retail_RetailSiteDataLoad_EDW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Load_Retail_RetailSiteDataLoad_EDW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Stage_Retail_RetailSiteDataLoad_EDW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_Retail_RetailSiteDataLoad_EDW",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Site_Master/New_Model"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Orchestrate_National_Assortment_SemarchyToEDW')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1971,7 +2023,9 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Orchestrate_Load_Retail_RetailSiteDataLoad_EDW')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/StageRetailCustomerRetailCustomerLoadIncremental')]",

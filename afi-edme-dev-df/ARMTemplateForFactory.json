@@ -33147,6 +33147,12 @@
 											"dependencyConditions": [
 												"Succeeded"
 											]
+										},
+										{
+											"activity": "Max_CustID_Customerall_Tbl",
+											"dependencyConditions": [
+												"Succeeded"
+											]
 										}
 									],
 									"policy": {
@@ -35803,7 +35809,7 @@
 									"typeProperties": {
 										"source": {
 											"type": "AzureSqlSource",
-											"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
+											"sqlReaderQuery": "SELECT MAX(customerMasterId) as MAX_ID FROM [RetailCustomer].[RetailCustomersIncremental] WITH(NOLOCK)",
 											"queryTimeout": "02:00:00",
 											"partitionOption": "None"
 										},
@@ -35871,7 +35877,7 @@
 											},
 											"MaxId_AllCustomer": {
 												"value": {
-													"value": "@activity('Get_Max_CustomerMasterID').output.firstRow.MAX_ID",
+													"value": "@activity('Max_CustID_Customerall_Tbl').output.firstRow.MAX_ID",
 													"type": "Expression"
 												},
 												"type": "Int32"
@@ -35929,6 +35935,32 @@
 									"linkedServiceName": {
 										"referenceName": "semarchy_staging",
 										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Max_CustID_Customerall_Tbl",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": "select MAX(customerMasterId) as MAX_ID FROM [Masterdata_CDP].[AllSourceCustomers] WITH(NOLOCK)",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Get_Max_CustID_Customerall_Tbl",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
 									}
 								}
 							]
@@ -35989,7 +36021,8 @@
 				"[concat(variables('factoryId'), '/datasets/Raw_AddressLocationsIncremental')]",
 				"[concat(variables('factoryId'), '/datasets/SD_ADDRESS_LOCATION')]",
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_repo')]",
-				"[concat(variables('factoryId'), '/datasets/All_Max_CustomerMasterId_CustomerInfo')]"
+				"[concat(variables('factoryId'), '/datasets/All_Max_CustomerMasterId_CustomerInfo')]",
+				"[concat(variables('factoryId'), '/datasets/Get_Max_CustID_Customerall_Tbl')]"
 			]
 		},
 		{
@@ -75125,6 +75158,25 @@
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/GetLastTriggerTime')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[variables('factoryId')]",
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Get_Max_CustID_Customerall_Tbl')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
