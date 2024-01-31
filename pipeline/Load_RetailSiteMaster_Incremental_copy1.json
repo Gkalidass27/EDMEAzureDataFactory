@@ -228,7 +228,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "LoadSiteIncremental",
+						"activity": "LoadSiteIncrementalPipeLine",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -280,14 +280,9 @@
 			{
 				"name": "LoadSiteIncremental",
 				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "SetNewLoadId",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -840,6 +835,29 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "LoadSiteIncrementalPipeLine",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "LoadSiteIncremental",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
 			}
 		],
 		"variables": {
