@@ -23,7 +23,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Count_ChangedRecords",
+						"activity": "SetChangedRecordsCount",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -31,6 +31,10 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
+					"expression": {
+						"value": "@greater(@activity('Count_ChangedRecords').output.firstRow.RETURN_VALUE_ARGUMENT,0)\n\n",
+						"type": "Expression"
+					},
 					"ifTrueActivities": [
 						{
 							"name": "Load_SiteMaster",
@@ -52,7 +56,7 @@
 				}
 			},
 			{
-				"name": "Count_ChangedRecords",
+				"name": "CountChangedRecords",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -82,8 +86,37 @@
 						"type": "DatasetReference"
 					}
 				}
+			},
+			{
+				"name": "SetChangedRecordsCount",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "CountChangedRecords",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "GetChangedRecordsCount",
+					"value": {
+						"value": "@activity('CountChangedRecords').output.firstRow.RETURN_VALUE_ARGUMENT",
+						"type": "Expression"
+					}
+				}
 			}
 		],
+		"variables": {
+			"GetChangedRecordsCount": {
+				"type": "Integer"
+			}
+		},
 		"folder": {
 			"name": "SiteMaster"
 		},
