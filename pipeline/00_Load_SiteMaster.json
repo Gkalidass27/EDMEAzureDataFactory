@@ -1,0 +1,125 @@
+{
+	"name": "00_Load_SiteMaster",
+	"properties": {
+		"activities": [
+			{
+				"name": "Stage_SiteMaster_EDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_SiteMaster_EDW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "If Changed",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "SetChangedRecordsCount",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(variables('ChangedRecordsCount'),0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Load_SiteMaster",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Load_SiteMaster",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "CountChangedRecords",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Stage_SiteMaster_EDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT INT\r\n\r\nEXECUTE dbo.Count_SiteMaster_Changed_Records @RETURN_VALUE_ARGUMENT = null\r\n\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SetChangedRecordsCount",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "CountChangedRecords",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ChangedRecordsCount",
+					"value": {
+						"value": "@activity('CountChangedRecords').output.firstRow.RETURN_VALUE_ARGUMENT",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"ChangedRecordsCount": {
+				"type": "Integer"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": []
+	}
+}

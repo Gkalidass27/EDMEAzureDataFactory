@@ -1,5 +1,5 @@
 {
-	"name": "Store_DAC_Location_Details",
+	"name": "Stage_SiteMaster_DAC",
 	"properties": {
 		"activities": [
 			{
@@ -40,16 +40,16 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"url": {
-									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
-									"type": "Expression"
-								},
 								"method": "GET",
 								"headers": {
 									"Ocp-Apim-Subscription-Key": {
 										"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
 										"type": "Expression"
 									}
+								},
+								"url": {
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+									"type": "Expression"
 								}
 							}
 						},
@@ -328,16 +328,16 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"url": {
-						"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&&ContinuationToken=')",
-						"type": "Expression"
-					},
 					"method": "GET",
 					"headers": {
 						"Ocp-Apim-Subscription-Key": {
 							"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
 							"type": "Expression"
 						}
+					},
+					"url": {
+						"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&&ContinuationToken=')",
+						"type": "Expression"
 					}
 				}
 			},
@@ -464,16 +464,16 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"url": {
-						"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
-						"type": "Expression"
-					},
 					"method": "GET",
 					"headers": {
 						"Ocp-Apim-Subscription-Key": {
 							"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
 							"type": "Expression"
 						}
+					},
+					"url": {
+						"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+						"type": "Expression"
 					}
 				}
 			},
@@ -539,35 +539,41 @@
 					],
 					"ifTrueActivities": [
 						{
-							"name": "Stage_Retail_SiteMasterLoad_DAC",
+							"name": "Stage_SiteMaster_DAC_Tables",
 							"type": "ExecutePipeline",
 							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "Stage_Retail_SiteMasterLoad_DAC",
+									"referenceName": "Stage_SiteMaster_DAC_Tables",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true
 							}
 						},
 						{
-							"name": "Load_Retail_SiteMasterLoad_DAC",
+							"name": "Load_SiteMaster_DAC",
 							"type": "ExecutePipeline",
 							"state": "Inactive",
 							"onInactiveMarkAs": "Failed",
 							"dependsOn": [
 								{
-									"activity": "Stage_Retail_SiteMasterLoad_DAC",
+									"activity": "Stage_SiteMaster_DAC_Tables",
 									"dependencyConditions": [
 										"Succeeded"
 									]
 								}
 							],
+							"policy": {
+								"secureInput": false
+							},
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "Load_Retail_SiteMasterLoad_DAC",
+									"referenceName": "Load_SiteMaster_DAC",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true
@@ -578,7 +584,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Stage_Retail_SiteMasterLoad_DAC",
+									"activity": "Stage_SiteMaster_DAC_Tables",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -695,7 +701,7 @@
 							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
-									"activity": "Load_Retail_SiteMasterLoad_DAC",
+									"activity": "Load_SiteMaster_DAC",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -714,28 +720,28 @@
 								"storedProcedureParameters": {
 									"ErrorCode": {
 										"value": {
-											"value": "@{activity('Load_Retail_SiteMasterLoad_DAC').error.errorCode}",
+											"value": "@{activity('Load_SiteMaster_DAC').error.errorCode}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorMsg": {
 										"value": {
-											"value": "@{activity('Load_Retail_SiteMasterLoad_DAC').error.message}",
+											"value": "@{activity('Load_SiteMaster_DAC').error.message}",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"ErrorStatusCode": {
 										"value": {
-											"value": "@activity('Load_Retail_SiteMasterLoad_DAC').StatusCode",
+											"value": "@activity('Load_SiteMaster_DAC').StatusCode",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"FailureType": {
 										"value": {
-											"value": "@{activity('Load_Retail_SiteMasterLoad_DAC').error.failureType}",
+											"value": "@{activity('Load_SiteMaster_DAC').error.failureType}",
 											"type": "Expression"
 										},
 										"type": "String"
@@ -828,7 +834,7 @@
 			}
 		},
 		"folder": {
-			"name": "Site_Master"
+			"name": "SiteMaster"
 		},
 		"annotations": [],
 		"lastPublishTime": "2022-05-26T06:05:04Z"

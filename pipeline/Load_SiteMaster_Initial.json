@@ -1,5 +1,5 @@
 {
-	"name": "Load_Retail_RetailSiteDataLoad_EDW",
+	"name": "Load_SiteMaster_Initial",
 	"properties": {
 		"activities": [
 			{
@@ -30,7 +30,7 @@
 				}
 			},
 			{
-				"name": "GetNewLoadId",
+				"name": "GetNewLoadId0",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -62,11 +62,11 @@
 				}
 			},
 			{
-				"name": "SetNewLoadId",
+				"name": "SetNewLoadId0",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "GetNewLoadId",
+						"activity": "GetNewLoadId0",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -78,9 +78,9 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "LoadID",
+					"variableName": "LoadID0",
 					"value": {
-						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"value": "@{activity('GetNewLoadId0').output.firstRow.RETURN_VALUE_ARGUMENT}",
 						"type": "Expression"
 					}
 				}
@@ -90,7 +90,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Site_Warehouse",
+						"activity": "SetNewLoadId",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -2142,6 +2142,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -2201,6 +2204,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -2260,6 +2266,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -2319,6 +2328,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -2964,7 +2976,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "SetNewLoadId",
+						"activity": "SetNewLoadId0",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -2985,7 +2997,7 @@
 							{
 								"name": "B_LOADID",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@variables('LoadID0')",
 									"type": "Expression"
 								}
 							}
@@ -3669,7 +3681,7 @@
 					"storedProcedureParameters": {
 						"P_LOAD_ID": {
 							"value": {
-								"value": "@variables('LoadID')",
+								"value": "@variables('LoadID0')",
 								"type": "Expression"
 							},
 							"type": "Decimal"
@@ -3826,6 +3838,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -5166,6 +5181,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -5213,15 +5231,128 @@
 						}
 					}
 				}
+			},
+			{
+				"name": "SubmitLoad0",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Site_Warehouse",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "RetailSiteDataLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID0')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SubmitLoad0",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\r\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SetNewLoadId",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"variables": {
 			"LoadID": {
 				"type": "String"
+			},
+			"LoadID0": {
+				"type": "String"
 			}
 		},
 		"folder": {
-			"name": "Site_Master/New_Model"
+			"name": "SiteMaster"
 		},
 		"annotations": []
 	}
