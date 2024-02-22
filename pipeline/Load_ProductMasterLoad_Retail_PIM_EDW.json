@@ -5015,9 +5015,16 @@
 								}
 							},
 							{
-								"name": "B_UPDDATE",
+								"name": "B_CREDATE",
 								"value": {
 									"value": "@utcnow()",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "B_UPDDATE",
+								"value": {
+									"value": "@utcNow()",
 									"type": "Expression"
 								}
 							}
@@ -5028,7 +5035,13 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"PRODUCT_CODE_KEY"
+							]
+						},
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -5078,6 +5091,17 @@
 							},
 							{
 								"source": {
+									"name": "B_CREDATE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
 									"name": "B_UPDDATE",
 									"type": "String"
 								},
@@ -5114,8 +5138,8 @@
 							{
 								"source": {
 									"name": "IS_ACTIVE",
-									"type": "Int32",
-									"physicalType": "int"
+									"type": "Boolean",
+									"physicalType": "bit"
 								},
 								"sink": {
 									"name": "IS_ACTIVE",
