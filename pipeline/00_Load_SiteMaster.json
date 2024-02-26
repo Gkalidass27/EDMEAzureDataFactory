@@ -5,8 +5,6 @@
 			{
 				"name": "Stage_SiteMaster_EDW",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"secureInput": false
@@ -23,8 +21,6 @@
 			{
 				"name": "If Changed",
 				"type": "IfCondition",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "SetChangedRecordsCount",
@@ -96,7 +92,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "CountChangedRecords_copy1",
+						"activity": "CountChangedRecords",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -112,38 +108,6 @@
 					"value": {
 						"value": "@activity('CountChangedRecords').output.firstRow.RETURN_VALUE_ARGUMENT",
 						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "CountChangedRecords_copy1",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "CountChangedRecords",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT INTRR\n\nEXECUTE dbo.Count_SiteMaster_Changed_Records @RETURN_VALUE_ARGUMENT = null\n\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Semarchy_Staging",
-						"type": "DatasetReference"
 					}
 				}
 			}
