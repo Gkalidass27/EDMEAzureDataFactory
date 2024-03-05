@@ -17,14 +17,14 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select \ncase when CITY_ABBREVIATION is not null then \nsubstring(CITY_ABBREVIATION,1,10) \nelse '' end as zipZctyab\n,substring(CITY_NAME,1,25) as zipZctynm\n,case when COUNTRY_CODE='US' then 'USA' else null end as zipZcountry\n,right(FIPS_Code,3) as zipZconyn\n,IS_PREFERRED_CITY_NAME as zipPreferred\n,cast(Latitude as decimal(7,4) )as zipLat\n,cast(Longitude as decimal(8,4))as zipLong\n,case when MSA_CODE is not null then MSA_CODE\nelse '' end\nas zipMSA\n,OBSERVES_DST as zipDayLightSavings\n,POSTAL_CODE as zipZzipcd\n,POSTAL_CODE_TYPE as zipType\n,STATE_OR_PROVINCE_CODE as zipZstate\n,case when Time_Zone='UTC-03:00' then 'EST+2'\n when Time_Zone='UTC-03:30' then 'NST'\n when Time_Zone='UTC-04:00' then 'EST+1'\n when Time_Zone='UTC-05:00' then 'EST'\n when Time_Zone='UTC-06:00' then 'CST'\n when Time_Zone='UTC-07:00' then 'MST'\n when Time_Zone='UTC-08:00' then 'PST'\n when Time_Zone='UTC-09:00' then 'PST-1'\n when Time_Zone='UTC-10:00' then 'PST-2'\n when Time_Zone='UTC-11:00' then 'PST-3'\n when Time_Zone='UTC+01:00' then 'GMT+1'\n when Time_Zone='UTC+09:00' then 'PST-7'\n when Time_Zone='UTC+10:00' then 'PST-6'\n when Time_Zone='UTC+11:00' then 'PST-5'\n when Time_Zone='UTC+12:00' then 'PST-4'\nelse null end as zipTimeZoneCode\nfrom [GD_ENT_REF_POSTAL_CODE] GD\nwhere GD.COUNTRY_CODE='US'",
+						"sqlReaderQuery": "select \ncase when CITY_ABBREVIATION is not null then \nsubstring(CITY_ABBREVIATION,1,10) \nelse '' end as zipZctyab\n,substring(CITY_NAME,1,25) as zipZctynm\n,case when COUNTRY_CODE='US' then 'USA' else null end as zipZcountry\n,right(FIPS_Code,3) as zipZconyn\n,IS_PREFERRED_CITY_NAME as zipPreferred\n,cast(Latitude as decimal(7,4) )as zipLat\n,cast(Longitude as decimal(8,4))as zipLong\n,case when MSA_CODE is not null then MSA_CODE\nelse '' end\nas zipMSA\n,OBSERVES_DST as zipDayLightSavings\n,POSTAL_CODE as zipZzipcd\n,POSTAL_CODE_TYPE as zipType\n,STATE_OR_PROVINCE_CODE as zipZstate\n,case when Time_Zone='UTC-03:00' then 'EST+2'\n when Time_Zone='UTC-03:30' then 'NST'\n when Time_Zone='UTC-04:00' then 'EST+1'\n when Time_Zone='UTC-05:00' then 'EST'\n when Time_Zone='UTC-06:00' then 'CST'\n when Time_Zone='UTC-07:00' then 'MST'\n when Time_Zone='UTC-08:00' then 'PST'\n when Time_Zone='UTC-09:00' then 'PST-1'\n when Time_Zone='UTC-10:00' then 'PST-2'\n when Time_Zone='UTC-11:00' then 'PST-3'\n when Time_Zone='UTC+01:00' then 'GMT+1'\n when Time_Zone='UTC+09:00' then 'PST-7'\n when Time_Zone='UTC+10:00' then 'PST-6'\n when Time_Zone='UTC+11:00' then 'PST-5'\n when Time_Zone='UTC+12:00' then 'PST-4'\nelse null end as zipTimeZoneCode,\n'edme_initial' as usrc,\ngetutcdate() as dtec,\ngetutcdate() as dtea,\n'edme_initial' as usra,\n'' as acrec\nfrom [GD_ENT_REF_POSTAL_CODE] GD\nwhere GD.COUNTRY_CODE='US'\n",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "AzureSqlSink",
 						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": true,
+						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
@@ -144,8 +144,8 @@
 									"name": "zipLat",
 									"type": "Decimal",
 									"physicalType": "decimal",
-									"scale": 5,
-									"precision": 9
+									"scale": 4,
+									"precision": 7
 								},
 								"sink": {
 									"name": "zipLat",
@@ -160,8 +160,8 @@
 									"name": "zipLong",
 									"type": "Decimal",
 									"physicalType": "decimal",
-									"scale": 5,
-									"precision": 9
+									"scale": 4,
+									"precision": 8
 								},
 								"sink": {
 									"name": "zipLong",
@@ -169,6 +169,66 @@
 									"physicalType": "decimal",
 									"scale": 4,
 									"precision": 8
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "varchar"
 								}
 							},
 							{
