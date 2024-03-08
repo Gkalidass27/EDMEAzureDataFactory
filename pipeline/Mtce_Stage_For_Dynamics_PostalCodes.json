@@ -1,0 +1,996 @@
+{
+	"name": "Mtce_Stage_For_Dynamics_PostalCodes",
+	"properties": {
+		"activities": [
+			{
+				"name": "GD_GBL_DYNAMICS_US",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select \ncase when CITY_ABBREVIATION is not null then \nleft(CITY_ABBREVIATION,10) \nelse '' end as zipZctyab\n,left(CITY_NAME,25) as zipZctynm\n,case when COUNTRY_CODE='US' then 'USA' else COUNTRY_CODE end as zipZcountry\n,right(FIPS_Code,3) as zipZconyn\n,case when IS_PREFERRED_CITY_NAME='True' then 1\nelse 0 end as zipPreferred\n,cast(Latitude as decimal(7,4) )as zipLat\n,cast(Longitude as decimal(8,4))as zipLong\n,case when MSA_CODE is not null then MSA_CODE\nelse '' end\nas zipMSA\n,case when OBSERVES_DST=1 then 'Y' \nelse 'N' end as zipDayLightSavings\n,right(replicate('0',5)+ convert(varchar(5),POSTAL_CODE),5) as \n zipZzipcd\n,POSTAL_CODE_TYPE as zipType\n,STATE_OR_PROVINCE_CODE as zipZstate\n,case when Time_Zone='UTC-03:00' then 'EST+2'\n when Time_Zone='UTC-03:30' then 'NST'\n when Time_Zone='UTC-04:00' then 'EST+1'\n when Time_Zone='UTC-05:00' then 'EST'\n when Time_Zone='UTC-06:00' then 'CST'\n when Time_Zone='UTC-07:00' then 'MST'\n when Time_Zone='UTC-08:00' then 'PST'\n when Time_Zone='UTC-09:00' then 'PST-1'\n when Time_Zone='UTC-10:00' then 'PST-2'\n when Time_Zone='UTC-11:00' then 'PST-3'\n when Time_Zone='UTC+01:00' then 'GMT+1'\n when Time_Zone='UTC+09:00' then 'PST-7'\n when Time_Zone='UTC+10:00' then 'PST-6'\n when Time_Zone='UTC+11:00' then 'PST-5'\n when Time_Zone='UTC+12:00' then 'PST-4'\nelse '' end as zipTimeZoneCode,\n'edme_initial' as usrc,\ngetutcdate() as dtec,\ngetutcdate() as dtea,\n'edme_initial' as usra,\nnull as acrec\nfrom [GD_ENT_REF_POSTAL_CODE] GD\nwhere GD.COUNTRY_CODE='US'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "zipZzipcd",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZzipcd",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZstate",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZstate",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZctynm",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZctynm",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZctyab",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZctyab",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZconyn",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZconyn",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZcountry",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "zipZcountry",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipMSA",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipMSA",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipTimeZoneCode",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "zipTimeZoneCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipDayLightSavings",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "zipDayLightSavings",
+									"type": "String",
+									"physicalType": "char"
+								}
+							},
+							{
+								"source": {
+									"name": "zipLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								},
+								"sink": {
+									"name": "zipLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								}
+							},
+							{
+								"source": {
+									"name": "zipLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								},
+								"sink": {
+									"name": "zipLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipPreferred",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "zipPreferred",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": true
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_Enterprise_REF_TABLE",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DSSEMGBLUS",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GD_SQL_DYNAMICS_US",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "GD_GBL_DYNAMICS_US",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select \ncase when CITY_ABBREVIATION is not null then \nleft(CITY_ABBREVIATION,10) \nelse '' end as zipZctyab\n,left(CITY_NAME,25) as zipZctynm\n,case when COUNTRY_CODE='US' then 'USA' else COUNTRY_CODE end as zipZcountry\n,right(FIPS_Code,3) as zipZconyn\n,case when IS_PREFERRED_CITY_NAME='True' then 1\nelse 0 end as zipPreferred\n,cast(Latitude as decimal(7,4) )as zipLat\n,cast(Longitude as decimal(8,4))as zipLong\n,case when MSA_CODE is not null then MSA_CODE\nelse '' end\nas zipMSA\n,case when OBSERVES_DST=1 then 'Y' \nelse 'N' end as zipDayLightSavings\n,right(replicate('0',5)+ convert(varchar(5),POSTAL_CODE),5) as \n zipZzipcd\n,case when POSTAL_CODE_TYPE is null then '' \nelse POSTAL_CODE_TYPE end as zipType\n,STATE_OR_PROVINCE_CODE as zipZstate\n,case when Time_Zone='UTC-03:00' then 'EST+2'\n when Time_Zone='UTC-03:30' then 'NST'\n when Time_Zone='UTC-04:00' then 'EST+1'\n when Time_Zone='UTC-05:00' then 'EST'\n when Time_Zone='UTC-06:00' then 'CST'\n when Time_Zone='UTC-07:00' then 'MST'\n when Time_Zone='UTC-08:00' then 'PST'\n when Time_Zone='UTC-09:00' then 'PST-1'\n when Time_Zone='UTC-10:00' then 'PST-2'\n when Time_Zone='UTC-11:00' then 'PST-3'\n when Time_Zone='UTC+01:00' then 'GMT+1'\n when Time_Zone='UTC+09:00' then 'PST-7'\n when Time_Zone='UTC+10:00' then 'PST-6'\n when Time_Zone='UTC+11:00' then 'PST-5'\n when Time_Zone='UTC+12:00' then 'PST-4'\nelse '' end as zipTimeZoneCode,\n'edme_initial' as usrc,\ngetutcdate() as dtec,\ngetutcdate() as dtea,\n'edme_initial' as usra,\nnull as acrec\nfrom [GD_ENT_REF_POSTAL_CODE] GD\nwhere GD.COUNTRY_CODE='US'\n\n\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "zipZzipcd",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "zipZzipcd",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZstate",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZstate",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZctynm",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZctynm",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZctyab",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZctyab",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZconyn",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipZconyn",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipZcountry",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "zipZcountry",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipMSA",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipMSA",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipTimeZoneCode",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "zipTimeZoneCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipDayLightSavings",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "zipDayLightSavings",
+									"type": "String",
+									"physicalType": "char"
+								}
+							},
+							{
+								"source": {
+									"name": "zipLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								},
+								"sink": {
+									"name": "zipLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								}
+							},
+							{
+								"source": {
+									"name": "zipLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								},
+								"sink": {
+									"name": "zipLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "zipPreferred",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "zipPreferred",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "zipType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "zipType",
+									"type": "String",
+									"physicalType": "char"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": true
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_Enterprise_REF_TABLE",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DSSEMSTGUSSQLDYNAMICS",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GD_GBL_DYNAMICS_CAN",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "GD_SQL_DYNAMICS_US",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select \ncase when CITY_ABBREVIATION is not null then \nleft(CITY_ABBREVIATION,10) \nelse '' end as [znuCityAbbrev]\n,left(CITY_NAME,30) as [znuCity]\n,case when COUNTRY_CODE='CA' then 'CAN' else COUNTRY_CODE end as [znuCountryCode]\n--,right(FIPS_Code,3) as zipZconyn\n--,case when IS_PREFERRED_CITY_NAME='True' then 1\n--else 0 end as zipPreferred\n,cast(Latitude as decimal(7,4) )as [znuLat]\n,cast(Longitude as decimal(8,4))as [znuLong]\n--,case when MSA_CODE is not null then MSA_CODE\n--else '' end as zipMSA\n,case when OBSERVES_DST=1 then 'Y' \nelse 'N' end as [znuDayLightSavings]\n,concat(left(postal_code,3),' ',right(postal_code,3)) as\n[znuPostalCode]\n--,POSTAL_CODE_TYPE as zipType\n,case when \nSTATE_OR_PROVINCE_CODE ='NL' then 'NF' else STATE_OR_PROVINCE_CODE end as [znuProvince]\n,case when Time_Zone='UTC-03:00' then 'EST+2'\n when Time_Zone='UTC-03:30' then 'NST'\n when Time_Zone='UTC-04:00' then 'EST+1'\n when Time_Zone='UTC-05:00' then 'EST'\n when Time_Zone='UTC-06:00' then 'CST'\n when Time_Zone='UTC-07:00' then 'MST'\n when Time_Zone='UTC-08:00' then 'PST'\n when Time_Zone='UTC-09:00' then 'PST-1'\n when Time_Zone='UTC-10:00' then 'PST-2'\n when Time_Zone='UTC-11:00' then 'PST-3'\n when Time_Zone='UTC+01:00' then 'GMT+1'\n when Time_Zone='UTC+09:00' then 'PST-7'\n when Time_Zone='UTC+10:00' then 'PST-6'\n when Time_Zone='UTC+11:00' then 'PST-5'\n when Time_Zone='UTC+12:00' then 'PST-4'\nelse '' end as [znuTimeZone],\n'edme_initial' as usrc,\ngetutcdate() as dtec,\ngetutcdate() as dtea,\n'edme_initial' as usra,\nnull as acrec\nfrom [GD_ENT_REF_POSTAL_CODE] GD\nwhere GD.COUNTRY_CODE='CA'\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "znuPostalCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuPostalCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuCity",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuCity",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuProvince",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuProvince",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuCountryCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuCountryCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuCityAbbrev",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuCityAbbrev",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuTimeZone",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "znuTimeZone",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuDayLightSavings",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "znuDayLightSavings",
+									"type": "String",
+									"physicalType": "char"
+								}
+							},
+							{
+								"source": {
+									"name": "znuLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								},
+								"sink": {
+									"name": "znuLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								}
+							},
+							{
+								"source": {
+									"name": "znuLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								},
+								"sink": {
+									"name": "znuLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "smalldatetime"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "smalldatetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": true
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_Enterprise_REF_TABLE",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DSSEMSTGGBLDYNAMICSCAN",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GD_SQL_DYNAMICS_CAN",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "GD_GBL_DYNAMICS_CAN",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select \ncase when CITY_ABBREVIATION is not null then \nleft(CITY_ABBREVIATION,10) \nelse '' end as [znuCityAbbrev]\n,left(CITY_NAME,30) as [znuCity]\n,case when COUNTRY_CODE='CA' then 'CAN' else COUNTRY_CODE end as [znuCountryCode]\n--,right(FIPS_Code,3) as zipZconyn\n--,case when IS_PREFERRED_CITY_NAME='True' then 1\n--else 0 end as zipPreferred\n,cast(Latitude as decimal(7,4) )as [znuLat]\n,cast(Longitude as decimal(8,4))as [znuLong]\n--,case when MSA_CODE is not null then MSA_CODE\n--else '' end as zipMSA\n,case when OBSERVES_DST=1 then 'Y' \nelse 'N' end as [znuDayLightSavings]\n,concat(left(postal_code,3),' ',right(postal_code,3)) as\n[znuPostalCode]\n--,POSTAL_CODE_TYPE as zipType\n,case when \nSTATE_OR_PROVINCE_CODE ='NL' then 'NF' else STATE_OR_PROVINCE_CODE end as [znuProvince]\n,case when Time_Zone='UTC-03:00' then 'EST+2'\n when Time_Zone='UTC-03:30' then 'NST'\n when Time_Zone='UTC-04:00' then 'EST+1'\n when Time_Zone='UTC-05:00' then 'EST'\n when Time_Zone='UTC-06:00' then 'CST'\n when Time_Zone='UTC-07:00' then 'MST'\n when Time_Zone='UTC-08:00' then 'PST'\n when Time_Zone='UTC-09:00' then 'PST-1'\n when Time_Zone='UTC-10:00' then 'PST-2'\n when Time_Zone='UTC-11:00' then 'PST-3'\n when Time_Zone='UTC+01:00' then 'GMT+1'\n when Time_Zone='UTC+09:00' then 'PST-7'\n when Time_Zone='UTC+10:00' then 'PST-6'\n when Time_Zone='UTC+11:00' then 'PST-5'\n when Time_Zone='UTC+12:00' then 'PST-4'\nelse '' end as [znuTimeZone],\n'edme_initial' as usrc,\ngetutcdate() as dtec,\ngetutcdate() as dtea,\n'edme_initial' as usra,\nnull as acrec\nfrom [GD_ENT_REF_POSTAL_CODE] GD\nwhere GD.COUNTRY_CODE='CA'\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "znuPostalCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuPostalCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuCity",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuCity",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuProvince",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuProvince",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuCountryCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuCountryCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuCityAbbrev",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "znuCityAbbrev",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuTimeZone",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "znuTimeZone",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "znuDayLightSavings",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "znuDayLightSavings",
+									"type": "String",
+									"physicalType": "char"
+								}
+							},
+							{
+								"source": {
+									"name": "znuLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								},
+								"sink": {
+									"name": "znuLat",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 7
+								}
+							},
+							{
+								"source": {
+									"name": "znuLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								},
+								"sink": {
+									"name": "znuLong",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "smalldatetime"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "smalldatetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": true
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_Enterprise_REF_TABLE",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DSSEMSTGSQLDYNAMICSCAN",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Postal_Code"
+		},
+		"annotations": []
+	}
+}
