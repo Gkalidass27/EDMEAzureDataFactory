@@ -1,0 +1,521 @@
+{
+	"name": "Stage_SiteMaster_DAC_Payload_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEachLocationIds",
+				"description": "Loop through location ids sequentially",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.item_param",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "WebLocationsAPI",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": {
+										"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+										"type": "Expression"
+									}
+								},
+								"url": {
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SP_Load_Json_Payload",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[DAC].[Load_Json_Payload]",
+								"storedProcedureParameters": {
+									"JsonPayload": {
+										"value": {
+											"value": "@{activity('WebLocationsAPI').output}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"LocationID": {
+										"value": {
+											"value": "@item().locationID",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "LoadJsonFile",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"additionalColumns": [
+										{
+											"name": "input",
+											"value": {
+												"value": "@{activity('WebLocationsAPI').output}",
+												"type": "Expression"
+											}
+										}
+									],
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"paginationRules": {
+										"supportRFC5988": "true"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "input",
+												"type": "String"
+											},
+											"sink": {
+												"type": "String",
+												"ordinal": 1
+											}
+										}
+									]
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "StoresAPI",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DAC_Location_Details_Write1",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@concat('Store_Location_',item().LocationID,'.json')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "SetErrorMsg",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "WebLocationsAPI",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ErrorMsg",
+								"value": {
+									"value": "@activity('WebLocationsAPI').error.message",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "WaitTime",
+							"type": "Wait",
+							"dependsOn": [
+								{
+									"activity": "SetErrorMsg",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 3
+							}
+						},
+						{
+							"name": "LoggingStoredProcedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "SetErrorMsg",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": {
+											"value": "@{activity('WebLocationsAPI').error.errorCode}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": {
+											"value": "@{activity('WebLocationsAPI').error.message}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorStatusCode": {
+										"value": {
+											"value": "@activity('WebLocationsAPI').StatusCode",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FailureType": {
+										"value": {
+											"value": "@{activity('WebLocationsAPI').error.failureType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@{pipeline().Pipeline}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink": {
+										"value": null,
+										"type": "String"
+									},
+									"Sink_Type": {
+										"value": null,
+										"type": "String"
+									},
+									"Source": {
+										"value": null,
+										"type": "String"
+									},
+									"Source_Type": {
+										"value": null,
+										"type": "String"
+									},
+									"TriggerId": {
+										"value": {
+											"value": "@{pipeline().TriggerId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerName": {
+										"value": {
+											"value": "@{pipeline().TriggerName}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerTime": {
+										"value": {
+											"value": "@{pipeline().TriggerTime}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerType": {
+										"value": {
+											"value": "@{pipeline().TriggerType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "WebLocationAPIFailed",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "WaitTime",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": {
+										"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+										"type": "Expression"
+									}
+								},
+								"url": {
+									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SP_Load_Json_Payload_AfterFailed",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "WebLocationAPIFailed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[DAC].[Load_Json_Payload]",
+								"storedProcedureParameters": {
+									"JsonPayload": {
+										"value": {
+											"value": "@{activity('WebLocationAPIFailed').output}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"LocationID": {
+										"value": {
+											"value": "@item().locationID",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "LoadJsonFileAfterFailed",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "WebLocationAPIFailed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "input",
+											"value": {
+												"value": "@{activity('WebLocationAPIFailed').output}",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "input",
+												"type": "String"
+											},
+											"sink": {
+												"type": "String",
+												"physicalType": "String",
+												"ordinal": 1
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DAC_Location_Details_Read1",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DAC_Location_Details_Write1",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@concat('Store_Location_',item().LocationID,'.json')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"item_param": {
+				"type": "array"
+			}
+		},
+		"variables": {
+			"FailedActivity": {
+				"type": "String"
+			},
+			"ErrorMsg": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-05-26T06:05:04Z"
+	}
+}
