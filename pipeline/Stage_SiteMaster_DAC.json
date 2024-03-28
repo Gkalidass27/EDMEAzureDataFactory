@@ -7,7 +7,7 @@
 				"type": "Until",
 				"dependsOn": [
 					{
-						"activity": "SetDataCount",
+						"activity": "SetTrueloop",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -21,46 +21,13 @@
 					},
 					"activities": [
 						{
-							"name": "GetNextToken",
-							"type": "WebActivity",
-							"dependsOn": [
-								{
-									"activity": "CheckCount",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "7.00:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"method": "GET",
-								"headers": {
-									"Ocp-Apim-Subscription-Key": {
-										"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
-										"type": "Expression"
-									}
-								},
-								"url": {
-									"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
-									"type": "Expression"
-								}
-							}
-						},
-						{
 							"name": "CheckCount",
 							"type": "IfCondition",
 							"dependsOn": [],
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@greater(int(variables('GetCountData')),0)",
+									"value": "@not(equals(variables('token_var'), ''))",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
@@ -162,6 +129,27 @@
 											"referenceName": "semarchy_staging",
 											"type": "LinkedServiceReference"
 										}
+									},
+									{
+										"name": "SetLoopValueFalse",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "LoggingStoredProcedure",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop_var",
+											"value": false
+										}
 									}
 								],
 								"ifTrueActivities": [
@@ -234,74 +222,86 @@
 												}
 											}
 										]
+									},
+									{
+										"name": "GetNextToken",
+										"type": "WebActivity",
+										"dependsOn": [
+											{
+												"activity": "CopyDACApiResponse",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"method": "GET",
+											"headers": {
+												"Ocp-Apim-Subscription-Key": {
+													"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+													"type": "Expression"
+												}
+											},
+											"url": {
+												"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/locations?AccountID=',pipeline().globalParameters.DAC_Accountid,'&PageSize=25&ModifiedDateFrom=',variables('ModifiedDateFrom'),'&ModifiedDateTo=',variables('ModifiedDateTo'),'&ContinuationToken=', variables('token_var'))",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "SetNextToken",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "GetNextToken",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "token_var",
+											"value": {
+												"value": "@coalesce(activity('GetNextToken')?.output?.ContinuationToken, '') ",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "SetLoopValueTrue",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "SetNextToken",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop_var",
+											"value": true
+										}
 									}
 								]
-							}
-						},
-						{
-							"name": "SetNextToken",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "GetNextToken",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "token_var",
-								"value": {
-									"value": "@activity('GetNextToken').output.ContinuationToken",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "SetLoopValueTrue",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "SetNextToken",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "loop_var",
-								"value": true
-							}
-						},
-						{
-							"name": "SetLoopValueFalse",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "SetNextToken",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"policy": {
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "loop_var",
-								"value": false
 							}
 						}
 					],
@@ -812,6 +812,27 @@
 							}
 						}
 					]
+				}
+			},
+			{
+				"name": "SetTrueloop",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "SetDataCount",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "loop_var",
+					"value": true
 				}
 			}
 		],
