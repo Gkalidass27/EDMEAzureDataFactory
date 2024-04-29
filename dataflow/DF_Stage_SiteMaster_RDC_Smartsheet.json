@@ -1,5 +1,5 @@
 {
-	"name": "DF_ZIP2RDC_Smartsheet_Staging",
+	"name": "DF_Stage_SiteMaster_RDC_Smartsheet",
 	"properties": {
 		"description": "This Dataflow loads RDC info to Semarchy staging",
 		"type": "MappingDataFlow",
@@ -11,7 +11,7 @@
 						"type": "LinkedServiceReference"
 					},
 					"name": "SRCSMARTSHEET",
-					"description": "Smartsheet data."
+					"description": "Smartsheet data-RDCMasterlist"
 				}
 			],
 			"sinks": [
@@ -30,23 +30,56 @@
 			"transformations": [
 				{
 					"name": "select1"
-				},
-				{
-					"name": "derivedColumn1"
 				}
 			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          Status as string,",
+				"          Location as string,",
+				"          {Bindy ID} as string,",
+				"          {Account #} as integer,",
+				"          {RDC Ship To} as string,",
+				"          Entity as string,",
+				"          {Licensee / Contact} as string,",
+				"          {RDC Address} as string,",
+				"          {RDC City} as string,",
+				"          {RDC State} as string,",
+				"          {RDC Zip} as string,",
+				"          {RDC Country} as string,",
+				"          {RDC Sq. Ft.} as string,",
+				"          {RDC Dock Doors} as double,",
+				"          {Is Ecom Fulfiller} as string,",
+				"          {Acquisition Date} as date,",
+				"          {Modified Date} as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     store: 'smartsheet',",
 				"     format: 'rest',",
 				"     entityId: '7848339512971140',",
 				"     entityType: 'sheets') ~> SRCSMARTSHEET",
-				"SRCSMARTSHEET select(skipDuplicateMapInputs: false,",
+				"SRCSMARTSHEET select(mapColumn(",
+				"          Status,",
+				"          Location,",
+				"          BindyID = {Bindy ID},",
+				"          Account = {Account #},",
+				"          ShipTo = {RDC Ship To},",
+				"          Entity,",
+				"          LicenseeContact = {Licensee / Contact},",
+				"          Address = {RDC Address},",
+				"          City = {RDC City},",
+				"          State = {RDC State},",
+				"          Zip = {RDC Zip},",
+				"          Country = {RDC Country},",
+				"          WarehouseSqFt = {RDC Sq. Ft.},",
+				"          WarehouseDockDoors = {RDC Dock Doors},",
+				"          IsEcomFulfiller = {Is Ecom Fulfiller},",
+				"          AcquisitionDate = {Acquisition Date},",
+				"          ModifiedDate = {Modified Date}",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select1",
-				"select1 derive(Created_Date = currentTimestamp(),",
-				"          Created_by = 'SmartSheet') ~> derivedColumn1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",
 				"     insertable:true,",
