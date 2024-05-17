@@ -1034,6 +1034,145 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "GetNewLoadId1",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SubmitLoad",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\r\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SetNewLoadId1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID1",
+					"value": {
+						"value": "@{activity('GetNewLoadId1').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Load_TrackingHS1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetNewLoadId1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_TrackingHS1",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"B_LOADID": {
+							"value": "@variables('LoadID1')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SubmitLoad1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load_TrackingHS1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "RetailSiteDataLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID1')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
 		"variables": {
@@ -1044,6 +1183,9 @@
 				"type": "Integer"
 			},
 			"B_LOADID": {
+				"type": "String"
+			},
+			"LoadID1": {
 				"type": "String"
 			}
 		},
