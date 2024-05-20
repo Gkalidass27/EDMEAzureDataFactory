@@ -1,0 +1,139 @@
+{
+	"name": "DF_Stage_SiteMaster_RDC_Smartsheet",
+	"properties": {
+		"description": "This Dataflow loads RDC info to Semarchy staging",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Smartsheets",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SRCSMARTSHEET",
+					"description": "Smartsheet data-RDCMasterlist"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_SEM_STG_Smartsheet",
+						"type": "DatasetReference"
+					},
+					"name": "sink1",
+					"rejectedDataLinkedService": {
+						"referenceName": "masterDataHubStg",
+						"type": "LinkedServiceReference"
+					}
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Status as string,",
+				"          Location as string,",
+				"          {Bindy ID} as string,",
+				"          {Account #} as integer,",
+				"          {RDC Ship To} as string,",
+				"          Entity as string,",
+				"          {Licensee / Contact} as string,",
+				"          {RDC Address} as string,",
+				"          {RDC City} as string,",
+				"          {RDC State} as string,",
+				"          {RDC Zip} as string,",
+				"          {RDC Country} as string,",
+				"          {RDC Sq. Ft.} as string,",
+				"          {RDC Dock Doors} as double,",
+				"          {Is Ecom Fulfiller} as string,",
+				"          {Acquisition Date} as date,",
+				"          {Modified Date} as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     store: 'smartsheet',",
+				"     format: 'rest',",
+				"     entityId: '7848339512971140',",
+				"     entityType: 'sheets') ~> SRCSMARTSHEET",
+				"SRCSMARTSHEET select(mapColumn(",
+				"          Status,",
+				"          Location,",
+				"          BindyID = {Bindy ID},",
+				"          Account = {Account #},",
+				"          ShipTo = {RDC Ship To},",
+				"          Entity,",
+				"          LicenseeContact = {Licensee / Contact},",
+				"          Address = {RDC Address},",
+				"          City = {RDC City},",
+				"          State = {RDC State},",
+				"          Zip = {RDC Zip},",
+				"          Country = {RDC Country},",
+				"          WarehouseSqFt = {RDC Sq. Ft.},",
+				"          WarehouseDockDoors = {RDC Dock Doors},",
+				"          IsEcomFulfiller = {Is Ecom Fulfiller},",
+				"          AcquisitionDate = {Acquisition Date},",
+				"          ModifiedDate = {Modified Date}",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Status as string,",
+				"          Location as string,",
+				"          BindyID as string,",
+				"          Account as integer,",
+				"          ShipTo as string,",
+				"          Entity as string,",
+				"          LicenseeContact as string,",
+				"          Address as string,",
+				"          City as string,",
+				"          State as string,",
+				"          Zip as string,",
+				"          Country as string,",
+				"          WarehouseSqFt as integer,",
+				"          WarehouseDockDoors as integer,",
+				"          IsEcomFulfiller as string,",
+				"          AcquisitionDate as date,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     preSQLs:['Delete from Smartsheet.RDCMasterlist'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 1,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     outputRejectedData: true,",
+				"     outputAssertFailedRows: true,",
+				"     assertFailure_fileSystem: 'Error',",
+				"     assertFailure_folderPath: 'RDC',",
+				"     mapColumn(",
+				"          Status,",
+				"          Location,",
+				"          BindyID,",
+				"          Account,",
+				"          ShipTo,",
+				"          Entity,",
+				"          LicenseeContact,",
+				"          Address,",
+				"          City,",
+				"          State,",
+				"          Zip,",
+				"          Country,",
+				"          WarehouseSqFt,",
+				"          WarehouseDockDoors,",
+				"          IsEcomFulfiller,",
+				"          AcquisitionDate,",
+				"          ModifiedDate",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
