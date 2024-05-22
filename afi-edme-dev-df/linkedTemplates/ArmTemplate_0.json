@@ -21,6 +21,14 @@
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Enterprise_ReferenceMaster"
 		},
+		"LS_SMARTSHEET_apiToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'apiToken' of 'LS_SMARTSHEET'"
+		},
+		"LS_Smartsheets_apiToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'apiToken' of 'LS_Smartsheets'"
+		},
 		"Retail_CustomerMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Retail_CustomerMaster'",
@@ -79,6 +87,10 @@
 		"dataFactory_identity_type": {
 			"type": "string",
 			"defaultValue": "SystemAssigned"
+		},
+		"AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://afide-edmekv.vault.azure.net/"
 		},
 		"DataAnyWhereProdRestAPI_properties_typeProperties_url": {
 			"type": "string",
@@ -224,6 +236,19 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AFIEDME_KeyVault_dev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Ashley_EDW')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -286,6 +311,40 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('Enterprise_ReferenceMaster_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SMARTSHEET')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Smartsheet",
+				"typeProperties": {
+					"apiToken": {
+						"type": "SecureString",
+						"value": "[parameters('LS_SMARTSHEET_apiToken')]"
+					},
+					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQDY2NzQ5RUU5LTRFMkQtNEVDRC1BRUUzLTdCQTJGODg3RkFDMF9iOWI3ZDJkYy1jMGIxLTRjYjMtYjE2Yy1hZmExNmYxZDM1YjUiDQp9"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_Smartsheets')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Smartsheet",
+				"typeProperties": {
+					"apiToken": {
+						"type": "SecureString",
+						"value": "[parameters('LS_Smartsheets_apiToken')]"
+					},
+					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQDY2NzQ5RUU5LTRFMkQtNEVDRC1BRUUzLTdCQTJGODg3RkFDMF80YTMxNzRlYy04ZTNmLTRmNWYtOGI3MS03NDIxNjcwNmJmMDciDQp9"
 				}
 			},
 			"dependsOn": []
@@ -705,80 +764,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/All_Max_CustomerMasterId_CustomerInfo')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/CANADA_Postal_Code_Table')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "Ref_PostalCode",
-					"table": "GeocoderCA_PCensusNWE"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Dedeped')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"CDP_TableName": {
-						"type": "string"
-					},
-					"Table_Schema": {
-						"type": "string"
-					}
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": {
-						"value": "@dataset().Table_Schema",
-						"type": "Expression"
-					},
-					"table": {
-						"value": "@dataset().CDP_TableName",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
 			]
 		}
