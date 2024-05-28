@@ -13,6 +13,6070 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_DAC_Payload')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEachLocationIds",
+						"description": "Loop through location ids sequentially",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.item_param",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "WebLocationsAPI",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "GET",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+												"type": "Expression"
+											}
+										},
+										"url": {
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SP_Load_Json_Payload",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "WebLocationsAPI",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[DAC].[Load_Json_Payload]",
+										"storedProcedureParameters": {
+											"JsonPayload": {
+												"value": {
+													"value": "@{activity('WebLocationsAPI').output}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LocationID": {
+												"value": {
+													"value": "@item().locationID",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LoadJsonFile",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "WebLocationsAPI",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "input",
+													"value": {
+														"value": "@{activity('WebLocationsAPI').output}",
+														"type": "Expression"
+													}
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "input",
+														"type": "String"
+													},
+													"sink": {
+														"type": "String",
+														"physicalType": "String",
+														"ordinal": 1
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DAC_Location_Details_Read1",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DAC_Location_Details_Write1",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat('Store_Location_',item().LocationID,'.json')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "SetErrorMsg",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "WebLocationsAPI",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "ErrorMsg",
+										"value": {
+											"value": "@activity('WebLocationsAPI').error.message",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "WaitTime",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "SetErrorMsg",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 3
+									}
+								},
+								{
+									"name": "LoggingStoredProcedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SetErrorMsg",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('WebLocationsAPI').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('WebLocationsAPI').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('WebLocationsAPI').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('WebLocationsAPI').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "WebLocationAPIFailed",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "WaitTime",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "GET",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().globalParameters.DAC_SubscriptionKey",
+												"type": "Expression"
+											}
+										},
+										"url": {
+											"value": "@concat('https://dataanywhereprod.azure-api.net/locations-api-read/location?LocationID=', item().LocationID)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SP_Load_Json_Payload_AfterFailed",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "WebLocationAPIFailed",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[DAC].[Load_Json_Payload]",
+										"storedProcedureParameters": {
+											"JsonPayload": {
+												"value": {
+													"value": "@{activity('WebLocationAPIFailed').output}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LocationID": {
+												"value": {
+													"value": "@item().locationID",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "LoadJsonFileAfterFailed",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "WebLocationAPIFailed",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "input",
+													"value": {
+														"value": "@{activity('WebLocationAPIFailed').output}",
+														"type": "Expression"
+													}
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "input",
+														"type": "String"
+													},
+													"sink": {
+														"type": "String",
+														"physicalType": "String",
+														"ordinal": 1
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DAC_Location_Details_Read1",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DAC_Location_Details_Write1",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileName": {
+													"value": "@concat('Store_Location_',item().LocationID,'.json')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"item_param": {
+						"type": "array"
+					}
+				},
+				"variables": {
+					"FailedActivity": {
+						"type": "String"
+					},
+					"ErrorMsg": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-05-26T06:05:04Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_EDW')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "OSLocation",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT oslLocationID,\r\noslAccountNo,\r\noslShipTo,\r\noslLocationName,\r\noslAddress1,\r\noslAddress2,\r\noslCity,\r\noslState,\r\noslZip,\r\noslCountry,\r\noslCounty,\r\noslPrimaryPhone,\r\noslPrimaryFax,\r\noslPrimaryEmail,\r\noslLatitude,\r\noslLongitude,\r\noslLocationStatus,\r\noslLocationStatusNotes,\r\noslLegacyLocationID,\r\noslWhseShipTo,\r\noslProspectID,\r\noslOwnerType,\r\noslLta,\r\noslDMA,\r\noslMSA,\r\noslCountyFips,\r\noslMarketZone,\r\noslOpAreaZone,\r\noslCurrency,\r\noslLanguage,\r\noslTimeZone,\r\noslGeographicZone,\r\noslStatus,\r\noslStatusNotes,\r\noslLocationType,\r\noslSoftOpenDate,\r\noslGrandOpenDate,\r\noslClosed,\r\noslClosedDate,\r\noslClosedAuthorization,\r\noslRelocated,\r\noslRelocationCloseDate,\r\noslRelocationOpenDate,\r\noslRelocationNotes,\r\noslAcquisition,\r\noslAcquisitionDate,\r\noslAcquisitionNotes,\r\noslPreOpenComments,\r\noslTUAID,\r\noslTUADate,\r\noslTUAExpireDate,\r\noslTUATerm,\r\noslTUADateComplete,\r\noslTurnoverDate,\r\noslRecordChangesFlag,\r\noslOperationsIntroDate,\r\noslMsPipelineDate,\r\noslLicenseeID,\r\nusra,\r\ndtea,\r\nusrc,\r\ndtec,\r\noslAddress3,\r\noslStoreRefresh,\r\noslStoreRefreshDate,\r\noslStoreRefreshNotes,\r\noslmPlansSubToDesign,\r\noslmPRMeeting,\r\noslmPlansSentToOwnerLic,\r\noslURLRegistration,\r\noslEnterpriseStoreNumber FROM [EDME_DataFactory].OSLocation WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE [EDW].[OSLocation]",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "oslLocationID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "oslLocationID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAccountNo",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "oslAccountNo",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "oslShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLocationName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLocationName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAddress1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslAddress1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAddress2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslAddress2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslCity",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslCity",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslState",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslState",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslZip",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslZip",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslCounty",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslCounty",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslPrimaryPhone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslPrimaryPhone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslPrimaryFax",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslPrimaryFax",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslPrimaryEmail",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslPrimaryEmail",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLatitude",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLatitude",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLongitude",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLongitude",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLocationStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLocationStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLocationStatusNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLocationStatusNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegacyLocationID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegacyLocationID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslWhseShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslWhseShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslProspectID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslProspectID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslOwnerType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslOwnerType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLta",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLta",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslDMA",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslDMA",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMSA",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMSA",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslCountyFips",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslCountyFips",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMarketZone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMarketZone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslOpAreaZone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslOpAreaZone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslCurrency",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "oslCurrency",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLanguage",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLanguage",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTimeZone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslTimeZone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslGeographicZone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslGeographicZone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStatusNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslStatusNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLocationType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLocationType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslSoftOpenDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslSoftOpenDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslGrandOpenDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslGrandOpenDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslClosed",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "oslClosed",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "oslClosedDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslClosedDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslClosedAuthorization",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslClosedAuthorization",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslRelocated",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "oslRelocated",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "oslRelocationCloseDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslRelocationCloseDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslRelocationOpenDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslRelocationOpenDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslRelocationNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslRelocationNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAcquisition",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "oslAcquisition",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAcquisitionDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslAcquisitionDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAcquisitionNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslAcquisitionNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslPreOpenComments",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslPreOpenComments",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTUAID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslTUAID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTUADate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslTUADate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTUAExpireDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslTUAExpireDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTUATerm",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslTUATerm",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTUADateComplete",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslTUADateComplete",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslTurnoverDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslTurnoverDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslRecordChangesFlag",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "oslRecordChangesFlag",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "oslOperationsIntroDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslOperationsIntroDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMsPipelineDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslMsPipelineDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLicenseeID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "oslLicenseeID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslAddress3",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslAddress3",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStoreRefresh",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "oslStoreRefresh",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStoreRefreshDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslStoreRefreshDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStoreRefreshNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslStoreRefreshNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslmPlansSubToDesign",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslmPlansSubToDesign",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslmPRMeeting",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslmPRMeeting",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslmPlansSentToOwnerLic",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslmPlansSentToOwnerLic",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslURLRegistration",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslURLRegistration",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslEnterpriseStoreNumber",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslEnterpriseStoreNumber",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EDW_SiteMaster",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "EDW_OSLocation",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Teams_Failed_Notification_OSLocation",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "OSLocation",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('OSLocation').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('OSLocation').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('OSLocation').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('OSLocation').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "OSLocation_ErrorLoags",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "OSLocation",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('OSLocation').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('OSLocation').error.message}\n",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('OSLocation').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('OSLocation').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.OSLocation",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.OSLocation",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "OSLocation_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "OSLocation",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('OSLocation').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('OSLocation').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('OSLocation').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.OSLocation",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.OSLocation",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('OSLocation').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "OsOneSource",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "OSLocation",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT osOneSourceID,\r\nosOneSourceName,\r\nosLegacyLocationID,\r\nosLegacyStoreID,\r\nosProfitCenter,\r\nosChannel,\r\nosActive,\r\nosStoreType,\r\nosSource,\r\nosLocationID,\r\nosStartDate,\r\nosEndDate,\r\nusra,\r\ndtea,\r\nusrc,\r\ndtec,\r\nosProfitCenterType,\r\nosProfitCenterStatus FROM [EDME_DataFactory].OSOneSource WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE [EDW].[OsOneSource]",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "osOneSourceID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "osOneSourceID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "osOneSourceName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osOneSourceName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "osLegacyLocationID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osLegacyLocationID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "osLegacyStoreID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 4
+										},
+										"sink": {
+											"name": "osLegacyStoreID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 4
+										}
+									},
+									{
+										"source": {
+											"name": "osProfitCenter",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 4
+										},
+										"sink": {
+											"name": "osProfitCenter",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 4
+										}
+									},
+									{
+										"source": {
+											"name": "osChannel",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osChannel",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "osActive",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "osActive",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "osStoreType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osStoreType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "osSource",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osSource",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "osLocationID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "osLocationID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "osStartDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "osStartDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "osEndDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "osEndDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "osProfitCenterType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osProfitCenterType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "osProfitCenterStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "osProfitCenterStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EDW_SiteMaster",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "EDW_OSOneSource",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Teams_Failed_Notification_OsOneSource",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "OsOneSource",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('OsOneSource').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('OsOneSource').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('OsOneSource').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('OsOneSource').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "OsOneSource_ErrorLoags",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "OsOneSource",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('OsOneSource').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('OsOneSource').error.message}\n",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('OsOneSource').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('OsOneSource').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.OsOneSource",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.OSOneSource",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "OsOneSource_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "OsOneSource",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.OsOneSource",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.OSOneSource",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('OsOneSource').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "OSLicensee",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "OsOneSource",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT oslLicenseeID,\r\noslStoreType,\r\noslLicenseeNotes,\r\noslPrimaryCountry,\r\noslStatus,\r\noslActive,\r\noslActiveDate,\r\noslActiveNotes,\r\noslGuarantors,\r\noslMailingAddress1,\r\noslMailingAddress2,\r\noslMailingCity,\r\noslMailingState,\r\noslMailingZip,\r\noslMailingCountry,\r\noslLegalEntityName,\r\noslLegalEntityAddress1,\r\noslLegalEntityAddress2,\r\noslLegalEntityCity,\r\noslLegalEntityState,\r\noslLegalEntityZip,\r\noslLegalEntityCountry,\r\nusra,\r\ndtea,\r\nusrc,\r\ndetc,\r\noslLicensedTerritory,\r\noslDisclosureDocument,\r\noslMailingAdd FROM [EDME_DataFactory].OSLicensee WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE [EDW].[OSLicensee]",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "oslLicenseeID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "oslLicenseeID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStoreType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslStoreType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLicenseeNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLicenseeNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslPrimaryCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslPrimaryCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslActive",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "oslActive",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "oslActiveDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "oslActiveDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "oslActiveNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslActiveNotes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslGuarantors",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslGuarantors",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingAddress1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingAddress1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingAddress2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingAddress2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingCity",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingCity",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingState",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingState",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingZip",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingZip",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityAddress1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityAddress1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityAddress2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityAddress2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityCity",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityCity",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityState",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityState",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityZip",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityZip",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLegalEntityCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLegalEntityCountry",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "detc",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "detc",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslLicensedTerritory",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslLicensedTerritory",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "oslDisclosureDocument",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "oslDisclosureDocument",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "oslMailingAdd",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "oslMailingAdd",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EDW_SiteMaster",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "EDW_OSLicensee",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Teams_Failed_Notification_OSLicensee",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "OSLicensee",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('OSLicensee').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('OSLicensee').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('OSLicensee').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('OSLicensee').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "OSLicensee_ErrorLoags",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "OSLicensee",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('OSLicensee').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('OSLicensee').error.message}\n",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('OSLicensee').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('OSLicensee').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.OSLicensee",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.OSLicensee",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "OSLicensee_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "OSLicensee",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.OSLicensee",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.OSLicensee",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('OSLicensee').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "StoreMasterCustom",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "OSLicensee",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT [Status] AS Status,\r\n[LocationKey] AS LocationKey,\r\n[Prospect ID] AS ProspectID,\r\n[Google ID] AS GoogleID,\r\n[Bindy ID] AS BindyID,\r\n[StoreID] AS StoreID,\r\n[ProfitCenter] AS ProfitCenter,\r\n[Location] AS Location,\r\n[Country] AS Country,\r\n[Account #] AS Account,\r\n[Store Front Ship-To] AS StoreFrontShipTo,\r\n[Entity] AS Entity,\r\n[Licensee / Contact] AS LicenseeContact,\r\n[Soft Open Date] AS SoftOpenDate,\r\n[Acquisition Date] AS AcquisitionDate,\r\n[Closure Date] AS ClosureDate,\r\n[ShopperTrakLocID] AS ShopperTrakLocID,\r\n[Store Address] AS StoreAddress,\r\n[City] AS City,\r\n[State / Province] AS StateProvince,\r\n[ZIP] AS ZIP,\r\n[DMA ID] AS DMAID,\r\n[DMA Region] AS DMARegion,\r\n[Showroom Sq. Ft.] AS ShowroomSqFt,\r\n[Store Type] AS StoreType,\r\n[Store Model] AS StoreModel,\r\n[Store Version] AS StoreVersion,\r\n[Market] AS Market,\r\n[Region] AS Region,\r\n[Building Ownership] AS BuildingOwnership,\r\n[Country Category] AS CountryCategory,\r\n[Domestic Category] AS DomesticCategory,\r\n[Classification] AS Classification,\r\n[Store Phone] AS StorePhone,\r\n[District Manager] AS DistrictManager,\r\n[BDDirector] AS BDDirector,\r\n[Licensee Email] AS LicenseeEmail,\r\n[Licensee Phone #] AS LicenseePhone,\r\n[Corporation Address] AS CorporationAddress,\r\n[Corp City] AS CorpCity,\r\n[Corp State] AS CorpState,\r\n[Corp Zip] AS CorpZip,\r\n[RDC Address] AS RDCAddress,\r\n[RDC City] AS RDCCity,\r\n[RDC State] AS RDCState,\r\n[RDC Zip] AS RDCZip,\r\n[RDC Ship To] AS RDCShipTo,\r\n[RDC Sq. Ft.] AS RDCSqFt,\r\n[RDC Dock Doors] AS RDCDockDoors,\r\n[TUA Expiration Date] AS TUAExpirationDate,\r\n[Licensed Territory] AS LicensedTerritory,\r\n[Latitude] AS Latitude,\r\n[Longitude] AS Longitude,\r\n[Notes] AS Notes,\r\n[Store Email] AS StoreEmail,\r\n[Unit #] AS Unit,\r\n[OneSource ID] AS OneSourceID,\r\n[HS Database Name] AS HSDatabaseName,\r\n[SVP] AS SVP,\r\n[VP] AS VP,\r\n[Sr. RD] AS SrRD,\r\n[RD] AS RD,\r\n[Store Manager] AS StoreManager,\r\n[Store Mgr. Phone] AS StoreMgrPhone,\r\n[Sales Manager (1)] AS SalesManager1,\r\n[Sales Manager (2)] AS SalesManager2,\r\n[Sales Manager (3)] AS SalesManager3,\r\n[Sales Manager (4)] AS SalesManager4,\r\n[Office Manager] AS OfficeManager,\r\n[Director of Ops] AS DirectorOfOps,\r\n[Regional Ops Mgr] AS RegionalOpsMgr,\r\n[Ops Mgr] AS OpsMgr,\r\n[Comp Status] AS CompStatus,\r\n[Kit #] AS Kit,\r\n[Traffic Divisor] AS TrafficDivisor,\r\n[ERP] AS ERP,\r\n[DTC Technology] AS DTCTechnology,\r\n[DTC Brand] AS DTCBrand,\r\n[Forum ID] AS ForumID,\r\n[Account Type] AS AccountType,\r\n[Facade Current Image] AS FacadeCurrentImage,\r\n[Website Facade Current] AS WebsiteFacadeCurrent,\r\n[Store Manager Image] AS StoreManagerImage,\r\n[Enterprise Facade Image] AS EnterpriseFacadeImage,\r\n[Licensee Sales District] AS LicenseeSalesDistrict,\r\n[Licensee Sales Region] AS LicenseeSalesRegion,\r\nCAST([Modified Date] AS DATE) AS ModifiedDate\r\nFROM EDME_DataFactory.StoreMasterCustom WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE EDW.StoreMasterCustom;",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "Status",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Status",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LocationKey",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LocationKey",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ProspectID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ProspectID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "GoogleID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "GoogleID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "BindyID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "BindyID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ProfitCenter",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ProfitCenter",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Location",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Location",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Country",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Country",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Account",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Account",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreFrontShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreFrontShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Entity",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Entity",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LicenseeContact",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LicenseeContact",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SoftOpenDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "SoftOpenDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "AcquisitionDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "AcquisitionDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "ClosureDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "ClosureDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "ShopperTrakLocID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ShopperTrakLocID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreAddress",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreAddress",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "City",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "City",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StateProvince",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StateProvince",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ZIP",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ZIP",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DMAID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DMAID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DMARegion",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DMARegion",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ShowroomSqFt",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ShowroomSqFt",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreModel",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreModel",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreVersion",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreVersion",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Market",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Market",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Region",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Region",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "BuildingOwnership",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "BuildingOwnership",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CountryCategory",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "CountryCategory",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DomesticCategory",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DomesticCategory",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Classification",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Classification",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StorePhone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StorePhone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DistrictManager",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DistrictManager",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "BDDirector",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "BDDirector",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LicenseeEmail",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LicenseeEmail",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LicenseePhone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LicenseePhone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CorporationAddress",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "CorporationAddress",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CorpCity",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "CorpCity",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CorpState",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "CorpState",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CorpZip",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "CorpZip",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCAddress",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCAddress",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCCity",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCCity",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCState",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCState",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCZip",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCZip",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCSqFt",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCSqFt",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RDCDockDoors",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RDCDockDoors",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "TUAExpirationDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "TUAExpirationDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "LicensedTerritory",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LicensedTerritory",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Latitude",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Latitude",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Longitude",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Longitude",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Notes",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Notes",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreEmail",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreEmail",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Unit",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Unit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OneSourceID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "OneSourceID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "HSDatabaseName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "HSDatabaseName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SVP",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SVP",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "VP",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "VP",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SrRD",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SrRD",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RD",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RD",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreManager",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreManager",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreMgrPhone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreMgrPhone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SalesManager1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SalesManager1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SalesManager2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SalesManager2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SalesManager3",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SalesManager3",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SalesManager4",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SalesManager4",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OfficeManager",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "OfficeManager",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DirectorOfOps",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DirectorOfOps",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RegionalOpsMgr",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RegionalOpsMgr",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OpsMgr",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "OpsMgr",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "CompStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "CompStatus",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Kit",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Kit",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "TrafficDivisor",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "TrafficDivisor",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ERP",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ERP",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DTCTechnology",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DTCTechnology",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DTCBrand",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "DTCBrand",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ForumID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ForumID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "AccountType",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "AccountType",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "FacadeCurrentImage",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "FacadeCurrentImage",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "WebsiteFacadeCurrent",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "WebsiteFacadeCurrent",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "StoreManagerImage",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StoreManagerImage",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "EnterpriseFacadeImage",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "EnterpriseFacadeImage",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LicenseeSalesDistrict",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LicenseeSalesDistrict",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LicenseeSalesRegion",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LicenseeSalesRegion",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ModifiedDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EDW_SiteMaster",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "EDW_StoreMasterCustom",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Teams_Failed_Notification_StoreMasterCustom",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "StoreMasterCustom",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('StoreMasterCustom').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('StoreMasterCustom').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('StoreMasterCustom').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('StoreMasterCustom').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "StoreMasterCustom_ErrorLoags",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "StoreMasterCustom",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').error.message}\n",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('StoreMasterCustom').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.StoreMasterCustom",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.StoreMasterCustom",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "StoreMasterCustom_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "StoreMasterCustom",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.StoreMasterCustom",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.StoreMasterCustom",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('StoreMasterCustom').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "WholesaleCustomersShippingLocations",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "StoreMasterCustom",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT * \nFROM EDME_DataFactory.CustomersShippingLocations",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE [EDW].[WholesaleCustomersShippingLocations]",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "cslCustomerNumber",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslCustomerNumber",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslShiptoNumber",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslShiptoNumber",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslMapicsSequenceNumber",
+											"type": "Int16",
+											"physicalType": "smallint"
+										},
+										"sink": {
+											"name": "cslMapicsSequenceNumber",
+											"type": "Int16",
+											"physicalType": "smallint"
+										}
+									},
+									{
+										"source": {
+											"name": "cslName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshpa1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmshpa1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshpa2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmshpa2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshpa3",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmshpa3",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshpzp",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmshpzp",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshpst",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "csmshpst",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshpco",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "csmshpco",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmphone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmphone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmfaxtn",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmfaxtn",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslTaxExempt",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslTaxExempt",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmwebsite",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmwebsite",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmemail",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmemail",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslCommissionCode",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslCommissionCode",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslFreightCode",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslFreightCode",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslPriceCode",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslPriceCode",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDiscountCode",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDiscountCode",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslCommissionSplit",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 4,
+											"precision": 7
+										},
+										"sink": {
+											"name": "cslCommissionSplit",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 4,
+											"precision": 7
+										}
+									},
+									{
+										"source": {
+											"name": "cslDefaultWarehouse",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDefaultWarehouse",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslShippingTerritory",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslShippingTerritory",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslBusinessType",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslBusinessType",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslShipType",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslShipType",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslTranscomPrimaryID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslTranscomPrimaryID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmcontact",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "csmcontact",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslcomment1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslcomment1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslcomment2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslcomment2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslTerritoryEffectivityDate",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "cslTerritoryEffectivityDate",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "cslCrmID",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslCrmID",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmcsphone",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmcsphone",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmcsfax",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmcsfax",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmcscontact",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmcscontact",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmcsemail",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmcsemail",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslMemo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslMemo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmmsa_fips",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "csmmsa_fips",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmRMCityNumber",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "csmRMCityNumber",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "cslTranscomAlternateID",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslTranscomAlternateID",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmDirections",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmDirections",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmCrossStreet",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "csmCrossStreet",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "csmChgAddr",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "csmChgAddr",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "csmChgShip",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "csmChgShip",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "csmChgShipExt",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "csmChgShipExt",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "csmChgCust",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "csmChgCust",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "commaudit",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "commaudit",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "commaudit2",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "commaudit2",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usra",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "dtea",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "usrc",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "acrec",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "acrec",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmCounty",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "csmCounty",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslBlockRepOrderEntry",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "cslBlockRepOrderEntry",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "cslCustomerSegment",
+											"type": "Byte",
+											"physicalType": "tinyint"
+										},
+										"sink": {
+											"name": "cslCustomerSegment",
+											"type": "Byte",
+											"physicalType": "tinyint"
+										}
+									},
+									{
+										"source": {
+											"name": "cslLastStatusChangeDate",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "cslLastStatusChangeDate",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "cslBuyerAddressID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "cslBuyerAddressID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "cslPartyLocationID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "cslPartyLocationID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "cslRouteAddressID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "cslRouteAddressID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDefaultOrderType1",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDefaultOrderType1",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDefaultOrderType2",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDefaultOrderType2",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDefaultOrderType3",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDefaultOrderType3",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDefaultOrderType4",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDefaultOrderType4",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "csmshled",
+											"type": "Int16",
+											"physicalType": "smallint"
+										},
+										"sink": {
+											"name": "csmshled",
+											"type": "Int16",
+											"physicalType": "smallint"
+										}
+									},
+									{
+										"source": {
+											"name": "csmAppcd",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "csmAppcd",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "cslAllowFax",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslAllowFax",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDirectConsumer",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDirectConsumer",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDeliveryUnitOfMeasure",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDeliveryUnitOfMeasure",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDeliveryUnitOfMeasureFence",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 7
+										},
+										"sink": {
+											"name": "cslDeliveryUnitOfMeasureFence",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 7
+										}
+									},
+									{
+										"source": {
+											"name": "cslExportsLCLConsolidationFlag",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslExportsLCLConsolidationFlag",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslExportsDocumentCountry",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslExportsDocumentCountry",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslExportsProductOnPallets",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslExportsProductOnPallets",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslExportsAppointmentsRequired",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslExportsAppointmentsRequired",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslHasDock",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "cslHasDock",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "cslHasDockUserDate",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslHasDockUserDate",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslExpressShippingMethod",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslExpressShippingMethod",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDirectIncludeShipto",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDirectIncludeShipto",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslExpressHandlingCharge",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 3,
+											"precision": 4
+										},
+										"sink": {
+											"name": "cslExpressHandlingCharge",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 3,
+											"precision": 4
+										}
+									},
+									{
+										"source": {
+											"name": "cslExpressMinimum",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										},
+										"sink": {
+											"name": "cslExpressMinimum",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "cslExpressMaximum",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										},
+										"sink": {
+											"name": "cslExpressMaximum",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "cslDefaultLanguage",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDefaultLanguage",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslExpressServiceContractNumber",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslExpressServiceContractNumber",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "cslUseNegotiatedFreightRate",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslUseNegotiatedFreightRate",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslUseStandardFreightRate",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslUseStandardFreightRate",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslDoNotRepriceOrders",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslDoNotRepriceOrders",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslPricingUseOfflineFiles",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "cslPricingUseOfflineFiles",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "cslReturnAddressID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "cslReturnAddressID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "cslReturnAddressName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "cslReturnAddressName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EDW_CustomersShippingLocations",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "EDW_WholesaleCustomersShippingLocations",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "WholesaleCustomersShippingLocations_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "WholesaleCustomersShippingLocations",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.WholesaleCustomersShippingLocations",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.CustomersShippingLocations",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Teams_Failed_Notification_CustomersShippingLocations",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "WholesaleCustomersShippingLocations",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('WholesaleCustomersShippingLocations').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('WholesaleCustomersShippingLocations').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('WholesaleCustomersShippingLocations').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('WholesaleCustomersShippingLocations').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "WHolesaleCustomersShippingLocations_ErrorLogs",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "WholesaleCustomersShippingLocations",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').error.message}\n",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('WholesaleCustomersShippingLocations').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "EDW.WholesaleCustomersShippingLocations",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "EDME_DataFactory.CustomersShippingLocations",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('WholesaleCustomersShippingLocations').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_Mappings')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -8269,7 +14333,9 @@
 				"annotations": [],
 				"lastPublishTime": "2022-05-26T06:05:05Z"
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Stage_SiteMaster_DAC_Payload')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_Smartsheet')]",
@@ -8414,996 +14480,6 @@
 				}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/RemoveRetailCustomerLoadArchiveFiles')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Remove last 20 days old Retail Customer Archive CSV file from archive folder",
-				"annotations": [],
-				"runtimeState": "Stopped",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "Remove_RetailCustomerLoad_Archive_Files",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Day",
-						"interval": 1,
-						"startTime": "2023-03-14T06:00:00Z",
-						"timeZone": "UTC"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/00_Load_SiteMaster')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Stage_SiteMaster_EDW",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Stage_SiteMaster_EDW",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "If HS Changed",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Set_HS_ChangedRecordsCount",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@greater(variables('ChangedHSRecordsCount'),0)",
-								"type": "Expression"
-							},
-							"ifTrueActivities": [
-								{
-									"name": "Load_SiteMaster_HS",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Load_SiteMaster_HS",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "CountChanged_HS_Records",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "If WH Changed",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT INT\r\n\r\nEXECUTE dbo.Count_SiteMaster_Changed_Records @SiteType = 'HS', @RETURN_VALUE_ARGUMENT = null\r\n\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Semarchy_Staging",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Set_HS_ChangedRecordsCount",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "CountChanged_HS_Records",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "ChangedHSRecordsCount",
-							"value": {
-								"value": "@activity('CountChanged_HS_Records').output.firstRow.RETURN_VALUE_ARGUMENT",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "CountChanged_WH_Records",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "LoadGDLegalEntityforCompare",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT INT\r\n\r\nEXECUTE dbo.Count_SiteMaster_Changed_Records @SiteType = 'WH', @RETURN_VALUE_ARGUMENT = null\r\n\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Semarchy_Staging",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Set_WH_ChangedRecordsCount",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "CountChanged_WH_Records",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "ChangedWHRecordsCount",
-							"value": {
-								"value": "@activity('CountChanged_WH_Records').output.firstRow.RETURN_VALUE_ARGUMENT",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "If WH Changed",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Set_WH_ChangedRecordsCount",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@greater(variables('ChangedWHRecordsCount'),0)",
-								"type": "Expression"
-							},
-							"ifTrueActivities": [
-								{
-									"name": "Load_SiteMaster_WH",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Load_SiteMaster_WH",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "Preserve_WebUI_CompanyCode",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Stage_SiteMaster_Smartsheet",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "SELECT DISTINCT \n          LEGAL_ENTITY_ID,\n          LIC_CONTACT, \n          COMPANY_CODE,\n\t\t  GetDate() as LOAD_DATE\nFROM DBO.GD_LEGAL_ENTITY WITH(NOLOCK)",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": "TRUNCATE TABLE [EDW].[RSM_LicContact_CompanyCode]",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "LEGAL_ENTITY_ID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 10
-										},
-										"sink": {
-											"name": "LEGAL_ENTITY_ID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 10
-										}
-									},
-									{
-										"source": {
-											"name": "LIC_CONTACT",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LIC_CONTACT",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "COMPANY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "COMPANY_CODE",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LOAD_DATE",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										},
-										"sink": {
-											"name": "LOAD_DATE",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Retail_SiteMaster_GD_LEGAL_ENTITY",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "EDW_RSM_LicContact_CompanyCode",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "LoadGDLegalEntityforCompare",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Preserve_WebUI_CompanyCode",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": "TRUNCATE TABLE Scratch.SiteMaster_GD_LEGAL_ENTITY",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "LEGAL_ENTITY_ID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 10
-										},
-										"sink": {
-											"name": "LEGAL_ENTITY_ID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 10
-										}
-									},
-									{
-										"source": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_BATCHID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										},
-										"sink": {
-											"name": "B_BATCHID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_CREATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_UPDATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "TYPE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "TYPE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_ADDR_LINE2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_ADDR_LINE2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_COUNTRY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_COUNTRY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_COUNTRY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_COUNTRY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_LATITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_LATITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_LONGITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_LONGITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ADDR_LINE2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "ADDR_LINE2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "COUNTRY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "COUNTRY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "COUNTRY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "COUNTRY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LATITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LATITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LONGITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LONGITUDE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_ADDR_LINE2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_ADDR_LINE2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_STATE_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_COUNTRY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_COUNTRY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "MAILING_COUNTRY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "MAILING_COUNTRY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "OS_LEGAL_ENTITY_ID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "OS_LEGAL_ENTITY_ID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LIC_CONTACT",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LIC_CONTACT",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LIC_CONTACT_EMAIL",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LIC_CONTACT_EMAIL",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_LIC_CONTACT_PHONE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_LIC_CONTACT_PHONE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LIC_CONTACT_PHONE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LIC_CONTACT_PHONE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "COMPANY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "COMPANY_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Retail_SiteMaster_GD_LEGAL_ENTITY",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Scratch_SiteMaster_GD_LEGAL_ENTITY",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Stage_SiteMaster_Smartsheet",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Stage_SiteMaster_EDW",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Stage_SiteMaster_Smartsheet",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"ChangedHSRecordsCount": {
-						"type": "Integer"
-					},
-					"ChangedWHRecordsCount": {
-						"type": "Integer"
-					},
-					"LoadID": {
-						"type": "String"
-					},
-					"LoadID1": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "SiteMaster"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Stage_SiteMaster_Smartsheet')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_SiteMaster_HS')]",
-				"[concat(variables('factoryId'), '/pipelines/Load_SiteMaster_WH')]"
-			]
 		}
 	]
 }
