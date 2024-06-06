@@ -4000,6 +4000,8 @@
 			{
 				"name": "Get_Data_Count",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "usp_RetailCustomerLoad",
@@ -4032,6 +4034,8 @@
 			{
 				"name": "usp_RetailCustomerLoad",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -4106,143 +4110,25 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Get Metadata1",
-							"type": "GetMetadata",
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
 								"secureInput": false
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"dataset": {
-									"referenceName": "Error_folder",
-									"type": "DatasetReference",
-									"parameters": {
-										"Foldername": {
-											"value": "@item().name",
-											"type": "Expression"
-										},
-										"path": "Error/copyactivity-logs/"
-									}
+								"pipeline": {
+									"referenceName": "ERROR_RCM_Pipeline",
+									"type": "PipelineReference"
 								},
-								"fieldList": [
-									"childItems"
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "BinaryReadSettings"
-								}
-							}
-						},
-						{
-							"name": "Copy data1",
-							"type": "Copy",
-							"dependsOn": [
-								{
-									"activity": "Set variable1",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "DelimitedTextSource",
-									"storeSettings": {
-										"type": "AzureBlobFSReadSettings",
-										"recursive": true,
-										"enablePartitionDiscovery": false
-									},
-									"formatSettings": {
-										"type": "DelimitedTextReadSettings"
-									}
-								},
-								"sink": {
-									"type": "AzureSqlSink",
-									"writeBehavior": "insert",
-									"sqlWriterUseTableLock": false
-								},
-								"enableStaging": false,
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
+								"waitOnCompletion": true,
+								"parameters": {
+									"Foldername": {
+										"value": "@item().name",
+										"type": "Expression"
 									}
 								}
-							},
-							"inputs": [
-								{
-									"referenceName": "ERROR_RCM",
-									"type": "DatasetReference",
-									"parameters": {
-										"Path": "Error/copyactivity-logs/",
-										"Foldername": {
-											"value": "@activity('Get Metadata1').output.childItems.name",
-											"type": "Expression"
-										}
-									}
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "ERROR_Table_RCM",
-									"type": "DatasetReference"
-								}
-							]
-						},
-						{
-							"name": "Set variable1",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "Get Metadata1",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "pipelineReturnValue",
-								"value": [
-									{
-										"key": "Foldername",
-										"value": {
-											"type": "Expression",
-											"content": "@activity('Get Metadata_Error').output.childItems"
-										}
-									},
-									{
-										"key": "Filename",
-										"value": {
-											"type": "Expression",
-											"content": "*.txt"
-										}
-									}
-								],
-								"setSystemVariable": true
 							}
 						}
 					]
@@ -4251,6 +4137,9 @@
 		],
 		"variables": {
 			"LoadID": {
+				"type": "String"
+			},
+			"Name": {
 				"type": "String"
 			}
 		},
