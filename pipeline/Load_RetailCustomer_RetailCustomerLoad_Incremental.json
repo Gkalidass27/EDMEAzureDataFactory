@@ -4147,7 +4147,7 @@
 							"type": "Copy",
 							"dependsOn": [
 								{
-									"activity": "Get Metadata1",
+									"activity": "Set variable1",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -4167,7 +4167,6 @@
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
 										"recursive": true,
-										"wildcardFileName": "*",
 										"enablePartitionDiscovery": false
 									},
 									"formatSettings": {
@@ -4196,7 +4195,7 @@
 									"parameters": {
 										"Path": "Error/copyactivity-logs/",
 										"Foldername": {
-											"value": "@activity('Get Metadata1').output.childItems",
+											"value": "@activity('Get Metadata1').output.childItems.name",
 											"type": "Expression"
 										}
 									}
@@ -4208,6 +4207,43 @@
 									"type": "DatasetReference"
 								}
 							]
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "pipelineReturnValue",
+								"value": [
+									{
+										"key": "Foldername",
+										"value": {
+											"type": "Expression",
+											"content": "@activity('Get Metadata_Error').output.childItems"
+										}
+									},
+									{
+										"key": "Filename",
+										"value": {
+											"type": "Expression",
+											"content": "*.txt"
+										}
+									}
+								],
+								"setSystemVariable": true
+							}
 						}
 					]
 				}
