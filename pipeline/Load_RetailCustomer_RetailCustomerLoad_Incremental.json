@@ -5,6 +5,8 @@
 			{
 				"name": "Check_CustomerInfo_Count",
 				"type": "IfCondition",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Get_Data_Count",
@@ -4054,7 +4056,7 @@
 					{
 						"activity": "Check_CustomerInfo_Count",
 						"dependencyConditions": [
-							"Succeeded"
+							"Completed"
 						]
 					}
 				],
@@ -4117,7 +4119,14 @@
 							"typeProperties": {
 								"dataset": {
 									"referenceName": "Error_folder",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"Foldername": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"path": "Error/copyactivity-logs/"
+									}
 								},
 								"fieldList": [
 									"childItems"
@@ -4130,6 +4139,66 @@
 									"type": "BinaryReadSettings"
 								}
 							}
+						},
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFileName": "*",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ERROR_RCM",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ERROR_Table_RCM",
+									"type": "DatasetReference"
+								}
+							]
 						}
 					]
 				}
