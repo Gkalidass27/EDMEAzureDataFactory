@@ -226,7 +226,7 @@
 											"referenceName": "masterDataHubStg",
 											"type": "LinkedServiceReference"
 										},
-										"path": "retail-customer/Error/copyactivity-logs/Load_RetailCustomers"
+										"path": "retail-customer/Error"
 									}
 								},
 								"dataIntegrationUnits": 2,
@@ -4046,6 +4046,57 @@
 					"referenceName": "semarchy_staging",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Check_CustomerInfo_Count",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"deleteFilesAfterCompletion": false
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "Binary2",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Errorlogging",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
