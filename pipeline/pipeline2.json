@@ -1,5 +1,5 @@
 {
-	"name": "pipeline3",
+	"name": "pipeline2",
 	"properties": {
 		"activities": [
 			{
@@ -16,10 +16,14 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "Filename",
+						"referenceName": "Subfolder",
 						"type": "DatasetReference",
 						"parameters": {
-							"Path": "Error/copyactivity-logs/"
+							"Path": "Error/copyactivity-logs/",
+							"Foldername": {
+								"value": "@pipeline().parameters.Foldername",
+								"type": "Expression"
+							}
 						}
 					},
 					"fieldList": [
@@ -51,19 +55,40 @@
 						"value": "@activity('Get Metadata1').output.childItems",
 						"type": "Expression"
 					},
-					"isSequential": true
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pipeline3",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Foldername": {
+										"value": "@pipeline().parameters.Foldername",
+										"type": "Expression"
+									},
+									"Subfoldername": {
+										"value": "@item().name",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
 				}
 			}
 		],
 		"parameters": {
-			"Path": {
-				"type": "string",
-				"defaultValue": "Error/copyactivity-logs/"
-			},
 			"Foldername": {
-				"type": "string"
-			},
-			"Subfoldername": {
 				"type": "string"
 			}
 		},
