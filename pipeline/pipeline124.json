@@ -24,7 +24,17 @@
 				"typeProperties": {
 					"dataset": {
 						"referenceName": "DelimitedText3",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"Path": {
+								"value": "@pipeline().parameters.Path",
+								"type": "Expression"
+							},
+							"Foldername": {
+								"value": "@pipeline().parameters.Foldername",
+								"type": "Expression"
+							}
+						}
 					},
 					"fieldList": [
 						"childItems"
@@ -97,7 +107,14 @@
 						{
 							"name": "Execute Pipeline1",
 							"type": "ExecutePipeline",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Set variable2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"secureInput": false
 							},
@@ -107,7 +124,30 @@
 									"referenceName": "pipeline123",
 									"type": "PipelineReference"
 								},
-								"waitOnCompletion": true
+								"waitOnCompletion": true,
+								"parameters": {
+									"newpath": {
+										"value": "@variables('Newpath')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Set variable2",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Newpath",
+								"value": {
+									"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
+									"type": "Expression"
+								}
 							}
 						}
 					]
