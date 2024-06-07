@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Get Metadata1",
+				"name": "Get Metadata_Subfolder",
 				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {
@@ -46,7 +46,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Get Metadata1",
+						"activity": "Get Metadata_Subfolder",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -54,45 +54,39 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata_Subfolder').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
 					"activities": [
 						{
-							"name": "Get Metadata2",
-							"type": "GetMetadata",
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
 								"secureInput": false
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"dataset": {
-									"referenceName": "ERROR_Subfolder",
-									"type": "DatasetReference",
-									"parameters": {
-										"Path": {
-											"value": "@pipeline().parameters.PL_Path",
-											"type": "Expression"
-										},
-										"Foldername": {
-											"value": "@pipeline().parameters.PL_Foldername",
-											"type": "Expression"
-										},
-										"Subfoldername": {
-											"value": "@item().name",
-											"type": "Expression"
-										}
+								"pipeline": {
+									"referenceName": "Notify_error_RCM_Files",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Path": {
+										"value": "@pipeline().parameters.PL_Path",
+										"type": "Expression"
+									},
+									"Foldername": {
+										"value": "@pipeline().parameters.PL_Foldername",
+										"type": "Expression"
+									},
+									"Subfoldername": {
+										"value": "@item().name",
+										"type": "Expression"
 									}
-								},
-								"fieldList": [],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
 								}
 							}
 						}
