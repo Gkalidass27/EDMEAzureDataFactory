@@ -1,6 +1,114 @@
 {
 	"name": "Copy_latestfiles_RCM",
 	"properties": {
+		"activities": [
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Error_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"Foldername": {
+								"value": "@pipeline().parameters.PL_Foldername",
+								"type": "Expression"
+							},
+							"path": {
+								"value": "@pipeline().parameters.PL_Path",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"activities": [
+						{
+							"name": "Get Metadata2",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ERROR_Subfolder",
+									"type": "DatasetReference",
+									"parameters": {
+										"Path": {
+											"value": "@pipeline().parameters.PL_Path",
+											"type": "Expression"
+										},
+										"Foldername": {
+											"value": "@pipeline().parameters.PL_Foldername",
+											"type": "Expression"
+										},
+										"Subfoldername": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"PL_Path": {
+				"type": "string",
+				"defaultValue": "Error/copyactivity-logs/"
+			},
+			"PL_Foldername": {
+				"type": "string"
+			}
+		},
 		"folder": {
 			"name": "Retail_Customer_Flow"
 		},
