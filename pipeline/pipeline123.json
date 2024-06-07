@@ -76,11 +76,17 @@
 										"Filename": {
 											"value": "@item().name",
 											"type": "Expression"
+										},
+										"newpath": {
+											"value": "@pipeline().parameters.newpath",
+											"type": "Expression"
 										}
 									}
 								},
 								"fieldList": [
-									"size"
+									"size",
+									"itemName",
+									"lastModified"
 								],
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
@@ -114,6 +120,54 @@
 									"type": "Expression"
 								}
 							}
+						},
+						{
+							"name": "Set variable2",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Filename",
+								"value": {
+									"value": "@activity('Get Metadata2').output.itemName",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set variable3",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set variable2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "lastmoddate",
+								"value": {
+									"value": "@activity('Get Metadata2').output.lastModified",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
@@ -133,6 +187,12 @@
 		"variables": {
 			"Size": {
 				"type": "Integer"
+			},
+			"Filename": {
+				"type": "String"
+			},
+			"lastmoddate": {
+				"type": "String"
 			}
 		},
 		"folder": {
