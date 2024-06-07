@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
-				"type": "Copy",
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -15,38 +15,14 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
-					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
+					"dataset": {
 						"referenceName": "RCM_Error_files",
 						"type": "DatasetReference",
 						"parameters": {
-							"Path": "Error/copyactivity-logs/",
+							"Path": {
+								"value": "@pipeline().parameters.Path",
+								"type": "Expression"
+							},
 							"Foldername": {
 								"value": "@pipeline().parameters.Foldername",
 								"type": "Expression"
@@ -56,29 +32,299 @@
 								"type": "Expression"
 							}
 						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
 					}
 				],
-				"outputs": [
-					{
-						"referenceName": "ERROR_Table_RCM",
-						"type": "DatasetReference"
-					}
-				]
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata1').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Filename",
+								"value": {
+									"value": "@item().name",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Get Metadata2",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DelimitedText2",
+									"type": "DatasetReference",
+									"parameters": {
+										"Path": {
+											"value": "@pipeline().parameters.Path",
+											"type": "Expression"
+										},
+										"Foldername": {
+											"value": "@pipeline().parameters.Foldername",
+											"type": "Expression"
+										},
+										"Subfoldername": {
+											"value": "@pipeline().parameters.Subfoldername",
+											"type": "Expression"
+										},
+										"Filename": {
+											"value": "@variables('Filename')",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"size"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings",
+									"skipLineCount": 1
+								}
+							}
+						},
+						{
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(activity('Get Metadata2').output.size,variables('Size') )",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Set variable3",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop",
+											"value": "false"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Set variable2",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "loop",
+											"value": "true"
+										}
+									},
+									{
+										"name": "Set variable4",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "Set variable2",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Errormessage",
+											"value": {
+												"value": "@concat(pipeline().parameters.Foldername,'.',pipeline().parameters.Subfoldername)",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "Teams_Failed_Notification",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Set variable4",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "Notify_Teams_Channale_Pipeline",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"subscription": {
+													"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+													"type": "Expression"
+												},
+												"resourceGroup": "afi-edme-rg",
+												"runId": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"name": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"triggerTime": {
+													"value": "@pipeline().TriggerTime",
+													"type": "Expression"
+												},
+												"status": {
+													"value": "@variables('Status_v')",
+													"type": "Expression"
+												},
+												"message": {
+													"value": "@variables('Errormessage')",
+													"type": "Expression"
+												},
+												"executionEndTime": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"teamWebhookUrl": {
+													"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
 			}
 		],
 		"parameters": {
 			"Subfoldername": {
 				"type": "string",
-				"defaultValue": "0183ac8d-ff46-494e-bb0c-90ab9da98d67"
+				"defaultValue": "782139d0-c59c-4376-b6bb-e9af77d006fd"
 			},
 			"Foldername": {
 				"type": "string",
-				"defaultValue": "Load_AddressLocations"
+				"defaultValue": "Load_RetailCustomers"
+			},
+			"Path": {
+				"type": "string",
+				"defaultValue": "Error/copyactivity-logs/"
+			},
+			"RunID": {
+				"type": "string"
+			},
+			"PipelineName": {
+				"type": "string"
+			},
+			"TriggerTime": {
+				"type": "string"
+			},
+			"status": {
+				"type": "string"
+			},
+			"ErrorMsg": {
+				"type": "string"
+			},
+			"executionEndTime": {
+				"type": "string"
+			},
+			"runDuration": {
+				"type": "string"
 			}
 		},
 		"variables": {
-			"Name": {
+			"Filename": {
 				"type": "String"
+			},
+			"Size": {
+				"type": "Integer",
+				"defaultValue": 52
+			},
+			"loop": {
+				"type": "String"
+			},
+			"Errormessage": {
+				"type": "String"
+			},
+			"Status_v": {
+				"type": "String",
+				"defaultValue": "Failed"
 			}
 		},
 		"annotations": []
