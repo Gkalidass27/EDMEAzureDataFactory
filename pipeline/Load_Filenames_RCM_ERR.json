@@ -5,7 +5,14 @@
 			{
 				"name": "Get Metadata1",
 				"type": "GetMetadata",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Set variable4",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -185,7 +192,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@and(\r\n    greater(activity('Get Metadata2').output.size, variables('Size')),\r\n    greater(activity('Get Metadata2').output.lastModified, variables('lastmoddate'))\r\n)",
+									"value": "@and(\n    greater(activity('Get Metadata2').output.size, variables('Size')),\n    greaterorequals(activity('Get Metadata2').output.lastModified, variables('lastmoddate'))\n)",
 									"type": "Expression"
 								},
 								"ifTrueActivities": [
@@ -235,6 +242,23 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Set variable4",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "lastmoddate",
+					"value": {
+						"value": "@utcnow()",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -254,8 +278,7 @@
 				"type": "String"
 			},
 			"lastmoddate": {
-				"type": "String",
-				"defaultValue": "1900-01-01 00:00:00"
+				"type": "String"
 			}
 		},
 		"folder": {
