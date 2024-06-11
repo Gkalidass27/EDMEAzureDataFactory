@@ -49,8 +49,6 @@
 			{
 				"name": "ForEach1",
 				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Get Metadata_Folders",
@@ -108,9 +106,11 @@
 						{
 							"name": "Execute Pipeline1",
 							"type": "ExecutePipeline",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
-									"activity": "Set variable2",
+									"activity": "Set variable2old",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -135,8 +135,10 @@
 							}
 						},
 						{
-							"name": "Set variable2",
+							"name": "Set variable2old",
 							"type": "SetVariable",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [],
 							"policy": {
 								"secureOutput": false,
@@ -149,6 +151,66 @@
 									"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
 									"type": "Expression"
 								}
+							}
+						},
+						{
+							"name": "If Condition2",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(activity('Get Metadata_Folders').output.lastModified, subtractFromTime(utcNow(), -5, 'Minute'))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Execute Pipeline1_copy2",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Set variable2",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "Load_Filenames_RCM_ERR",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"newpath": {
+													"value": "@variables('Newpath')",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "Set variable2",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Newpath",
+											"value": {
+												"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
+												"type": "Expression"
+											}
+										}
+									}
+								]
 							}
 						}
 					]
@@ -174,6 +236,8 @@
 			{
 				"name": "If Condition1",
 				"type": "IfCondition",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Get Metadata_Folders",
