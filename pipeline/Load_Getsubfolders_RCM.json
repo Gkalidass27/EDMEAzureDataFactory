@@ -7,7 +7,7 @@
 				"type": "GetMetadata",
 				"dependsOn": [
 					{
-						"activity": "Set variable_Newpath",
+						"activity": "Set variable3",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -33,8 +33,7 @@
 						}
 					},
 					"fieldList": [
-						"childItems",
-						"lastModified"
+						"childItems"
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
@@ -66,11 +65,73 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Execute Pipeline1_copy2",
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(item().lastModified, subtractFromTime(utcNow(), 1, 'hour'))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "Execute Pipeline1_copy2",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Set variable2",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "Load_Filenames_RCM_ERR",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"newpath": {
+													"value": "@variables('Newpath')",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "Set variable2",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Newpath",
+											"value": {
+												"value": "@concat(pipeline().parameters.Path,'/',item().name)",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Execute Pipeline1_copy2_copy1",
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Set variable2",
+									"activity": "Set variable2_copy1",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -95,7 +156,7 @@
 							}
 						},
 						{
-							"name": "Set variable2",
+							"name": "Set variable2_copy1",
 							"type": "SetVariable",
 							"dependsOn": [],
 							"policy": {
@@ -106,7 +167,7 @@
 							"typeProperties": {
 								"variableName": "Newpath",
 								"value": {
-									"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
+									"value": "@concat(pipeline().parameters.Path,'/',item().name)",
 									"type": "Expression"
 								}
 							}
@@ -133,7 +194,7 @@
 				"typeProperties": {
 					"variableName": "Newpath",
 					"value": {
-						"value": "@pipeline().parameters.Path",
+						"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername)",
 						"type": "Expression"
 					}
 				}
@@ -144,17 +205,74 @@
 				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
-					"waitTimeInSeconds": 30
+					"waitTimeInSeconds": 5
+				}
+			},
+			{
+				"name": "Set variable3",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable4",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Modifiedto",
+					"value": {
+						"value": "@formatDateTime(convertTimeZone(utcnow(),'UTC','Eastern Standard Time'),'yyyy-MM-dd')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable4",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable_Newpath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Modifiedfrom",
+					"value": {
+						"value": "@formatDateTime(addMinutes(convertTimeZone(utcnow(), 'Eastern Standard Time', 'UTC'), -30), 'yyyy-MM-dd HH:mm:00')",
+						"type": "Expression"
+					}
 				}
 			}
 		],
 		"parameters": {
 			"Path": {
 				"type": "string"
+			},
+			"Foldername": {
+				"type": "string"
 			}
 		},
 		"variables": {
 			"Newpath": {
+				"type": "String"
+			},
+			"Modifiedfrom": {
+				"type": "String"
+			},
+			"Modifiedto": {
 				"type": "String"
 			}
 		},

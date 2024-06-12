@@ -7,7 +7,7 @@
 				"type": "GetMetadata",
 				"dependsOn": [
 					{
-						"activity": "Set variable4",
+						"activity": "Set variable3_copy1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -39,6 +39,14 @@
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@variables('Modifiedfrom')",
+							"type": "Expression"
+						},
+						"modifiedDatetimeEnd": {
+							"value": "@variables('Modifiedto')",
+							"type": "Expression"
+						},
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -409,7 +417,31 @@
 				}
 			},
 			{
-				"name": "Set variable4",
+				"name": "Set variable3_copy1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable4_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Modifiedto",
+					"value": {
+						"value": "@formatDateTime(addMinutes(convertTimeZone(utcnow(), 'Eastern Standard Time', 'UTC'), 0), 'yyyy-MM-dd HH:mm:00')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable4_copy1",
 				"type": "SetVariable",
 				"dependsOn": [],
 				"policy": {
@@ -418,9 +450,9 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "lastmoddate",
+					"variableName": "Modifiedfrom",
 					"value": {
-						"value": "@utcnow()",
+						"value": "@formatDateTime(addMinutes(convertTimeZone(utcnow(), 'Eastern Standard Time', 'UTC'), -30), 'yyyy-MM-dd HH:mm:00')",
 						"type": "Expression"
 					}
 				}
@@ -443,6 +475,12 @@
 				"type": "String"
 			},
 			"lastmoddate": {
+				"type": "String"
+			},
+			"Modifiedfrom": {
+				"type": "String"
+			},
+			"Modifiedto": {
 				"type": "String"
 			}
 		},
