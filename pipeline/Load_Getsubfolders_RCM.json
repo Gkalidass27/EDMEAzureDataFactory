@@ -66,51 +66,11 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Get Metadata2",
-							"type": "GetMetadata",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"dataset": {
-									"referenceName": "DelimitedText4",
-									"type": "DatasetReference",
-									"parameters": {
-										"Subfoldername": {
-											"value": "@item().name",
-											"type": "Expression"
-										}
-									}
-								},
-								"fieldList": [
-									"childItems"
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							}
-						},
-						{
-							"name": "Execute Pipeline1",
+							"name": "Execute Pipeline1_copy2",
 							"type": "ExecutePipeline",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
-									"activity": "Set variable2old",
+									"activity": "Set variable2",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -135,10 +95,8 @@
 							}
 						},
 						{
-							"name": "Set variable2old",
+							"name": "Set variable2",
 							"type": "SetVariable",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [],
 							"policy": {
 								"secureOutput": false,
@@ -151,66 +109,6 @@
 									"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
 									"type": "Expression"
 								}
-							}
-						},
-						{
-							"name": "If Condition2",
-							"type": "IfCondition",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@greater(activity('Get Metadata_Folders').output.lastModified, subtractFromTime(utcNow(), -5, 'Minute'))",
-									"type": "Expression"
-								},
-								"ifTrueActivities": [
-									{
-										"name": "Execute Pipeline1_copy2",
-										"type": "ExecutePipeline",
-										"dependsOn": [
-											{
-												"activity": "Set variable2",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "Load_Filenames_RCM_ERR",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"newpath": {
-													"value": "@variables('Newpath')",
-													"type": "Expression"
-												}
-											}
-										}
-									},
-									{
-										"name": "Set variable2",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"policy": {
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "Newpath",
-											"value": {
-												"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
-												"type": "Expression"
-											}
-										}
-									}
-								]
 							}
 						}
 					]
@@ -235,131 +133,9 @@
 				"typeProperties": {
 					"variableName": "Newpath",
 					"value": {
-						"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername)",
+						"value": "@pipeline().parameters.Path",
 						"type": "Expression"
 					}
-				}
-			},
-			{
-				"name": "If Condition1",
-				"type": "IfCondition",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Get Metadata_Folders",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@greater(activity('Get Metadata_Folders').output.lastModified, subtractFromTime(utcNow(), -5, 'Minute'))",
-						"type": "Expression"
-					},
-					"ifTrueActivities": [
-						{
-							"name": "ForEach1_copy1",
-							"type": "ForEach",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"items": {
-									"value": "@activity('Get Metadata_Folders').output.childItems",
-									"type": "Expression"
-								},
-								"isSequential": true,
-								"activities": [
-									{
-										"name": "Get Metadata2_copy1",
-										"type": "GetMetadata",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
-										"dependsOn": [],
-										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 0,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"dataset": {
-												"referenceName": "DelimitedText4",
-												"type": "DatasetReference",
-												"parameters": {
-													"Subfoldername": {
-														"value": "@item().name",
-														"type": "Expression"
-													}
-												}
-											},
-											"fieldList": [
-												"childItems"
-											],
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										}
-									},
-									{
-										"name": "Execute Pipeline1_copy1",
-										"type": "ExecutePipeline",
-										"dependsOn": [
-											{
-												"activity": "Set variable2_copy1",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "Load_Filenames_RCM_ERR",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"newpath": {
-													"value": "@variables('Newpath')",
-													"type": "Expression"
-												}
-											}
-										}
-									},
-									{
-										"name": "Set variable2_copy1",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"policy": {
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"variableName": "Newpath",
-											"value": {
-												"value": "@concat(pipeline().parameters.Path,pipeline().parameters.Foldername,'/',item().name)",
-												"type": "Expression"
-											}
-										}
-									}
-								]
-							}
-						}
-					]
 				}
 			},
 			{
@@ -374,9 +150,6 @@
 		],
 		"parameters": {
 			"Path": {
-				"type": "string"
-			},
-			"Foldername": {
 				"type": "string"
 			}
 		},
