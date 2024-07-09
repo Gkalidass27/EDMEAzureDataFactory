@@ -1,0 +1,119 @@
+{
+	"name": "Pl_PostalCodeAutomation_Stg",
+	"properties": {
+		"activities": [
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": {
+						"value": "https://afide-edmekv.vault.azure.net/secrets/melissa-data-license-key/b0d3207214ea4b0b9fef24ac132a17e1?api-version=7.0 ",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "license_key",
+					"value": {
+						"value": "@activity('Web1').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Web2",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"httpRequestTimeout": "00:10:00",
+					"url": {
+						"value": "@concat('https://releases.melissadata.net/releases/data/z5max.txt?FORMAT=JSON&ID=',variables('license_key'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable2",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Web2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "folder",
+					"value": {
+						"value": "@activity('Web2').output.value",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"license_key": {
+				"type": "String"
+			},
+			"folder": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "Postal_Code"
+		},
+		"annotations": []
+	}
+}
