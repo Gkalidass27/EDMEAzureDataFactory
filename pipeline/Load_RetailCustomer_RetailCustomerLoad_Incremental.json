@@ -3015,14 +3015,7 @@
 						{
 							"name": "SubmitLoadID",
 							"type": "SqlServerStoredProcedure",
-							"dependsOn": [
-								{
-									"activity": "Load_DiscountProgram",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
+							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -3790,7 +3783,7 @@
 							}
 						},
 						{
-							"name": "Teams_Failed_Notification_AddressLocations_copy1",
+							"name": "Teams_Failed_Notification_DiscountProgram",
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
@@ -3856,7 +3849,7 @@
 							"type": "Fail",
 							"dependsOn": [
 								{
-									"activity": "Teams_Failed_Notification_AddressLocations_copy1",
+									"activity": "Teams_Failed_Notification_DiscountProgram",
 									"dependencyConditions": [
 										"Completed"
 									]
@@ -3865,11 +3858,11 @@
 							"userProperties": [],
 							"typeProperties": {
 								"message": {
-									"value": "@replace(activity('Load_AddressLocations').error.message,'\"','')",
+									"value": "@replace(activity('Load_DiscountProgram').error.message,'\"','')",
 									"type": "Expression"
 								},
 								"errorCode": {
-									"value": "@{activity('Load_AddressLocations').error.errorCode}",
+									"value": "@{activity('Load_DiscountProgram').error.errorCode}",
 									"type": "Expression"
 								}
 							}
@@ -3880,6 +3873,643 @@
 							"dependsOn": [
 								{
 									"activity": "Load_DiscountProgram",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+								"storedProcedureParameters": {
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Load_Orders",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Load_DiscountProgram",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadID')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": "SELECT O.ORDER_ID,\r\n       O.B_CLASSNAME,\r\n       O.B_CREDATE,\r\n       O.B_UPDDATE,\r\n       O.B_CREATOR,\r\n       O.B_UPDATOR,\r\n       O.ORDER_DATE,\r\n       O.ORDER_TYPE,\r\n       O.SOURCE_ORDER_ID,\r\n       O.FP_RETAIL_CUSTOMER,\r\n       O.FS_RETAIL_CUSTOMER,\r\n       O.CUSTOMER_PUBLISHER_ID,\r\n       O.CUSTOMER_SOURCE_ID\r\nFROM [RetailCustomer].[OrdersIncremental] AS O\r\nWITH(NOLOCK)",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "B_LOADID",
+												"type": "String"
+											},
+											"sink": {
+												"name": "B_LOADID",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 0,
+												"precision": 38
+											}
+										},
+										{
+											"source": {
+												"name": "ORDER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "ORDER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ORDER_DATE",
+												"type": "DateTime",
+												"physicalType": "date"
+											},
+											"sink": {
+												"name": "ORDER_DATE",
+												"type": "DateTime",
+												"physicalType": "date"
+											}
+										},
+										{
+											"source": {
+												"name": "ORDER_TYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "ORDER_TYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "SOURCE_ORDER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "SOURCE_ORDER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FP_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "FP_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FS_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "FS_RETAIL_CUSTOMER",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CUSTOMER_PUBLISHER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CUSTOMER_PUBLISHER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CUSTOMER_SOURCE_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CUSTOMER_SOURCE_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_Orders_RCM",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_SA_ORDERS_RCM",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Orders_SuccessLogging",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load_Orders",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+								"storedProcedureParameters": {
+									"CopyActivity_End_Time": {
+										"value": {
+											"value": "@{utcnow()}",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"CopyActivity_Start_Time": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0].start}\n\n",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"CopyActivity_transferDuration_in_secs": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0]. detailedDurations.transferDuration}",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"CopyDuration_in_secs": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.copyDuration}",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"Execution_Status": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0].status}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Pipeline_Name": {
+										"value": {
+											"value": "@{pipeline().Pipeline}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RowsCopied": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.rowsCopied}",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"RowsRead": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.rowsRead}",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"RunId": {
+										"value": {
+											"value": "@{pipeline().RunId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink": {
+										"value": {
+											"value": "dbo.SA_ORDERS",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink_Type": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0].sink.type}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source": {
+										"value": {
+											"value": "RcmCustSubscriber.RetailSalesOrderHeader",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source_Type": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0].source.type}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerId": {
+										"value": {
+											"value": "@{pipeline().TriggerId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerName": {
+										"value": {
+											"value": "@{pipeline().TriggerName}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerTime": {
+										"value": {
+											"value": "@{pipeline().TriggerTime}",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"TriggerType": {
+										"value": {
+											"value": "@{pipeline().TriggerType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Orders_ErrorLogs",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load_Orders",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": {
+											"value": "@{activity('Load_Orders').error.errorCode}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": {
+											"value": "@{activity('Load_Orders').error.message}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorStatusCode": {
+										"value": {
+											"value": "@activity('Load_Orders').StatusCode",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FailureType": {
+										"value": {
+											"value": "@{activity('Load_Orders').error.failureType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@{pipeline().Pipeline}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@{pipeline().RunId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink": {
+										"value": {
+											"value": "SA_ORDERS",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink_Type": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0].sink.type}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source": {
+										"value": {
+											"value": "RcmCustSubscriber.RetailSalesOrderHeader",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source_Type": {
+										"value": {
+											"value": "@{activity('Load_Orders').output.executionDetails[0].source.type}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerId": {
+										"value": {
+											"value": "@{pipeline().TriggerId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerName": {
+										"value": {
+											"value": "@{pipeline().TriggerName}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerTime": {
+										"value": {
+											"value": "@{pipeline().TriggerTime}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerType": {
+										"value": {
+											"value": "@{pipeline().TriggerType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Teams_Failed_Notification_Orders",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load_Orders",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "@activity('Load_Orders').output.executionDetails[0].start",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('Load_Orders').output.executionDetails[0].status",
+										"type": "Expression"
+									},
+									"message": {
+										"value": "@replace(activity('Load_Orders').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Load_Orders').output.copyDuration",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Fail_Orders",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Teams_Failed_Notification_Orders",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('Load_Orders').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('Load_Orders').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SD_Cancel_DiscountProgram_LoadId_Stored_Procedure_copy1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load_Orders",
 									"dependencyConditions": [
 										"Failed"
 									]
