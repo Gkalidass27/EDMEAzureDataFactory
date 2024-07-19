@@ -51,7 +51,7 @@
 				}
 			},
 			{
-				"name": "Web2",
+				"name": "GetFilelist",
 				"type": "WebActivity",
 				"dependsOn": [
 					{
@@ -83,7 +83,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Web2",
+						"activity": "Set variable4",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -98,6 +98,79 @@
 					"variableName": "Currentmonthyear",
 					"value": "@concat(formatDateTime(utcNow(), 'yyyy.MM'))"
 				}
+			},
+			{
+				"name": "Filter1",
+				"type": "Filter",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Set variable2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetFilelist').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item(),variables('Currentmonthyear'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable3",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetFilelist",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "datelist",
+					"value": {
+						"value": "@activity('GetFilelist').output.Response",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable4",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable3",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "parsedatelist",
+					"value": {
+						"value": "@json(variables('datelist'))",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"variables": {
@@ -109,6 +182,12 @@
 			},
 			"Currentmonthyear": {
 				"type": "String"
+			},
+			"datelist": {
+				"type": "String"
+			},
+			"parsedatelist": {
+				"type": "Array"
 			}
 		},
 		"folder": {
