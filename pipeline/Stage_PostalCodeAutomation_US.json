@@ -249,7 +249,7 @@
 							}
 						},
 						{
-							"name": "Copy data1",
+							"name": "Copy_PostalCode_US",
 							"type": "Copy",
 							"dependsOn": [
 								{
@@ -304,11 +304,11 @@
 							]
 						},
 						{
-							"name": "Notify_Teams_Channale_Pipeline_Success",
+							"name": "Teams_Failed_Notification_PostalCode_Success",
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Copy data1",
+									"activity": "Copy_PostalCode_US",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -325,8 +325,41 @@
 								},
 								"waitOnCompletion": true,
 								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "@activity('Copy_PostalCode_US').output.executionDetails[0].start",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('Copy_PostalCode_US').output.executionDetails[0].status",
+										"type": "Expression"
+									},
 									"message": {
-										"value": "'We recived latest postal code data from Melissa team'",
+										"value": "@replace(activity('Copy_PostalCode_US').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Copy_PostalCode_US').output.copyDuration",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
 										"type": "Expression"
 									}
 								}
