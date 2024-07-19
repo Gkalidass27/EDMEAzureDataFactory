@@ -187,6 +187,48 @@
 						"value": "@greater(length(activity('Filter1').output.value),0)",
 						"type": "Expression"
 					},
+					"ifFalseActivities": [
+						{
+							"name": "Set variable3",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "dummy",
+								"value": "'False'"
+							}
+						},
+						{
+							"name": "Notify_Teams_Channale_Pipeline",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Set variable3",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"name": "postalcode"
+								}
+							}
+						}
+					],
 					"ifTrueActivities": [
 						{
 							"name": "Set variable2",
@@ -256,6 +298,35 @@
 									"type": "DatasetReference"
 								}
 							]
+						},
+						{
+							"name": "Notify_Teams_Channale_Pipeline_Success",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Copy data1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"message": {
+										"value": "'We recived latest postal code data from Melissa team'",
+										"type": "Expression"
+									}
+								}
+							}
 						}
 					]
 				}
