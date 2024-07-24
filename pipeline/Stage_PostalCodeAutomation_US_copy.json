@@ -384,7 +384,7 @@
 							"type": "Script",
 							"dependsOn": [
 								{
-									"activity": "Copy_PostalCode_US",
+									"activity": "Set variable4",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -405,10 +405,38 @@
 							"typeProperties": {
 								"scripts": [
 									{
-										"type": "Query"
+										"type": "Query",
+										"text": {
+											"value": "@insert into Retail.Postalcode_Processed_files(Country,API_path,Processed_date,Processed_for_YrMonth)\nVALUES\n('US','variables('Api_Path')',GETDATE(),variables('Processed_for_YrMonth'))",
+											"type": "Expression"
+										}
 									}
 								],
 								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Set variable4",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy_PostalCode_US",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Api_Path",
+								"value": {
+									"value": "@concat('https://releases.melissadata.net/Download/Data/',variables('Processed_for_YrMonth'),'/z5max.txt?ID={{licenseKey}}')",
+									"type": "Expression"
+								}
 							}
 						}
 					]
@@ -488,6 +516,9 @@
 				"type": "String"
 			},
 			"Processed_for_YrMonth": {
+				"type": "String"
+			},
+			"Api_Path": {
 				"type": "String"
 			}
 		},
