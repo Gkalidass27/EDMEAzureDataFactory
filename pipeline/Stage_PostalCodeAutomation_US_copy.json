@@ -304,7 +304,7 @@
 											"type": "Expression"
 										},
 										"Currentmonthyear": {
-											"value": "@variables('Currentmonthyear')",
+											"value": "@variables('Processed_for_YrMonth')",
 											"type": "Expression"
 										}
 									}
@@ -322,7 +322,7 @@
 							"type": "ExecutePipeline",
 							"dependsOn": [
 								{
-									"activity": "Copy_PostalCode_US",
+									"activity": "Script1",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -377,6 +377,38 @@
 										"type": "Expression"
 									}
 								}
+							}
+						},
+						{
+							"name": "Script1",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Copy_PostalCode_US",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query"
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
 							}
 						}
 					]
@@ -445,9 +477,6 @@
 			},
 			"folder": {
 				"type": "Array"
-			},
-			"Currentmonthyear": {
-				"type": "String"
 			},
 			"datelist": {
 				"type": "String"
