@@ -15,8 +15,87 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
-				}
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "TZ",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "TZ",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "UTCDaylightSavingTZ",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "UTCDaylightSavingTZ",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "UTCStandardTZ",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "UTCStandardTZ",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_FF_CSV_File",
+						"type": "DatasetReference",
+						"parameters": {
+							"Container": "postal-code",
+							"Directory": "Offset_Time",
+							"FileName": "UTC_OFFSET.csv"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SemStg_OFFSET_PostalCode",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"folder": {
