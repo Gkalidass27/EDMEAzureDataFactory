@@ -1402,7 +1402,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "SiteAdditionalInformation",
+						"activity": "LocationCode",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1585,7 +1585,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "SiteAdditionalInformation",
+						"activity": "LocationCode",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -6161,6 +6161,188 @@
 						}
 					}
 				}
+			},
+			{
+				"name": "LocationCode",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SiteAdditionalInformation",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "b_loadid",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "select  locationcode as LOCATION_CODE_ID,\r\n'LocationCode' as B_CLASSNAME,\r\nGETDATE() as B_CREDATE,\r\nGETDATE() as B_UPDDATE,\r\n'semadmin' as B_CREATOR,\r\n'semadmin' as B_UPDATOR,\r\n'INITIALLOAD' AS B_PUBID,\r\nOPERATION_ID as OPERATION_ID,\r\nPROFIT_CENTER as PROFIT_CENTER\r\n from retail.location_code\r\nWITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "b_loadid",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "LOCATION_CODE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LOCATION_CODE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "OPERATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PROFIT_CENTER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PROFIT_CENTER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Retail",
+							"TableName": "location_code"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SiteMaster",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "SA_LOCATION_CODE"
+						}
+					}
+				]
 			}
 		],
 		"variables": {
