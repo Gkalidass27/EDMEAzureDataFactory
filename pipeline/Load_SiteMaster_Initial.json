@@ -1400,7 +1400,14 @@
 			{
 				"name": "SubmitLoad",
 				"type": "SqlServerStoredProcedure",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "RSA_Associate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -1576,7 +1583,14 @@
 			{
 				"name": "Cancel_SiteAdditionalInformation_LoadId_SP",
 				"type": "SqlServerStoredProcedure",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "RSA_Associate",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -6385,7 +6399,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "select RSA_ID\r\n, AssociateID\r\n--, StoreID\r\n,'RSAAssignment' as B_CLASSNAME,\r\nGETDATE() as B_CREDATE,\r\nGETDATE() as B_UPDDATE,\r\n'semadmin' as B_CREATOR,\r\n'semadmin' as B_UPDATOR,\r\n'INITIALLOAD' AS B_PUBID,\r\nStoreID as FS_SITE_ID\r\nfrom Retail.RSA_Assignment_VW\r\nWITH(NOLOCK)",
+						"sqlReaderQuery": "select RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,B_PUBID\r\n,StoreID as FS_SITE_ID\r\nfrom Retail.RSA_Assignment_Initial_VW\r\nWITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -6413,12 +6427,12 @@
 							},
 							{
 								"source": {
-									"name": "LOCATION_CODE_ID",
+									"name": "RSA_ID",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "LOCATION_CODE_ID",
+									"name": "RSA_ID",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -6484,35 +6498,27 @@
 								}
 							},
 							{
-								"source": {
-									"name": "OPERATION_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
 								"sink": {
-									"name": "OPERATION_ID",
+									"name": "F_ASSOCIATE",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
-								"source": {
-									"name": "PROFIT_CENTER",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
 								"sink": {
-									"name": "PROFIT_CENTER",
+									"name": "FD_ASSOCIATE",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
-								"source": {
-									"name": "FP_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								},
+								"sink": {
+									"name": "F_SITE_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
 								"sink": {
 									"name": "FP_SITE_ID",
 									"type": "String",
@@ -6527,6 +6533,13 @@
 								},
 								"sink": {
 									"name": "FS_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "FD_SITE_ID",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -6545,7 +6558,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"SchemaName": "Retail",
-							"TableName": "RSA_Assignment_VW"
+							"TableName": "RSA_Assignment_Initial_VW"
 						}
 					}
 				],
@@ -6591,7 +6604,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "select  LOCATION_CODE_ID,\r\nB_CLASSNAME,\r\nB_CREDATE,\r\nB_UPDDATE,\r\nB_CREATOR,\r\nB_UPDATOR,\r\nB_PUBID,\r\nFP_SITE_ID,\r\nFS_SITE_ID,\r\nOPERATION_ID,\r\nPROFIT_CENTER\r\n from Retail.locationcode_Initial_VW \r\nWITH(NOLOCK)",
+						"sqlReaderQuery": "select AssociatedID as Associate_ID,\r\nLastName as LAST_NAME,\r\nMiddleName as MIDDLE_NAME,\r\nFirstName as FIRST_NAME,\r\nStartdate as START_DATE,\r\nlastHireDate as LAST_HIRE_DATE,\r\n[Status],\r\nTerminationDate as TERMINATION_DATE,\r\nemailAddress as EMAIL_ADDRESS,\r\nWorkType as WORK_TYPE,\r\nRsaID,\r\nLocationCode,\r\nLegalentityID as F_LEGAL_ENTITY,\r\nB_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,B_PUBID,\r\nFS_Site_ID\r\nfrom Retail.RSA_Associate_Initial_VW\r\nWITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -6619,12 +6632,12 @@
 							},
 							{
 								"source": {
-									"name": "LOCATION_CODE_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
+									"name": "Associate_ID",
+									"type": "Int32",
+									"physicalType": "int"
 								},
 								"sink": {
-									"name": "LOCATION_CODE_ID",
+									"name": "ASSOCIATE_ID",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -6637,6 +6650,87 @@
 								},
 								"sink": {
 									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_ERROR_STATUS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_ORIGINALBATCHID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"sink": {
+									"name": "B_OPERATIONID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DUPSOPERATIONID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DUPSMERGETARGET",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_DELETEPATH",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"sink": {
+									"name": "B_COPIEDFROM",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -6691,48 +6785,129 @@
 							},
 							{
 								"source": {
-									"name": "OPERATION_ID",
+									"name": "LAST_NAME",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "OPERATION_ID",
+									"name": "LAST_NAME",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "PROFIT_CENTER",
+									"name": "MIDDLE_NAME",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "PROFIT_CENTER",
+									"name": "MIDDLE_NAME",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "FP_SITE_ID",
+									"name": "FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "START_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "LAST_HIRE_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LAST_HIRE_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STATUS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TERMINATION_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "TERMINATION_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "EMAIL_ADDRESS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "EMAIL_ADDRESS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "WORK_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "WORK_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_LEGAL_ENTITY",
 									"type": "String",
 									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "FP_SITE_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
+									"name": "F_LEGAL_ENTITY",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
 								}
 							},
 							{
-								"source": {
-									"name": "FS_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								},
 								"sink": {
-									"name": "FS_SITE_ID",
+									"name": "FD_LEGAL_ENTITY",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -6751,7 +6926,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"SchemaName": "Retail",
-							"TableName": "RSA_Associate_VW"
+							"TableName": "RSA_Associate_Initial_VW"
 						}
 					}
 				],
@@ -6761,7 +6936,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"SchemaName": "dbo",
-							"TableName": "SA_LOCATION_CODE"
+							"TableName": "SA_ASSOCIATE"
 						}
 					}
 				]
