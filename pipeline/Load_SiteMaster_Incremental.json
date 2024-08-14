@@ -4453,9 +4453,16 @@
 				}
 			},
 			{
-				"name": "Copy data1",
+				"name": "RSA_ASS_Hist",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "RSA_Associate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -4467,20 +4474,243 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select distinct AssociatedID as Associate_ID,\r\nLastName as LAST_NAME,\r\nMiddleName as MIDDLE_NAME,\r\nFirstName as FIRST_NAME,\r\nStartdate as START_DATE,\r\nlastHireDate as LAST_HIRE_DATE,\r\n[Status],\r\nTerminationDate as TERMINATION_DATE,\r\nemailAddress as EMAIL_ADDRESS,\r\nWorkType as WORK_TYPE,\r\nLegalentityID as F_LEGAL_ENTITY,\r\n'Associate' as B_CLASSNAME\r\n,getdate() as B_CREDATE\r\n,getdate() as B_UPDDATE\r\n,'semadmin' as B_CREATOR\r\n,'semadmin' as B_UPDATOR\r\nfrom Retail.RSA_Associate_Incremental_VW\r\nWITH(NOLOCK)\r\n",
+						"sqlReaderQuery": "select distinct AssociatedID as Associate_ID,\r\nLastName as LAST_NAME,\r\nMiddleName as MIDDLE_NAME,\r\nFirstName as FIRST_NAME,\r\nStartdate as START_DATE,\r\nlastHireDate as LAST_HIRE_DATE,\r\n[Status],\r\nTerminationDate as TERMINATION_DATE,\r\nemailAddress as EMAIL_ADDRESS,\r\nWorkType as WORK_TYPE,\r\nLegalentityID as F_LEGAL_ENTITY,\r\n'Associate' as B_CLASSNAME\r\n,getdate() as B_CREDATE\r\n,getdate() as B_UPDDATE\r\n,'semadmin' as B_CREATOR\r\n,'semadmin' as B_UPDATOR\r\n,Active_flag\r\n,Activity_type\r\nfrom Retail.RSA_Associate_Incremental_VW\r\nWITH(NOLOCK)\r\n",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": false,
+							"keys": [
+								"ASSOCIATE_ID"
+							]
+						},
 						"sqlWriterUseTableLock": false,
-						"tableOption": "autoCreate",
 						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Associate_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "ASSOCIATE_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "LAST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LAST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "MIDDLE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "MIDDLE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EMAIL_ADDRESS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "EMAIL_ADDRESS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "WORK_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "WORK_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "F_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "START_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "START_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LAST_HIRE_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LAST_HIRE_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TERMINATION_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "TERMINATION_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Active_flag",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "Active_flag",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Activity_type",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "Activity_type",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
