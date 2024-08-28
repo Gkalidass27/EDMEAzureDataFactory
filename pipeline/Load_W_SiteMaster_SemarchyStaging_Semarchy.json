@@ -1,0 +1,643 @@
+{
+	"name": "Load_W_SiteMaster_SemarchyStaging_Semarchy",
+	"properties": {
+		"activities": [
+			{
+				"name": "Load_WHSMST_STG_Semarchy",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set_LoadID_Variable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LOADID",
+								"value": {
+									"value": "@variables('B_LOADID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "Select Warehouse_ID,\r\n[Description],\r\nSite_ID ,\r\nB_CLASSNAME,\r\nB_CREDATE,\r\nB_CREATOR,\r\nB_UPDDATE,\r\nB_UPDATOR\r\nfrom [Wholesale].[WHSMST_VW]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LOADID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "Warehouse_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "WAREHOUSE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Site_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Description",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_WHSMST",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Wholesale_SiteMaster",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "SA_WAREHOUSE_MASTER",
+							"Schemaname": "dbo"
+						}
+					}
+				]
+			},
+			{
+				"name": "Load_PortMaster_STG_Semarchy",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load_WHSMST_STG_Semarchy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_loadId",
+								"value": {
+									"value": "@variables('B_LOADID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "select \r\nASHLEY_PORT_ID,\r\nACE_PORT_CODE,\r\n[Description],\r\nCITY,\r\nCountry_code,\r\nB_CLASSNAME,\r\nB_CREDATE,\r\nB_CREATOR,\r\nB_UPDDATE,\r\nB_UPDATOR\r\nfrom [Wholesale].[PortMaster_vw]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": true,
+					"logSettings": {
+						"enableCopyActivityLog": true,
+						"copyActivityLogSettings": {
+							"logLevel": "Warning",
+							"enableReliableLogging": false
+						},
+						"logLocationSettings": {
+							"linkedServiceName": {
+								"referenceName": "masterDataHubStg",
+								"type": "LinkedServiceReference"
+							},
+							"path": "test"
+						}
+					},
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_loadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "ASHLEY_PORT_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "ASHLEY_PORT_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ACE_PORT_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "ACE_PORT_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Description",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Country_code",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_SemStaging_Portmaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Wholesale_SiteMaster",
+						"type": "DatasetReference",
+						"parameters": {
+							"Tablename": "SA_PORT_MASTER",
+							"Schemaname": "dbo"
+						}
+					}
+				]
+			},
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Wholesale_SiteMaster'\n,@P_PROGRAM_NAME = 'SiteMasterLoad'\n,@P_LOAD_DESCRIPTION = 'SiteMasterLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set_LoadID_Variable",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "B_LOADID",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SubmitLoadID",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load_PortMaster_STG_Semarchy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "PortWarehouseLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('B_LOADID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_WHSMST",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_WHSMST_STG_Semarchy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Load_WHSMST_STG_Semarchy').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Load_WHSMST_STG_Semarchy').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Load_WHSMST_STG_Semarchy').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Load_WHSMST_STG_Semarchy').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_WHSMST_copy1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_PortMaster_STG_Semarchy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Load_PortMaster_STG_Semarchy').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Load_PortMaster_STG_Semarchy').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Load_PortMaster_STG_Semarchy').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Load_PortMaster_STG_Semarchy').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"variables": {
+			"B_LOADID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Wholesale/W_SiteMaster"
+		},
+		"annotations": []
+	}
+}

@@ -1,9 +1,9 @@
 {
-	"name": "Orchestrate_Load_RetailCustomerLoad_Incremental",
+	"name": "Orchestrate_Containerrate_WHSMST_PortMaster",
 	"properties": {
 		"activities": [
 			{
-				"name": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
+				"name": "Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl",
 				"type": "ExecutePipeline",
 				"dependsOn": [],
 				"policy": {
@@ -12,80 +12,18 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
+						"referenceName": "Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
 				}
 			},
 			{
-				"name": "Teams_Failed_Notification_Load_RetailCustomer",
+				"name": "Load_W_SiteMaster_SemarchyStaging_Semarchy",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
-						"dependencyConditions": [
-							"Failed"
-						]
-					}
-				],
-				"policy": {
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "Notify_Teams_Channale_Pipeline",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"subscription": {
-							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-							"type": "Expression"
-						},
-						"resourceGroup": "afi-edme-rg",
-						"runId": {
-							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').output['pipelineRunId']",
-							"type": "Expression"
-						},
-						"name": {
-							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').output['pipelineName']",
-							"type": "Expression"
-						},
-						"triggerTime": {
-							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').ExecutionStartTime",
-							"type": "Expression"
-						},
-						"status": {
-							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').Status",
-							"type": "Expression"
-						},
-						"message": {
-							"value": "@replace(activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').error.message,'\"','')",
-							"type": "Expression"
-						},
-						"executionEndTime": {
-							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').ExecutionEndTime",
-							"type": "Expression"
-						},
-						"runDuration": {
-							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').Duration",
-							"type": "Expression"
-						},
-						"teamWebhookUrl": {
-							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-							"type": "Expression"
-						}
-					}
-				}
-			},
-			{
-				"name": "Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental",
-				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "Load_RetailCustomer_RetailCustomerLoad_Incremental",
+						"activity": "Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -97,18 +35,18 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental",
+						"referenceName": "Load_W_SiteMaster_SemarchyStaging_Semarchy",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
 				}
 			},
 			{
-				"name": "Teams_Failed_Notification_Load_RFD_RetailCustomer",
+				"name": "Teams_Failed_Notification_WHSMST",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental",
+						"activity": "Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -131,31 +69,93 @@
 						},
 						"resourceGroup": "afi-edme-rg",
 						"runId": {
-							"value": "@activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').output['pipelineRunId']",
+							"value": "@pipeline().RunId",
 							"type": "Expression"
 						},
 						"name": {
-							"value": "@activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').output['pipelineName']",
+							"value": "@pipeline().Pipeline",
 							"type": "Expression"
 						},
 						"triggerTime": {
-							"value": "@activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').ExecutionStartTime",
+							"value": "@activity('Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl').output.executionDetails[0].start\n",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').Status",
+							"value": "@activity('Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl').output.executionDetails[0].status",
 							"type": "Expression"
 						},
 						"message": {
-							"value": "@replace(activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').error.message,'\"','')",
+							"value": "@replace(activity('Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl').error.message,'\"','')",
 							"type": "Expression"
 						},
 						"executionEndTime": {
-							"value": "@activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').ExecutionEndTime",
+							"value": "@{utcnow()}",
 							"type": "Expression"
 						},
 						"runDuration": {
-							"value": "@activity('Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental').Duration",
+							"value": "@activity('Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_WHSMST_copy1_copy1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_W_SiteMaster_SemarchyStaging_Semarchy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Load_W_SiteMaster_SemarchyStaging_Semarchy').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Load_W_SiteMaster_SemarchyStaging_Semarchy').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Load_W_SiteMaster_SemarchyStaging_Semarchy').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Load_W_SiteMaster_SemarchyStaging_Semarchy').output.copyDuration",
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
@@ -167,7 +167,7 @@
 			}
 		],
 		"folder": {
-			"name": "Retail_Customer_Flow"
+			"name": "Wholesale/W_SiteMaster"
 		},
 		"annotations": []
 	}
