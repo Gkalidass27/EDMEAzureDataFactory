@@ -359,7 +359,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "RSA_Associate",
+						"activity": "RSA_Associate_Hist",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -385,7 +385,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,FP_SITE_ID\r\n,FS_SITE_ID\r\nfrom Retail.RSA_Assignment_Initial_VW\r\nWITH(NOLOCK)",
+						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,'INITIALLOAD' as FP_SITE_ID\r\n,FS_SITE_ID\r\n,B_DELETETYPE\r\n,B_DELETEDATE\r\n,B_DELETEAUTHOR\r\n,B_DELETEOPERATION\r\n,active_flag\r\n,Activity_type\r\nfrom Retail.RSA_Assignment_Incremental_Vw\r\nwhere active_flag > 0\r\n",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -437,6 +437,54 @@
 							},
 							{
 								"source": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEOPERATION",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
 									"name": "B_CREDATE",
 									"type": "DateTime",
 									"physicalType": "datetime"
@@ -479,6 +527,30 @@
 								},
 								"sink": {
 									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FS_SITE_ID",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -491,30 +563,6 @@
 								},
 								"sink": {
 									"name": "F_ASSOCIATE",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "FP_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "FP_SITE_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "FS_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "FS_SITE_ID",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -533,7 +581,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"SchemaName": "Retail",
-							"TableName": "RSA_Assignment_Initial_VW"
+							"TableName": "RSA_Assignment_Incremental_Vw"
 						}
 					}
 				],
@@ -553,7 +601,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "LocationCode",
+						"activity": "RSA_Error_Log_LocationConstraint",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1214,7 +1262,7 @@
 				}
 			},
 			{
-				"name": "RSA_ASS_Hist",
+				"name": "RSA_Associate_Hist",
 				"type": "Copy",
 				"dependsOn": [
 					{
@@ -1889,7 +1937,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "RSA_Assignment_Delete",
+						"activity": "RSA_Assignment_Hist",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1939,7 +1987,7 @@
 				}
 			},
 			{
-				"name": "RSA_ASS_Hist_Delete",
+				"name": "RSA_Associate_Hist_Delete",
 				"type": "Copy",
 				"dependsOn": [
 					{
@@ -2256,7 +2304,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,FP_SITE_ID\r\n,FS_SITE_ID\r\nfrom Retail.RSA_Assignment_Initial_VW\r\nWITH(NOLOCK)",
+						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,'INITIALLOAD' as FP_SITE_ID\r\n,FS_SITE_ID\r\nfrom Retail.RSA_Assignment_Initial_VW\r\nWITH(NOLOCK)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -2393,7 +2441,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"SchemaName": "Retail",
-							"TableName": "RSA_Assignment_Initial_VW"
+							"TableName": "RSA_Assignment_Initial_vw"
 						}
 					}
 				],
@@ -2413,7 +2461,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "RSA_Associate_Delete",
+						"activity": "RSA_Associate_Hist_Delete",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -2439,7 +2487,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,'INITIALLOAD' as FP_SITE_ID\r\n,FS_SITE_ID\r\n,B_DELETETYPE\r\n,B_DELETEDATE\r\n,B_DELETEAUTHOR\r\n,B_DELETEOPERATION\r\n,active_flag\r\n,Activity_type\r\nfrom Retail.RSA_Assignment_Incremental_Vw\r\nWITH(NOLOCK)",
+						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,'INITIALLOAD' as FP_SITE_ID\r\n,FS_SITE_ID\r\n,B_DELETETYPE\r\n,B_DELETEDATE\r\n,B_DELETEAUTHOR\r\n,B_DELETEOPERATION\r\n,active_flag\r\n,Activity_type\r\nfrom Retail.RSA_Assignment_Incremental_Vw\r\nwhere active_flag=0\r\n",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -2655,7 +2703,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "RSA_Assignment_Delete",
+						"activity": "SubmitLoad_Delete",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -2675,6 +2723,510 @@
 				"linkedServiceName": {
 					"referenceName": "semarchy_staging",
 					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "RSA_Error_Log_LocationConstraint",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "LocationCode",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "b_loadid",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "select AssociatedID as Associate_ID,LastName AS LAST_NAME,MiddleName AS MIDDLE_NAME,FirstName AS FIRST_NAME,Status,EmailAddress AS EMAIL_ADDRESS,\r\nWorkType AS WORK_TYPE,RsaID,LocationCode,OPERATION_ID,Profit_center,entity,LegalentityID AS F_LEGAL_ENTITY,B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,StartDate AS START_DATE,Lasthiredate AS LAST_HIRE_DATE,\r\nTerminationDate AS TERMINATION_DATE\r\nfrom Retail.RSA_ERROR_LOG_vw",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "b_loadid",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_Loadid",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Associate_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "Associate_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "LAST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LAST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "MIDDLE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "MIDDLE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EMAIL_ADDRESS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "EMAIL_ADDRESS",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "WORK_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "WORK_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RsaID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RsaID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LocationCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LocationCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "OPERATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Profit_center",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "Profit_center",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "entity",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "entity",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "F_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "START_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "START_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LAST_HIRE_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LAST_HIRE_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TERMINATION_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "TERMINATION_DATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Retail",
+							"TableName": "RSA_ERROR_LOG_VW"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Retail",
+							"TableName": "RSA_ERROR_LOG"
+						}
+					}
+				]
+			},
+			{
+				"name": "Cancel_SiteAdditionalInformation_LoadId_SP_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "RSA_Assignment_Hist",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+					"storedProcedureParameters": {
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID1')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_RSA_Associate",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "RSA_Associate",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('RSA_Associate').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('RSA_Associate').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('RSA_Associate').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('RSA_Associate').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_RSA_Assignment",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "RSA_Assignment",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('RSA_Assignment').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('RSA_Assignment').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('RSA_Assignment').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('RSA_Assignment').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
 				}
 			}
 		],
