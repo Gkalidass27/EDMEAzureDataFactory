@@ -1,0 +1,143 @@
+{
+	"name": "Load_Containerrate_Semarchy_EDW",
+	"properties": {
+		"description": "To load Containerrate to EDW",
+		"activities": [
+			{
+				"name": "Cp_ContainerRate_GD_EDW",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "Select distinct \nF_WAREHOUSE_ID\n,F_ASHLEY_PORT_ID\n,TYPE\n,RATE\n,EFFECTIVE_FROM\n,EFFECTIVE_TO\n,B_CREDATE\n,B_UPDDATE\nfrom [dbo].[GD_CONTAINER_RATES]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "SqlDWSink",
+						"allowCopyCommand": true
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "F_WAREHOUSE_ID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "WarehouseID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "F_ASHLEY_PORT_ID",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "PortID",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"name": "TYPE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Type",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "RATE",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "Rate",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_FROM",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "EffectiveFromDate",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_TO",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "EffectiveToDate",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "CreatedDate",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "UpdatedDate",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Semarchy_Wholesale_GD",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "GD_CONTAINER_RATES"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_EDW_Dev",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Masterdata_Finance",
+							"TableName": "MonthEndContainerStandards"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Wholesale/W_SiteMaster"
+		},
+		"annotations": []
+	}
+}
