@@ -1,0 +1,223 @@
+{
+	"name": "Stage_Incremental_SiteMaster_Mappings",
+	"properties": {
+		"activities": [
+			{
+				"name": "StoreMasterCustom_JoinCodes",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Assign_CompanyCodes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE [EDW].[StoreMasterCustom_Sites_JoinCodes]\n",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Location",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Location",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "JoinCode",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "JoinCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SiteID",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "SiteID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "AccountNumber",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Account",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "StoreFrontShipTo",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "StoreFrontShipTo",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Type",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Type",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "StoreMasterCustom_Sites_JoinCodes",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": {
+								"value": "@pipeline().parameters.Sites_JoinCodes_FileName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "EDW_StoreMasterCustom_Sites_JoinCodes",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Assign_new_legalEntity_Id",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Load Legal entity id to new Licensee"
+					}
+				],
+				"typeProperties": {
+					"storedProcedureName": "[Retail].[Assign_new_legal_entity_id]"
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Assign_CompanyCodes",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Assign_new_legalEntity_Id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Assign Companycodes"
+					}
+				],
+				"typeProperties": {
+					"storedProcedureName": "[Retail].[Assign_CompanyCodes]"
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"LegalEntitiesMapping_FileName": {
+				"type": "String",
+				"defaultValue": "StoreMasterCustom_LegalEntities_Mapping.csv"
+			},
+			"LegalEntitiesCompanyCodes_FileName": {
+				"type": "string",
+				"defaultValue": "LegalEntitiesCompanyCodes.csv"
+			},
+			"Sites_JoinCodes_FileName": {
+				"type": "string",
+				"defaultValue": "StoreMasterCustom_Sites_JoinCodes.csv"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": []
+	}
+}
