@@ -4,6 +4,68 @@
 		"description": "To load Containerrate to EDW",
 		"activities": [
 			{
+				"name": "Teams_Failed_Notification_CopyToEDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Cp_ContainerRate_GD_EDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Cp_ContainerRate_GD_EDW').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Cp_ContainerRate_GD_EDW').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
 				"name": "Cp_ContainerRate_GD_EDW",
 				"type": "Copy",
 				"dependsOn": [],
@@ -23,11 +85,15 @@
 						"partitionOption": "None"
 					},
 					"sink": {
-						"type": "SqlDWSink",
-						"preCopyScript": "Truncate table Masterdata_Finance.MonthEndContainerStandards",
-						"writeBehavior": "Insert",
-						"sqlWriterUseTableLock": false,
-						"disableMetricsCollection": false
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
 					},
 					"enableStaging": false,
 					"enableSkipIncompatibleRow": true,
@@ -170,76 +236,10 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "DS_EDW_Dev",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "Masterdata_Finance",
-							"TableName": "MonthEndContainerStandards"
-						}
+						"referenceName": "EDW_Containerrate",
+						"type": "DatasetReference"
 					}
 				]
-			},
-			{
-				"name": "Teams_Failed_Notification_CopyToEDW",
-				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "Cp_ContainerRate_GD_EDW",
-						"dependencyConditions": [
-							"Failed"
-						]
-					}
-				],
-				"policy": {
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "Notify_Teams_Channale_Pipeline",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"subscription": {
-							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-							"type": "Expression"
-						},
-						"resourceGroup": "afi-edme-rg",
-						"runId": {
-							"value": "@pipeline().RunId",
-							"type": "Expression"
-						},
-						"name": {
-							"value": "@pipeline().Pipeline",
-							"type": "Expression"
-						},
-						"triggerTime": {
-							"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].start",
-							"type": "Expression"
-						},
-						"status": {
-							"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].status",
-							"type": "Expression"
-						},
-						"message": {
-							"value": "@replace(activity('Cp_ContainerRate_GD_EDW').error.message,'\"','')",
-							"type": "Expression"
-						},
-						"executionEndTime": {
-							"value": "@{utcnow()}",
-							"type": "Expression"
-						},
-						"runDuration": {
-							"value": "@activity('Cp_ContainerRate_GD_EDW').output.copyDuration",
-							"type": "Expression"
-						},
-						"teamWebhookUrl": {
-							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-							"type": "Expression"
-						}
-					}
-				}
 			}
 		],
 		"folder": {
