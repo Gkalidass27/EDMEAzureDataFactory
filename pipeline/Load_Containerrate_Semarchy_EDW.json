@@ -79,15 +79,9 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "DelimitedTextSource",
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
+						"type": "AzureSqlSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "DelimitedTextSink",
@@ -107,28 +101,88 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "F_WAREHOUSE_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
+									"name": "CONTAINER_RATES_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
 								},
 								"sink": {
-									"name": "WarehouseID",
+									"name": "CONTAINER_RATES_ID",
 									"type": "String",
-									"physicalType": "varchar"
+									"physicalType": "String"
 								}
 							},
 							{
 								"source": {
-									"name": "F_ASHLEY_PORT_ID",
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_BATCHID",
 									"type": "Decimal",
 									"physicalType": "decimal",
 									"scale": 0,
-									"precision": 10
+									"precision": 38
 								},
 								"sink": {
-									"name": "PortID",
-									"type": "Int32",
-									"physicalType": "int"
+									"name": "B_BATCHID",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "String"
 								}
 							},
 							{
@@ -138,9 +192,33 @@
 									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "Type",
+									"name": "TYPE",
 									"type": "String",
-									"physicalType": "varchar"
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_FROM",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_FROM",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_TO",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_TO",
+									"type": "String",
+									"physicalType": "String"
 								}
 							},
 							{
@@ -152,59 +230,35 @@
 									"precision": 19
 								},
 								"sink": {
-									"name": "Rate",
+									"name": "RATE",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "F_ASHLEY_PORT_ID",
 									"type": "Decimal",
 									"physicalType": "decimal",
-									"scale": 2,
-									"precision": 8
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "F_ASHLEY_PORT_ID",
+									"type": "String",
+									"physicalType": "String"
 								}
 							},
 							{
 								"source": {
-									"name": "EFFECTIVE_FROM",
-									"type": "DateTime",
-									"physicalType": "date"
+									"name": "F_WAREHOUSE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "EffectiveFromDate",
+									"name": "F_WAREHOUSE_ID",
 									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "EFFECTIVE_TO",
-									"type": "DateTime",
-									"physicalType": "date"
-								},
-								"sink": {
-									"name": "EffectiveToDate",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CREDATE",
-									"type": "DateTime",
-									"physicalType": "datetime2"
-								},
-								"sink": {
-									"name": "CreatedDate",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_UPDDATE",
-									"type": "DateTime",
-									"physicalType": "datetime2"
-								},
-								"sink": {
-									"name": "UpdatedDate",
-									"type": "String",
-									"physicalType": "varchar"
+									"physicalType": "String"
 								}
 							}
 						],
@@ -217,19 +271,23 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "EDW_Containerrate",
+						"referenceName": "DS_Semarchy_Wholesale_GD",
 						"type": "DatasetReference",
 						"parameters": {
-							"ContainerName": "raw-zone",
-							"Foldername": "Retail/SupplyChain/MonthEndContainterStandards",
-							"FileName": "Test.csv"
+							"SchemaName": "dbo",
+							"TableName": "GD_CONTAINER_RATES"
 						}
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "Contaierrate",
-						"type": "DatasetReference"
+						"referenceName": "EDW_Containerrate",
+						"type": "DatasetReference",
+						"parameters": {
+							"ContainerName": "raw-zone",
+							"Foldername": "Retail/SupplyChain/MonthEndContainerStandards",
+							"FileName": "MonthEndContainerStandards.csv"
+						}
 					}
 				]
 			}
