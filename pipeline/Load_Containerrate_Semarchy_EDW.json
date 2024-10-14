@@ -85,138 +85,18 @@
 						"partitionOption": "None"
 					},
 					"sink": {
-						"type": "DelimitedTextSink",
+						"type": "ParquetSink",
 						"storeSettings": {
 							"type": "AzureBlobFSWriteSettings"
 						},
 						"formatSettings": {
-							"type": "DelimitedTextWriteSettings",
-							"quoteAllText": true,
-							"fileExtension": ".txt"
+							"type": "ParquetWriteSettings"
 						}
 					},
 					"enableStaging": false,
 					"enableSkipIncompatibleRow": true,
-					"logSettings": {
-						"enableCopyActivityLog": true,
-						"copyActivityLogSettings": {
-							"logLevel": "Warning",
-							"enableReliableLogging": false
-						},
-						"logLocationSettings": {
-							"linkedServiceName": {
-								"referenceName": "masterDataHubStg",
-								"type": "LinkedServiceReference"
-							},
-							"path": "test"
-						}
-					},
 					"translator": {
 						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "F_WAREHOUSE_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "WarehouseID",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "F_ASHLEY_PORT_ID",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 0,
-									"precision": 10
-								},
-								"sink": {
-									"name": "PortID",
-									"type": "Int32",
-									"physicalType": "int"
-								}
-							},
-							{
-								"source": {
-									"name": "TYPE",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "Type",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "RATE",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 2,
-									"precision": 19
-								},
-								"sink": {
-									"name": "Rate",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 2,
-									"precision": 8
-								}
-							},
-							{
-								"source": {
-									"name": "EFFECTIVE_FROM",
-									"type": "DateTime",
-									"physicalType": "date"
-								},
-								"sink": {
-									"name": "EffectiveFromDate",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "EFFECTIVE_TO",
-									"type": "DateTime",
-									"physicalType": "date"
-								},
-								"sink": {
-									"name": "EffectiveToDate",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CREDATE",
-									"type": "DateTime",
-									"physicalType": "datetime2"
-								},
-								"sink": {
-									"name": "CreatedDate",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_UPDDATE",
-									"type": "DateTime",
-									"physicalType": "datetime2"
-								},
-								"sink": {
-									"name": "UpdatedDate",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							}
-						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
@@ -236,10 +116,30 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "EDW_Containerrate",
+						"referenceName": "EDW_ContainerRate_Parquet",
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "Fail_job",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "Cp_ContainerRate_GD_EDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": "Copy Activity Fails ",
+					"errorCode": {
+						"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].status",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"folder": {
