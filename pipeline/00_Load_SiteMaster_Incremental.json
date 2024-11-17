@@ -30,7 +30,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Stage_EDW",
+						"activity": "Load_Incremental_StoreMaster",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -105,6 +105,52 @@
 				"typeProperties": {
 					"pipeline": {
 						"referenceName": "Stage_Storemaster_Smartsheet",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Load_incremental_Warehouse",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage_EDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_SiteMaster_Incremental_WareHouse",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Load_Incremental_StoreMaster",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_incremental_Warehouse",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_SiteMaster_Incremental_StoreMaster",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
