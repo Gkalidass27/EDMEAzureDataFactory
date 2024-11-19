@@ -30,7 +30,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Load_Incremental_StoreMaster",
+						"activity": "Wait2",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -49,8 +49,10 @@
 				}
 			},
 			{
-				"name": "Stage_Smartsheet",
+				"name": "Stage_RDC_Smartsheet",
 				"type": "ExecutePipeline",
+				"state": "Active",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"secureInput": false
@@ -92,7 +94,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Stage_Smartsheet",
+						"activity": "Stage_RDC_Smartsheet",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -138,7 +140,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Load_incremental_Warehouse",
+						"activity": "Wait1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -208,6 +210,38 @@
 				"linkedServiceName": {
 					"referenceName": "semarchy_staging",
 					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Load_incremental_Warehouse",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 30
+				}
+			},
+			{
+				"name": "Wait2",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Load_Incremental_StoreMaster",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 30
 				}
 			}
 		],
