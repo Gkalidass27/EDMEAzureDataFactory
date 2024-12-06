@@ -307,6 +307,8 @@
 			{
 				"name": "CANADA_Postal_Code",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -348,124 +350,22 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "PostCode",
 									"type": "String",
-									"physicalType": "String"
+									"ordinal": 1
 								},
 								"sink": {
-									"name": "PostCode",
+									"name": "fixedwidth_col",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "Latitude",
-									"type": "String",
-									"physicalType": "String"
+									"name": "CountryCode",
+									"type": "String"
 								},
 								"sink": {
-									"name": "Latitude",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 5,
-									"precision": 9
-								}
-							},
-							{
-								"source": {
-									"name": "Longitude",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Longitude",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 5,
-									"precision": 9
-								}
-							},
-							{
-								"source": {
-									"name": "City",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "City",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Province",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Province",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "CityAlt",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "CityAlt",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Neighborhood",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Neighborhood",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Time Zone",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Time Zone",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Name",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Name",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Area Code",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Area Code",
+									"name": "countrycode",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -1042,6 +942,37 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "CANADA_Postal_Code",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "dataflow1",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
 			}
 		],
 		"parameters": {
@@ -1051,7 +982,7 @@
 			},
 			"CANADA_PostalCode_FileName": {
 				"type": "string",
-				"defaultValue": "zipcodeset.txt"
+				"defaultValue": "canada_sample.txt"
 			}
 		},
 		"folder": {
