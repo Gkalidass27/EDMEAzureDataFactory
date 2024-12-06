@@ -5,8 +5,6 @@
 			{
 				"name": "US_Postal_Code",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Failed",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -305,104 +303,16 @@
 				]
 			},
 			{
-				"name": "CANADA_Postal_Code",
-				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"additionalColumns": [
-							{
-								"name": "CountryCode",
-								"value": "CA"
-							}
-						],
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false,
-						"disableMetricsCollection": false
-					},
-					"enableStaging": false,
-					"enableSkipIncompatibleRow": false,
-					"dataIntegrationUnits": 2,
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"type": "String",
-									"ordinal": 1
-								},
-								"sink": {
-									"name": "fixedwidth_col",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "CountryCode",
-									"type": "String"
-								},
-								"sink": {
-									"name": "countrycode",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "Canada_Postal_Code_File",
-						"type": "DatasetReference",
-						"parameters": {
-							"filename_canada": {
-								"value": "@pipeline().parameters.CANADA_PostalCode_FileName",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "CANADA_Postal_Code_Table",
-						"type": "DatasetReference"
-					}
-				]
-			},
-			{
 				"name": "Archive_Files",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "CA_Postal_Code",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -463,8 +373,6 @@
 			{
 				"name": "Delete_Files",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Archive_Files",
@@ -498,8 +406,6 @@
 			{
 				"name": "US_Postal_Code_Error_Files",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code",
@@ -571,8 +477,6 @@
 			{
 				"name": "Delete_US_Postal_Code_Error_Files",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code_Error_Files",
@@ -609,9 +513,14 @@
 			{
 				"name": "CANADA_Postal_Code_Error_Files",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "CA_Postal_Code",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -675,8 +584,6 @@
 			{
 				"name": "Delete_CANADA_Postal_Code_Error_Files",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code_Error_Files",
@@ -713,8 +620,6 @@
 			{
 				"name": "US_Postal_Code_failure_Notification",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code",
@@ -808,8 +713,6 @@
 			{
 				"name": "US_Postal_Code_Fail",
 				"type": "Fail",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code_failure_Notification",
@@ -833,9 +736,14 @@
 			{
 				"name": "CANADA_Postal_Code_failure_Notification",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "CA_Postal_Code",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
 				"policy": {
 					"secureInput": false
 				},
@@ -921,8 +829,6 @@
 			{
 				"name": "CANADA_Postal_Code_Fail",
 				"type": "Fail",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code_failure_Notification",
@@ -944,13 +850,13 @@
 				}
 			},
 			{
-				"name": "Data flow1",
+				"name": "CA_Postal_Code",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "CANADA_Postal_Code",
+						"activity": "US_Postal_Code",
 						"dependencyConditions": [
-							"Succeeded"
+							"Completed"
 						]
 					}
 				],
