@@ -9,7 +9,7 @@
 						"referenceName": "Canada_Postal_Code_File",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "FixedWidthData"
 				}
 			],
 			"sinks": [],
@@ -19,10 +19,22 @@
 				}
 			],
 			"scriptLines": [
-				"source(allowSchemaDrift: false,",
+				"source(output(",
+				"          {_col0_} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
-				"source1 derive() ~> derivedColumn1"
+				"     inferDriftedColumnTypes: true,",
+				"     limit: 100,",
+				"     ignoreNoFilesFound: false) ~> FixedWidthData",
+				"FixedWidthData derive(Postalcode = substring({_col0_},1,4),",
+				"          City = substring({_col0_}, 5, 31),",
+				"          Province = substring({_col0_}, 37,2),",
+				"          Latitude = substring({_col0_}, 40, 9),",
+				"          Longitude = substring({_col0_}, 49, 11),",
+				"          TimeZone = substring({_col0_}, 60, 2),",
+				"          DST = substring({_col0_}, 56, 1),",
+				"          AreaCode = substring({_col0_}, 57, 2)) ~> derivedColumn1"
 			]
 		}
 	}
