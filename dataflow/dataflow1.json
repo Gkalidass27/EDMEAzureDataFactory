@@ -12,10 +12,21 @@
 					"name": "FixedWidthData"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "CANADA_Postal_Code_Table_Melissa",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "select1"
 				}
 			],
 			"scriptLines": [
@@ -34,7 +45,31 @@
 				"          Longitude = substring({_col0_}, 48, 11),",
 				"          TimeZone = substring({_col0_}, 59, 2),",
 				"          DST = substring({_col0_}, 61, 1),",
-				"          AreaCode = substring({_col0_}, 62, 3)) ~> derivedColumn1"
+				"          AreaCode = substring({_col0_}, 62, 3),",
+				"          Overlay = substring({_col0_}, 65, 1)) ~> derivedColumn1",
+				"derivedColumn1 select(mapColumn(",
+				"          Postalcode,",
+				"          City,",
+				"          Province,",
+				"          Latitude,",
+				"          Longitude,",
+				"          TimeZone,",
+				"          DST,",
+				"          AreaCode,",
+				"          Overlay",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
 			]
 		}
 	}
