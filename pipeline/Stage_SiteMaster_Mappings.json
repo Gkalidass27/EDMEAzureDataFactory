@@ -17,6 +17,15 @@
 				"typeProperties": {
 					"source": {
 						"type": "DelimitedTextSource",
+						"additionalColumns": [
+							{
+								"name": "createddate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
@@ -28,8 +37,13 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"preCopyScript": "TRUNCATE TABLE EDW.StoreMasterCustom_LegalEntities_Mapping",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"EntityName"
+							]
+						},
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -57,8 +71,19 @@
 								},
 								"sink": {
 									"name": "LegalEntityID",
-									"type": "String",
-									"physicalType": "varchar"
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "createddate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "createddate",
+									"type": "DateTime",
+									"physicalType": "datetime"
 								}
 							}
 						],
@@ -110,6 +135,15 @@
 				"typeProperties": {
 					"source": {
 						"type": "DelimitedTextSource",
+						"additionalColumns": [
+							{
+								"name": "Createddate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
@@ -121,8 +155,15 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"preCopyScript": "TRUNCATE TABLE EDW.StoreMasterCustom_LegalEntities_CompanyCodes",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"LegalEntityID",
+								"EntityName",
+								"LicContact"
+							]
+						},
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -133,18 +174,20 @@
 							{
 								"source": {
 									"name": "legal_entity_id",
-									"type": "String"
+									"type": "String",
+									"physicalType": "String"
 								},
 								"sink": {
 									"name": "LegalEntityID",
-									"type": "String",
-									"physicalType": "varchar"
+									"type": "Int32",
+									"physicalType": "int"
 								}
 							},
 							{
 								"source": {
 									"name": "name",
-									"type": "String"
+									"type": "String",
+									"physicalType": "String"
 								},
 								"sink": {
 									"name": "EntityName",
@@ -155,7 +198,8 @@
 							{
 								"source": {
 									"name": "lic_contact",
-									"type": "String"
+									"type": "String",
+									"physicalType": "String"
 								},
 								"sink": {
 									"name": "LicContact",
@@ -166,10 +210,22 @@
 							{
 								"source": {
 									"name": "company_code",
-									"type": "String"
+									"type": "String",
+									"physicalType": "String"
 								},
 								"sink": {
 									"name": "CompanyCode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Createddate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Createddate",
 									"type": "String",
 									"physicalType": "varchar"
 								}
@@ -223,6 +279,15 @@
 				"typeProperties": {
 					"source": {
 						"type": "DelimitedTextSource",
+						"additionalColumns": [
+							{
+								"name": "createddate",
+								"value": {
+									"value": "utcnow()",
+									"type": "Expression"
+								}
+							}
+						],
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
@@ -234,8 +299,15 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"preCopyScript": "TRUNCATE TABLE [EDW].[StoreMasterCustom_Sites_JoinCodes]\n",
-						"writeBehavior": "insert",
+						"preCopyScript": "\n",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"Location",
+								"SiteID"
+							]
+						},
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -311,6 +383,17 @@
 								},
 								"sink": {
 									"name": "Type",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "createddate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Createddate",
 									"type": "String",
 									"physicalType": "varchar"
 								}
