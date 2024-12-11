@@ -27,6 +27,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "Canada_Postal_Code_File_melissa_overlay",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
 				}
 			],
 			"transformations": [
@@ -35,16 +42,30 @@
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "select2"
 				}
 			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          {_col0_} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     inferDriftedColumnTypes: true,",
 				"     limit: 100,",
 				"     ignoreNoFilesFound: false) ~> FixedWidthData",
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          {_col0_} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     limit: 100,",
 				"     ignoreNoFilesFound: false) ~> source1",
 				"FixedWidthData derive(PostalCode = substring({_col0_},1,6),",
 				"          City = substring({_col0_}, 7, 30),",
@@ -57,6 +78,16 @@
 				"          Overlay = substring({_col0_}, 65, 1)) ~> derivedColumn1",
 				"derivedColumn1 select(skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select1",
+				"source1 derive(Parent = substring({_col0_},1,3),",
+				"          Overlay = substring({_col0_},4,3),",
+				"          Group = substring({_col0_},5,1)) ~> derivedColumn2",
+				"derivedColumn2 select(mapColumn(",
+				"          Parent,",
+				"          Overlay,",
+				"          Group",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select2",
 				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: true,",
 				"     deletable:false,",
@@ -64,7 +95,14 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
-				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2"
 			]
 		}
 	}
