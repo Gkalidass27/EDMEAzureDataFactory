@@ -848,11 +848,13 @@
 			{
 				"name": "Teams_Failed_Notification_WH_Port",
 				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "CP_EDW_Staging_PortMaster",
+						"activity": "AddressMaster",
 						"dependencyConditions": [
-							"Failed"
+							"Succeeded"
 						]
 					}
 				],
@@ -881,15 +883,15 @@
 							"type": "Expression"
 						},
 						"triggerTime": {
-							"value": "@activity('CP_EDW_Staging_PortMaster').output.executionDetails[0].start\n",
+							"value": "@activity('AddressMaster').output.executionDetails[0].start\n",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@activity('CP_EDW_Staging_PortMaster').output.executionDetails[0].status",
+							"value": "@activity('AddressMaster').output.executionDetails[0].status",
 							"type": "Expression"
 						},
 						"message": {
-							"value": "@replace(activity('CP_EDW_Staging_PortMaster').error.message,'\"','')",
+							"value": "@replace(activity('AddressMaster').error.message,'\"','')",
 							"type": "Expression"
 						},
 						"executionEndTime": {
@@ -897,7 +899,7 @@
 							"type": "Expression"
 						},
 						"runDuration": {
-							"value": "@activity('CP_EDW_Staging_PortMaster').output.copyDuration",
+							"value": "@activity('AddressMaster').output.copyDuration",
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
@@ -906,6 +908,966 @@
 						}
 					}
 				}
+			},
+			{
+				"name": "AshleyWarehouseMaster",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "CP_EDW_Staging_PortMaster",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"additionalColumns": [
+							{
+								"name": "Load_date",
+								"value": {
+									"value": "@utcnow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "wmaWarehouse",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaWarehouse",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaLocationId",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "wmaLocationId",
+									"type": "Decimal",
+									"physicalType": "decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaIntransitWarehouse",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaIntransitWarehouse",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaSiteId",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaSiteId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaMROSiteId",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaMROSiteId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaWarehouseType",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaWarehouseType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaWarehouseOrderGroup",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "wmaWarehouseOrderGroup",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaWarehouseSourceId",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "wmaWarehouseSourceId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaRouteType",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaRouteType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaDefaultPortId",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "wmaDefaultPortId",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaControlled",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "wmaControlled",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaPrinterName",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "wmaPrinterName",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaZebraPrinter",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "wmaZebraPrinter",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaSendBolsToManu",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaSendBolsToManu",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaOrderReleaseMin",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "wmaOrderReleaseMin",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaOrderReleaseMinType",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaOrderReleaseMinType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaDefaultShipId",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "wmaDefaultShipId",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaSortOrder",
+									"type": "Byte",
+									"physicalType": "tinyint"
+								},
+								"sink": {
+									"name": "wmaSortOrder",
+									"type": "Byte",
+									"physicalType": "tinyint"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaAsOverhead",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "wmaAsOverhead",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaAsFreight",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "wmaAsFreight",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaContainerDirectWhse",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaContainerDirectWhse",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "acrec",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaWhereMade",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "wmaWhereMade",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaManufacturingSite",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "wmaManufacturingSite",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "wmaSellableWarehouse",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "wmaSellableWarehouse",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "Load_date",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Load_date",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_AshleyWarehouseMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Sem_Staging_wholesale",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Wholesale",
+							"TableName": "AshleyWarehouseMaster"
+						}
+					}
+				]
+			},
+			{
+				"name": "Locations",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "AshleyWarehouseMaster",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"additionalColumns": [
+							{
+								"name": "Load_date",
+								"value": {
+									"value": "@utcnow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Locations",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Sem_Staging_wholesale",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Wholesale",
+							"TableName": "Locations"
+						}
+					}
+				]
+			},
+			{
+				"name": "AddressMaster",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Locations",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"additionalColumns": [
+							{
+								"name": "Load_date",
+								"value": {
+									"value": "@utcnow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "paaAddressID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "paaAddressID",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "paaAddress1",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaAddress1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaAddress2",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaAddress2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaAddress3",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaAddress3",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaAddress4",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaAddress4",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaAddress5",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaAddress5",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaCity",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaCity",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaState",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "paaState",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaCountry",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "paaCountry",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaGeocodeLatitude",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								},
+								"sink": {
+									"name": "paaGeocodeLatitude",
+									"type": "Decimal",
+									"physicalType": "decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "paaGeocodeLongitude",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 8
+								},
+								"sink": {
+									"name": "paaGeocodeLongitude",
+									"type": "Decimal",
+									"physicalType": "decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "paaZipCode",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaZipCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaCountyCode",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "paaCountyCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaCustomsIDNumber",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaCustomsIDNumber",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaGeocodeAccuracy",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "paaGeocodeAccuracy",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "paaTranscomCityCode",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "paaTranscomCityCode",
+									"type": "Int32",
+									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "paaDirections",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaDirections",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaCrossStreet",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaCrossStreet",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaGeocodeVerificationDate",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "paaGeocodeVerificationDate",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "paaTimeZone",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "paaTimeZone",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaGeocodeType",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "paaGeocodeType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaMsa_Fips",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "paaMsa_Fips",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaShortAddress1",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaShortAddress1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaShortAddress2",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaShortAddress2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaShortAddress3",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaShortAddress3",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaShortAddress4",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaShortAddress4",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "paaShortCity",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "paaShortCity",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usra",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "dtea",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "usrc",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "dtec",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "Load_date",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Load_date",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_ASHLEY_EDW_EDME",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Edme_datafactory",
+							"TableName": "AddressMaster"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Sem_Staging_wholesale",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Wholesale",
+							"TableName": "AddressMaster"
+						}
+					}
+				]
 			}
 		],
 		"folder": {
