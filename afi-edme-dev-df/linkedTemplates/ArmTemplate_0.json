@@ -49,25 +49,6 @@
 			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
 		},
-		"masterDataHubStg_accountKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'accountKey' of 'masterDataHubStg'"
-		},
-		"masterDataHub_Retail_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'masterDataHub_Retail'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=masterDataHub_Retail"
-		},
-		"semarchy_repo_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'semarchy_repo'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_repo"
-		},
-		"semarchy_staging_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'semarchy_staging'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_staging"
-		},
 		"dataFactory_properties_globalParameters_DAC_Accountid_value": {
 			"type": "string",
 			"defaultValue": "9c249f2d-e157-4844-96fd-c6bbbcc30122"
@@ -92,6 +73,14 @@
 			"type": "string",
 			"defaultValue": "https://afide-edmekv.vault.azure.net/"
 		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
+		},
+		"AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://afide-edmekv.vault.azure.net/"
+		},
 		"DataAnyWhereProdRestAPI_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://dataanywhereprod.azure-api.net"
@@ -100,9 +89,21 @@
 			"type": "string",
 			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
 		},
-		"masterDataHubStg_properties_typeProperties_url": {
+		"Postal_datadownload_properties_typeProperties_url": {
 			"type": "string",
-			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net"
+			"defaultValue": "https://releases.melissadata.net/Download/Data/2024.07/z5max.txt"
+		},
+		"Postalcode_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://releases.melissadata.net"
+		},
+		"RawZone_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ashleydevlake.dfs.core.windows.net/"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://releases.melissadata.net/releases/data/z5max.txt"
 		}
 	},
 	"variables": {
@@ -262,6 +263,32 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureKeyVault_Secrets_Postalcode')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/CDP_CustomerProfiling')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -350,6 +377,64 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Postal_datadownload')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('Postal_datadownload_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Postalcode')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('Postalcode_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RawZone')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('RawZone_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestService1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('RestService1_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Retail_CustomerMaster')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -405,367 +490,6 @@
 				}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterDataHubStg')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobFS",
-				"typeProperties": {
-					"url": "[parameters('masterDataHubStg_properties_typeProperties_url')]",
-					"accountKey": {
-						"type": "SecureString",
-						"value": "[parameters('masterDataHubStg_accountKey')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('masterDataHub_Retail_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/semarchy_repo')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('semarchy_repo_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/semarchy_staging')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "semarchy_staging",
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('semarchy_staging_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/AARCWIVDSQ12226-integrationRuntime1')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "SelfHosted",
-				"description": "AARCWIVDSQ12226-Test",
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Stage_Retail_Customer_Failure_Notification')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Check_Error_Type",
-						"type": "IfCondition",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@contains(pipeline().parameters.ErrorMsg,'The specified path does not exist' )",
-								"type": "Expression"
-							},
-							"ifFalseActivities": [
-								{
-									"name": "Teams_Failed_Notification",
-									"type": "ExecutePipeline",
-									"dependsOn": [
-										{
-											"activity": "ASHCOMM_ErrorLogs",
-											"dependencyConditions": [
-												"Completed"
-											]
-										}
-									],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Teams_Channale_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": "afi-edme-rg",
-											"runId": {
-												"value": "@pipeline().parameters.RunID",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().parameters.PipelineName",
-												"type": "Expression"
-											},
-											"triggerTime": {
-												"value": "@pipeline().parameters.TriggerTime",
-												"type": "Expression"
-											},
-											"status": {
-												"value": "@pipeline().parameters.status",
-												"type": "Expression"
-											},
-											"message": {
-												"value": "@replace(pipeline().parameters.ErrorMsg,'\"','')",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@pipeline().parameters.executionEndTime",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "@pipeline().parameters.runDuration",
-												"type": "Expression"
-											},
-											"teamWebhookUrl": {
-												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "ASHCOMM_ErrorLogs",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-										"storedProcedureParameters": {
-											"ErrorCode": {
-												"value": {
-													"value": "@pipeline().parameters.ErrorCode",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorMsg": {
-												"value": {
-													"value": "@pipeline().parameters.ErrorMsg",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorStatusCode": {
-												"value": {
-													"value": "@pipeline().parameters.ErrorStatusCode",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"FailureType": {
-												"value": {
-													"value": "@pipeline().parameters.FailureType",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"PipelineName": {
-												"value": {
-													"value": "@pipeline().parameters.PipelineName",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RunID": {
-												"value": {
-													"value": "@pipeline().parameters.RunID",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "@pipeline().parameters.Sink",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@pipeline().parameters.Sink_Type",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "@pipeline().parameters.Source",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@pipeline().parameters.Source_Type",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@pipeline().parameters.TriggerId",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@pipeline().parameters.TriggerName",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@pipeline().parameters.TriggerTime",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@pipeline().parameters.TriggerType",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								}
-							],
-							"ifTrueActivities": [
-								{
-									"name": "FileNotFound_Igonre_This_Error",
-									"type": "SetVariable",
-									"dependsOn": [],
-									"policy": {
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"variableName": "FileNotFound",
-										"value": {
-											"value": "@pipeline().parameters.ErrorMsg",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"ErrorCode": {
-						"type": "string"
-					},
-					"ErrorMsg": {
-						"type": "string"
-					},
-					"ErrorStatusCode": {
-						"type": "string"
-					},
-					"FailureType": {
-						"type": "string"
-					},
-					"PipelineName": {
-						"type": "string"
-					},
-					"RunID": {
-						"type": "string"
-					},
-					"Sink": {
-						"type": "string"
-					},
-					"Sink_Type": {
-						"type": "string"
-					},
-					"Source": {
-						"type": "string"
-					},
-					"Source_Type": {
-						"type": "string"
-					},
-					"TriggerId": {
-						"type": "string"
-					},
-					"TriggerName": {
-						"type": "string"
-					},
-					"TriggerTime": {
-						"type": "string"
-					},
-					"TriggerType": {
-						"type": "string"
-					},
-					"status": {
-						"type": "string"
-					},
-					"runDuration": {
-						"type": "string"
-					},
-					"executionEndTime": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"FileNotFound": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Retail_Customer_Flow"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Notify_Teams_Channale_Pipeline')]",
-				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
-			]
 		}
 	]
 }

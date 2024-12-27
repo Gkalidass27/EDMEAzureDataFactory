@@ -49,6 +49,15 @@
 			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
 		},
+		"Smartsheet_Storemasterlist_apiToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'apiToken' of 'Smartsheet_Storemasterlist'"
+		},
+		"Wholesale_sitemaster_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Wholesale_sitemaster'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Wholesale_SiteMaster"
+		},
 		"masterDataHubStg_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'masterDataHubStg'"
@@ -72,6 +81,14 @@
 			"type": "string",
 			"defaultValue": "https://afide-edmekv.vault.azure.net/"
 		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
+		},
+		"AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://afide-edmekv.vault.azure.net/"
+		},
 		"DataAnyWhereProdRestAPI_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://dataanywhereprod.azure-api.net"
@@ -80,9 +97,37 @@
 			"type": "string",
 			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
 		},
+		"Postal_datadownload_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://releases.melissadata.net/Download/Data/2024.07/z5max.txt"
+		},
+		"Postalcode_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://releases.melissadata.net"
+		},
+		"RawZone_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ashleydevlake.dfs.core.windows.net/"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://releases.melissadata.net/releases/data/z5max.txt"
+		},
+		"Rest_Postalcodes_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{linkedService().BaseURL}"
+		},
+		"Rest_Postalcodes_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "Test"
+		},
 		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net"
+		},
+		"Postal_code_API_properties_pipeline_parameters_FolderName": {
+			"type": "string",
+			"defaultValue": "Postal_Code_Source_Files"
 		},
 		"dataFactory_properties_globalParameters_DAC_Accountid_value": {
 			"type": "string",
@@ -120,7 +165,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_0",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -158,18 +203,6 @@
 					"Sink_ReferenceMaster_connectionString": {
 						"value": "[parameters('Sink_ReferenceMaster_connectionString')]"
 					},
-					"masterDataHubStg_accountKey": {
-						"value": "[parameters('masterDataHubStg_accountKey')]"
-					},
-					"masterDataHub_Retail_connectionString": {
-						"value": "[parameters('masterDataHub_Retail_connectionString')]"
-					},
-					"semarchy_repo_connectionString": {
-						"value": "[parameters('semarchy_repo_connectionString')]"
-					},
-					"semarchy_staging_connectionString": {
-						"value": "[parameters('semarchy_staging_connectionString')]"
-					},
 					"dataFactory_properties_globalParameters_DAC_Accountid_value": {
 						"value": "[parameters('dataFactory_properties_globalParameters_DAC_Accountid_value')]"
 					},
@@ -188,14 +221,29 @@
 					"AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl": {
 						"value": "[parameters('AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl')]"
 					},
+					"AzureDataLakeStorage1_properties_typeProperties_url": {
+						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+					},
+					"AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl": {
+						"value": "[parameters('AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl')]"
+					},
 					"DataAnyWhereProdRestAPI_properties_typeProperties_url": {
 						"value": "[parameters('DataAnyWhereProdRestAPI_properties_typeProperties_url')]"
 					},
 					"EDW_Ashleylake_properties_typeProperties_url": {
 						"value": "[parameters('EDW_Ashleylake_properties_typeProperties_url')]"
 					},
-					"masterDataHubStg_properties_typeProperties_url": {
-						"value": "[parameters('masterDataHubStg_properties_typeProperties_url')]"
+					"Postal_datadownload_properties_typeProperties_url": {
+						"value": "[parameters('Postal_datadownload_properties_typeProperties_url')]"
+					},
+					"Postalcode_properties_typeProperties_url": {
+						"value": "[parameters('Postalcode_properties_typeProperties_url')]"
+					},
+					"RawZone_properties_typeProperties_url": {
+						"value": "[parameters('RawZone_properties_typeProperties_url')]"
+					},
+					"RestService1_properties_typeProperties_url": {
+						"value": "[parameters('RestService1_properties_typeProperties_url')]"
 					}
 				}
 			},
@@ -204,7 +252,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_1",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -214,6 +262,27 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"Smartsheet_Storemasterlist_apiToken": {
+						"value": "[parameters('Smartsheet_Storemasterlist_apiToken')]"
+					},
+					"Wholesale_sitemaster_connectionString": {
+						"value": "[parameters('Wholesale_sitemaster_connectionString')]"
+					},
+					"masterDataHubStg_accountKey": {
+						"value": "[parameters('masterDataHubStg_accountKey')]"
+					},
+					"masterDataHub_Retail_connectionString": {
+						"value": "[parameters('masterDataHub_Retail_connectionString')]"
+					},
+					"semarchy_repo_connectionString": {
+						"value": "[parameters('semarchy_repo_connectionString')]"
+					},
+					"semarchy_staging_connectionString": {
+						"value": "[parameters('semarchy_staging_connectionString')]"
+					},
+					"masterDataHubStg_properties_typeProperties_url": {
+						"value": "[parameters('masterDataHubStg_properties_typeProperties_url')]"
 					}
 				}
 			},
@@ -224,7 +293,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_2",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -244,7 +313,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_3",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -264,7 +333,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_4",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -284,7 +353,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_5",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -304,7 +373,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_6",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -324,7 +393,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_7",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -344,7 +413,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_8",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -364,7 +433,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_9",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -384,7 +453,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_10",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -404,7 +473,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_11",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -424,7 +493,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_12",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -444,7 +513,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_13",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -454,6 +523,12 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"Rest_Postalcodes_properties_typeProperties_url": {
+						"value": "[parameters('Rest_Postalcodes_properties_typeProperties_url')]"
+					},
+					"Rest_Postalcodes_properties_typeProperties_userName": {
+						"value": "[parameters('Rest_Postalcodes_properties_typeProperties_userName')]"
 					}
 				}
 			},
@@ -464,7 +539,7 @@
 		{
 			"name": "afi-edme-dev-df_ArmTemplate_14",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -479,6 +554,89 @@
 			},
 			"dependsOn": [
 				"[resourceId('Microsoft.Resources/deployments', 'afi-edme-dev-df_ArmTemplate_13')]"
+			]
+		},
+		{
+			"name": "afi-edme-dev-df_ArmTemplate_15",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_15.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'afi-edme-dev-df_ArmTemplate_14')]"
+			]
+		},
+		{
+			"name": "afi-edme-dev-df_ArmTemplate_16",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_16.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'afi-edme-dev-df_ArmTemplate_15')]"
+			]
+		},
+		{
+			"name": "afi-edme-dev-df_ArmTemplate_17",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_17.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Postal_code_API_properties_pipeline_parameters_FolderName": {
+						"value": "[parameters('Postal_code_API_properties_pipeline_parameters_FolderName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'afi-edme-dev-df_ArmTemplate_16')]"
+			]
+		},
+		{
+			"name": "afi-edme-dev-df_ArmTemplate_18",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_18.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'afi-edme-dev-df_ArmTemplate_17')]"
 			]
 		}
 	]
