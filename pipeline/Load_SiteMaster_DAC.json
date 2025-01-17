@@ -363,7 +363,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "select \nNEWID() AS SITE_CONTENT_ID,\n'SiteContent' AS B_CLASSNAME,\nCONTENT_CATEGORY,\nCONTENT_TYPE,\nCONVERT(nvarchar(128),[CONTENT_SHORT_TEXT]) AS [CONTENT_SHORT_TEXT],\nCONTENT_LONG_TEXT,\nCONTENT_LANGUAGE,\nFP_SITE_MAIN,\nFS_SITE_MAIN\nfrom Retail.DACIncrementalSiteContent",
+							"value": "select \nNEWID() AS SITE_CONTENT_ID\n,'SiteContent' AS B_CLASSNAME\n,[LocationNumber]\n,[ExteriorPhoto]\n,[FlyerLink]\n,[Promotion1Image]  \n      ,[Promotion1URL]\n      ,[Promotion2URL]\n      ,[Promotion2Image]\n      ,[ScheduleApptURL]\n      ,[AlternateWebsiteURL]\n      ,convert(nvarchar(128),WebsiteURL) as WebsiteURL\n\t  ,convert(nvarchar(128),[BusinessDescription]) as BusinessDescription\n      ,[BusinessLongDescription]\n      ,convert(nvarchar(128),BusinessShortDescription) as BusinessShortDescription\n\t  ,convert(nvarchar(128),[BusinessName]) as BusinessName\n      ,[ContentLanguage]\nFROM [Retail].[DACIncrementalSiteContent]",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -372,14 +372,7 @@
 					"sink": {
 						"type": "AzureSqlSink",
 						"writeBatchTimeout": "00:30:00",
-						"writeBehavior": "upsert",
-						"upsertSettings": {
-							"useTempDB": true,
-							"keys": [
-								"FS_SITE_MAIN",
-								"CONTENT_TYPE"
-							]
-						},
+						"writeBehavior": "insert",
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -390,93 +383,122 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "LoadId"
+									"name": "LoadId",
+									"type": "String"
 								},
 								"sink": {
 									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
 									"scale": 0,
 									"precision": 38
 								}
 							},
 							{
 								"source": {
-									"name": "B_UPDDATE"
+									"name": "SITE_CONTENT_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_CONTENT_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "String"
 								},
 								"sink": {
 									"name": "B_UPDDATE",
-									"scale": 6
+									"type": "DateTime",
+									"physicalType": "datetime2"
 								}
 							},
 							{
 								"source": {
-									"name": "CONTENT_CATEGORY"
+									"name": "BusinessName",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "CONTENT_CATEGORY"
+									"name": "NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "CONTENT_TYPE"
+									"name": "ContentLanguage",
+									"type": "String",
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "CONTENT_TYPE"
+									"name": "PRIMARY_LANGUAGE",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "CONTENT_SHORT_TEXT"
+									"name": "BusinessDescription",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "CONTENT_SHORT_TEXT"
+									"name": "DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "CONTENT_LONG_TEXT"
+									"name": "BusinessShortDescription",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "CONTENT_LONG_TEXT"
+									"name": "SHORT_DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "CONTENT_LANGUAGE"
+									"name": "BusinessLongDescription",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "CONTENT_LANGUAGE"
+									"name": "LONG_DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "FP_SITE_MAIN"
+									"name": "WebsiteURL",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "FP_SITE_MAIN"
-								}
-							},
-							{
-								"source": {
-									"name": "FS_SITE_MAIN"
-								},
-								"sink": {
-									"name": "FS_SITE_MAIN"
-								}
-							},
-							{
-								"source": {
-									"name": "SITE_CONTENT_ID"
-								},
-								"sink": {
-									"name": "SITE_CONTENT_ID"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CLASSNAME"
-								},
-								"sink": {
-									"name": "B_CLASSNAME"
+									"name": "WEBSITE_URL",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							}
 						],
