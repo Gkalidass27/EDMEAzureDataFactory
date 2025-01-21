@@ -561,7 +561,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "select \nNEWID() AS SITE_DEFAULT_HOURS_ID,\n'SiteDefaultHours' AS B_CLASSNAME,\nSITE_HOURS_TYPE,\nDAY_OF_WEEK,\nSTART_TIME,\nEND_TIME,\nFP_SITE_MAIN,\nFS_SITE_MAIN\nfrom Retail.DACIncrementalSiteDefaultHours",
+							"value": "select \nNEWID() AS SITE_DEFAULT_HOURS_ID,\n'SiteDefaultHours' AS B_CLASSNAME,\nSITE_HOURS_TYPE,\nDAY_OF_WEEK,\nSTART_TIME,\nEND_TIME,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nB_CREDATE,\nB_CREATOR,\nB_UPDATOR\nfrom Retail.DACIncrementalSiteDefaultHours",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -574,9 +574,10 @@
 						"upsertSettings": {
 							"useTempDB": true,
 							"keys": [
-								"FS_SITE_MAIN",
-								"SITE_HOURS_TYPE",
-								"DAY_OF_WEEK"
+								"DAY_OF_WEEK",
+								"FS_SITE",
+								"FP_SITE",
+								"SITE_DEFAULT_HOUR_ID"
 							]
 						},
 						"sqlWriterUseTableLock": false,
@@ -589,85 +590,146 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "LoadId"
+									"name": "LoadId",
+									"type": "String"
 								},
 								"sink": {
 									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
 									"scale": 0,
 									"precision": 38
 								}
 							},
 							{
 								"source": {
-									"name": "B_UPDDATE"
+									"name": "SITE_DEFAULT_HOURS_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_DEFAULT_HOUR_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "String"
 								},
 								"sink": {
 									"name": "B_UPDDATE",
-									"scale": 6
+									"type": "DateTime",
+									"physicalType": "datetime2"
 								}
 							},
 							{
 								"source": {
-									"name": "SITE_HOURS_TYPE"
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "SITE_HOURS_TYPE"
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "DAY_OF_WEEK"
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "DAY_OF_WEEK"
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "START_TIME"
+									"name": "DAY_OF_WEEK",
+									"type": "String",
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "START_TIME"
+									"name": "DAY_OF_WEEK",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "END_TIME"
+									"name": "START_TIME",
+									"type": "TimeSpan",
+									"physicalType": "time"
 								},
 								"sink": {
-									"name": "END_TIME"
+									"name": "START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "FP_SITE_MAIN"
+									"name": "END_TIME",
+									"type": "TimeSpan",
+									"physicalType": "time"
 								},
 								"sink": {
-									"name": "FP_SITE_MAIN"
+									"name": "END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "FS_SITE_MAIN"
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "FS_SITE_MAIN"
+									"name": "FP_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "SITE_DEFAULT_HOURS_ID"
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "SITE_DEFAULT_HOURS_ID"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CLASSNAME"
-								},
-								"sink": {
-									"name": "B_CLASSNAME"
+									"name": "FS_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							}
 						],
@@ -694,6 +756,8 @@
 			{
 				"name": "SubmitLoad",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "IncrementalsdhsopctrackingView",
@@ -1446,7 +1510,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSiteDefaultHoursView",
+						"activity": "IncrementalSiteSpecialHours",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1480,7 +1544,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "select \nB_PUBID,\nB_SOURCEID,\n'HomeStoreOperationProfitCenterTracking' as B_CLASSNAME,\nRAW_LATITUDE,\nRAW_LONGITUDE,\nADDRESS_LINE1 ,\nCITY ,\nSTATE_CODE ,\nPOSTAL_CODE ,\nCOUNTRY_CODE\nfrom Retail.DACIncrementalSiteMain ",
+							"value": "SELECT B_PUBID\n      ,B_SOURCEID\n      ,SITE_NAME\n      ,SITE_TYPE\n      ,IS_Active\n      ,OWNERSHIP_TYPE\n      ,ADDRESS_LINE1\n      ,ADDRESS_LINE2\n      ,CITY\n      ,STATE_CODE\n      ,POSTAL_CODE\n      ,COUNTRY_CODE\n      ,RAW_MAIN_PHONE\n      ,RAW_CS_PHONE\n      ,RAW_CS_EMAIL\n      ,RAW_LATITUDE\n      ,RAW_LONGITUDE\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n  FROM Retail.DACIncrementalSiteMain\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -1488,8 +1552,15 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"B_SOURCEID"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
 					"translator": {
@@ -1534,36 +1605,59 @@
 							},
 							{
 								"source": {
-									"name": "B_CLASSNAME",
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
 									"type": "String",
 									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "B_CLASSNAME",
+									"name": "B_CREATOR",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "RAW_LATITUDE",
+									"name": "B_UPDATOR",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "SITE_RAW_LATITUDE",
+									"name": "B_UPDATOR",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
 							},
 							{
 								"source": {
-									"name": "RAW_LONGITUDE",
-									"type": "String",
-									"physicalType": "nvarchar"
+									"name": "SITE_NAME",
+									"type": "Int32",
+									"physicalType": "int"
 								},
 								"sink": {
-									"name": "SITE_RAW_LONGITUDE",
+									"name": "SITE_NAME",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -1575,7 +1669,7 @@
 									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "SITE_ADDR_LINE1",
+									"name": "SITE_RAW_ADDR_LINE1",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -1630,13 +1724,38 @@
 							},
 							{
 								"source": {
-									"name": "B_UPDDATE",
-									"type": "String"
+									"name": "RAW_LATITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
 								},
 								"sink": {
-									"name": "B_UPDDATE",
-									"type": "DateTime",
-									"physicalType": "datetime2"
+									"name": "SITE_RAW_LATITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_LONGITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_LONGITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							}
 						],
@@ -1684,28 +1803,28 @@
 					"storedProcedureParameters": {
 						"ErrorCode": {
 							"value": {
-								"value": "@{activity('IncrementalSiteDefaultHoursView').error.errorCode}",
+								"value": "@{activity('IncrementalsdhsopctrackingView').error.errorCode}",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"ErrorMsg": {
 							"value": {
-								"value": "@{activity('IncrementalSiteDefaultHoursView').error.message}\n",
+								"value": "@{activity('IncrementalsdhsopctrackingView').error.message}\n",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"ErrorStatusCode": {
 							"value": {
-								"value": "@activity('IncrementalSiteDefaultHoursView').StatusCode",
+								"value": "@activity('IncrementalsdhsopctrackingView').StatusCode",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"FailureType": {
 							"value": {
-								"value": "@{activity('IncrementalSiteDefaultHoursView').error.failureType}",
+								"value": "@{activity('IncrementalsdhsopctrackingView').error.failureType}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -1733,21 +1852,21 @@
 						},
 						"Sink_Type": {
 							"value": {
-								"value": "@{activity('IncrementalSiteDefaultHoursView').output.executionDetails[0].sink.type}",
+								"value": "@{activity('IncrementalsdhsopctrackingView').output.executionDetails[0].sink.type}",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"Source": {
 							"value": {
-								"value": "Retail.DACIncrementalSiteDefaultHours",
+								"value": "Retail.DACIncrementalSiteMain",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"Source_Type": {
 							"value": {
-								"value": "@{activity('IncrementalSiteDefaultHoursView').output.executionDetails[0].source.type}",
+								"value": "@{activity('IncrementalsdhsopctrackingView').output.executionDetails[0].source.type}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -1823,15 +1942,15 @@
 							"type": "Expression"
 						},
 						"triggerTime": {
-							"value": "@activity('IncrementalSiteDefaultHoursView').output.executionDetails[0].start",
+							"value": "@activity('IncrementalsdhsopctrackingView').output.executionDetails[0].start",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@activity('IncrementalSiteDefaultHoursView').output.executionDetails[0].status",
+							"value": "@activity('IncrementalsdhsopctrackingView').output.executionDetails[0].status",
 							"type": "Expression"
 						},
 						"message": {
-							"value": "@replace(activity('IncrementalSiteDefaultHoursView').error.message,'\"','')",
+							"value": "@replace(activity('IncrementalsdhsopctrackingView').error.message,'\"','')",
 							"type": "Expression"
 						},
 						"executionEndTime": {
@@ -1839,7 +1958,7 @@
 							"type": "Expression"
 						},
 						"runDuration": {
-							"value": "@activity('IncrementalSiteDefaultHoursView').output.copyDuration",
+							"value": "@activity('IncrementalsdhsopctrackingView').output.copyDuration",
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
@@ -1855,6 +1974,468 @@
 				"dependsOn": [
 					{
 						"activity": "IncrementalsdhsopctrackingView",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+					"storedProcedureParameters": {
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "IncrementalSiteSpecialHours",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteDefaultHoursView",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "B_UPDDATE",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "select \nNEWID() AS SITE_SPECIAL_HOURS_ID,\n'SiteSpecialtHours' AS B_CLASSNAME,\nSPH_Date,\nSPH_State,\nSPH_StartTime,\nSPH_Endtime,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nB_CREDATE,\nB_CREATOR,\nB_UPDATOR,\nB_PUBID,\nFP_SITE_ID\n\nfrom Retail.DACIncrementalSiteSpecialHours",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBatchTimeout": "00:30:00",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"DAYS_OF_WEEK",
+								"FS_SITE",
+								"SITE_SPECIAL_HOUR_ID"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_SPECIAL_HOURS_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_SPECIAL_HOUR_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SPH_Date",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "DAYS_OF_WEEK",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SPH_StartTime",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SPH_Endtime",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_SITE_Special_HOURS",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "SPCallStoreDetailsErrorMsg_SpecialHours",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteSpecialHours",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('IncrementalSiteSpecialHours').error.errorCode}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('IncrementalSiteSpecialHours').error.message}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('IncrementalSiteSpecialHours').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('IncrementalSiteSpecialHours').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "SA_SITE_DEFAULT_HOURS",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('IncrementalSiteSpecialHours').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "Retail.DACIncrementalSiteSpecialtHours",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('IncrementalSiteSpecialHours').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_SiteSpecialHours",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteSpecialHours",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('IncrementalSiteSpecialHours').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('IncrementalSiteSpecialHours').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('IncrementalSiteSpecialHours').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('IncrementalSiteSpecialHours').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Cancel_SiteSpecialHours_LoadId_Stored_Procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteSpecialHours",
 						"dependencyConditions": [
 							"Failed"
 						]
