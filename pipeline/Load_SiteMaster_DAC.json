@@ -43,7 +43,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT  B_PUBID\n      ,B_SOURCEID\n      ,AccountID\n      ,LocationID\n      ,SITE_NAME\n      ,SITE_TYPE\n      ,IS_Active\n      ,OWNERSHIP_TYPE\n      ,ADDRESS_LINE1\n      ,ADDRESS_LINE2\n      ,CITY\n      ,STATE_CODE\n      ,POSTAL_CODE\n      ,COUNTRY_CODE\n      ,RAW_MAIN_PHONE\n      ,RAW_FAX\n      ,RAW_CS_PHONE\n      ,RAW_CS_EMAIL\n      ,RAW_LATITUDE\n      ,RAW_LONGITUDE\n      ,SITE_DESCRIPTION\n      ,Status\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n      ,CAST(CASE WHEN StoreLocatorDisabled = 'True' THEN 1 ELSE 0 END AS BIT)  as  StoreLocatorDisabled\n  FROM Retail.DACIncrementalSiteMain\n",
+							"value": "SELECT  B_PUBID\n      ,B_SOURCEID\n      ,AccountID\n      ,LocationID\n      ,SITE_NAME\n      ,SITE_TYPE\n      ,IS_Active\n      ,OWNERSHIP_TYPE\n      ,ADDRESS_LINE1\n      ,ADDRESS_LINE2\n      ,CITY\n      ,STATE_CODE\n      ,POSTAL_CODE\n      ,COUNTRY_CODE\n      ,RAW_MAIN_PHONE\n      ,RAW_FAX\n      ,RAW_CS_PHONE\n      ,RAW_CS_EMAIL\n      ,RAW_LATITUDE\n      ,RAW_LONGITUDE\n      ,SITE_DESCRIPTION\n      ,Status\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n      ,CAST(CASE WHEN StoreLocatorDisabled = 'True' THEN 1 ELSE 0 END AS BIT)  as  StoreLocatorDisabled\n  FROM Retail.DACIncrementalSite\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -544,6 +544,30 @@
 								},
 								"sink": {
 									"name": "FP_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "BusinessName",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LocationNumber",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -2158,7 +2182,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "select \nNEWID() AS SITE_SPECIAL_HOURS_ID,\n'SiteSpecialHour' AS B_CLASSNAME,\nSPH_Date,\nSPH_State,\nSPH_StartTime,\nSPH_Endtime,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nB_CREDATE,\nB_CREATOR,\nB_UPDATOR,\nB_PUBID,\nFP_SITE_ID\n\nfrom Retail.DACIncrementalSiteSpecialHours",
+							"value": "select \nNEWID() AS SITE_SPECIAL_HOUR_ID,\n'SiteSpecialHour' AS B_CLASSNAME,\nSPH_Date DAYS_OF_WEEK,\nFD_SITE,\nSPH_StartTime as Start_Time,\nSPH_Endtime as End_time,\nFP_SITE,\nFS_SITE,\nB_CREDATE,\nB_CREATOR,\nB_UPDATOR,\nB_PUBID,\nFP_SITE_ID\n\nfrom Retail.DACIncrementalSiteSpecialHours",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -2172,8 +2196,8 @@
 							"useTempDB": true,
 							"keys": [
 								"DAYS_OF_WEEK",
-								"FS_SITE",
-								"SITE_SPECIAL_HOUR_ID"
+								"FD_SITE",
+								"FS_SITE"
 							]
 						},
 						"sqlWriterUseTableLock": false,
@@ -2199,7 +2223,7 @@
 							},
 							{
 								"source": {
-									"name": "SITE_SPECIAL_HOURS_ID",
+									"name": "SITE_SPECIAL_HOUR_ID",
 									"type": "Guid",
 									"physicalType": "uniqueidentifier"
 								},
@@ -2270,7 +2294,7 @@
 							},
 							{
 								"source": {
-									"name": "SPH_Date",
+									"name": "DAYS_OF_WEEK",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
@@ -2282,7 +2306,7 @@
 							},
 							{
 								"source": {
-									"name": "SPH_StartTime",
+									"name": "Start_Time",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
@@ -2294,7 +2318,7 @@
 							},
 							{
 								"source": {
-									"name": "SPH_Endtime",
+									"name": "End_time",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
@@ -2306,7 +2330,7 @@
 							},
 							{
 								"source": {
-									"name": "FP_SITE_MAIN",
+									"name": "FP_SITE",
 									"type": "String",
 									"physicalType": "varchar"
 								},
@@ -2318,12 +2342,24 @@
 							},
 							{
 								"source": {
-									"name": "FS_SITE_MAIN",
+									"name": "FS_SITE",
 									"type": "String",
 									"physicalType": "nvarchar"
 								},
 								"sink": {
 									"name": "FS_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FD_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FD_SITE",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
