@@ -5359,7 +5359,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "SiteAdditionalInformation_Hist",
+						"activity": "SetNewLoadId_copy1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -5378,9 +5378,9 @@
 						"type": "AzureSqlSource",
 						"additionalColumns": [
 							{
-								"name": "B_LoadID",
+								"name": "B_LoadID0",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@variables('LoadID0')\n",
 									"type": "Expression"
 								}
 							}
@@ -6372,7 +6372,7 @@
 							{
 								"name": "B_LoadID",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@variables('LoadID0')",
 									"type": "Expression"
 								}
 							}
@@ -6977,6 +6977,116 @@
 						"activity": "Site_GX",
 						"dependencyConditions": [
 							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "RetailSiteDataLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID0')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "GetNewLoadId_GX",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SubmitLoad_copy1_copy1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\r\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SetNewLoadId_copy1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId_GX",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID0",
+					"value": {
+						"value": "@{activity('GetNewLoadId_GX').output.firstRow.RETURN_VALUE_ARGUMENT}\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SubmitLoad_copy1_copy1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SiteAdditionalInformation",
+						"dependencyConditions": [
+							"Succeeded"
 						]
 					}
 				],
