@@ -13,6 +13,110 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Sink_Postal_code_Error_Files')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Error",
+						"fileSystem": "postal-code"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Sink_Retail_Customer_Archive_Files')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Archive",
+						"fileSystem": "retail-customer"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "clusterID\tglobalID\tconfidence_score\tRecID\tposRawContainerRecID\tmarket_id\tposFirstName\tposMiddleInitial\tposLastName\tposCustomerEmail1\tposCustomerEmail2\tposCustomerEmail3\tposCustomerPhone1\tposCustomerPhone2\tposCustomerPhone3\tn_address\tn_addr2\tn_city\tn_state\tn_zip9\tposFaceBookID\tposTwitterID\ttimestamp\tcustomer_type\tcustomer_since\tSourceSystem\tSourceSubSystem",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Sister_SKU')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "SisterSKU.parquet",
+						"folderPath": "Retail/SupplyChain/SisterSKU",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Sister_SKU_Historical')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "HistoricalSisterSKU.parquet",
+						"folderPath": "Retail/SupplyChain/HistoricalSisterSKU",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/StageInitialLoadRetailChunkControl')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1496,442 +1600,6 @@
 				"typeProperties": {
 					"schema": "dbo",
 					"table": "SA_EXTERNAL_REF_COUNTRY"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_EXTERNAL_REF_US_STATE')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHub_Retail",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "B_LOADID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "EXTERNAL_REF_US_STATE_ID",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "B_CLASSNAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ERROR_STATUS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ORIGINALBATCHID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_OPERATIONID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DUPSOPERATIONID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_DUPSMERGETARGET",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "B_DELETETYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_DELETEAUTHOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEOPERATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEPATH",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_COPIEDFROM",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "B_CREDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_UPDDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_CREATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_UPDATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STATE_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STATE_NAME",
-						"type": "nvarchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "SA_EXTERNAL_REF_US_STATE"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_SITE_CONTACT')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHub_Retail",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "B_LOADID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "SITE_CONTACT_ID",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "B_CLASSNAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ERROR_STATUS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ORIGINALBATCHID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_OPERATIONID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DUPSOPERATIONID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_DUPSMERGETARGET",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "B_DELETETYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_DELETEAUTHOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEOPERATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEPATH",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_COPIEDFROM",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "B_CREDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_UPDDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_CREATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_UPDATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CONTACT_FIRST_NAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CONTACT_LAST_NAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAW_CONTACT_PHONE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STD_CONTACT_PHONE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CONTACT_PHONE_STATUS_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAW_CONTACT_EMAIL",
-						"type": "nvarchar"
-					},
-					{
-						"name": "VLD_CONTACT_EMAIL",
-						"type": "nvarchar"
-					},
-					{
-						"name": "SITE_CONTACT_TYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "F_SITE_MAIN",
-						"type": "uniqueidentifier"
-					},
-					{
-						"name": "FP_SITE_MAIN",
-						"type": "nvarchar"
-					},
-					{
-						"name": "FS_SITE_MAIN",
-						"type": "nvarchar"
-					},
-					{
-						"name": "FD_SITE_MAIN",
-						"type": "nvarchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "SA_SITE_CONTACT"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SD_SITE_OWNER')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHub_Retail",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "B_LOADID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_PUBID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_SOURCEID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CLASSNAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ERROR_STATUS",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_ORIGINALBATCHID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "B_OPERATIONID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETETYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_DELETEAUTHOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEOPERATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEPATH",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CREDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_UPDDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_CREATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_UPDATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "OWNER_NAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "ADDRESS_STATUS_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "ADDRESS_ERROR_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAWADDRESS_LINE1",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAWADDRESS_LINE2",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAWCITY",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAWSTATE_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAWPOSTAL_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "RAWCOUNTRY_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STASTREET_NAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STASTREET_NUMBER",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STACITY",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STASTATE_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STAPOSTAL_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STACOUNTRY_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STALATITUDE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STALONGITUDE",
-						"type": "nvarchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "SD_SITE_OWNER"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterData_CDP_CrossWalk_DU_OUT')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "Masterdata_CDP",
-					"table": "CrossWalk_DU_OUT"
 				}
 			},
 			"dependsOn": []
