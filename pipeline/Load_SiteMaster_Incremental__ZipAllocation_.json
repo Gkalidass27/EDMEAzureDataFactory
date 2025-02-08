@@ -264,7 +264,14 @@
 			{
 				"name": "GetNewLoadId",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Differential_zipallocation_Semarchy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -366,7 +373,7 @@
 				}
 			},
 			{
-				"name": "SPCallStoreDetailsErrorMsg_SiteMain",
+				"name": "SPCallStoreDetailsErrorMsg_zipallocation",
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
@@ -493,7 +500,7 @@
 				}
 			},
 			{
-				"name": "Teams_Failed_Notification_SiteMain",
+				"name": "Teams_Failed_Notification_zipAllocation",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
@@ -555,7 +562,7 @@
 				}
 			},
 			{
-				"name": "Cancel_SiteMain_LoadId_Stored_Procedure",
+				"name": "Cancel_ZipAllocation_LoadId_Stored_Procedure",
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
@@ -614,6 +621,238 @@
 				},
 				"linkedServiceName": {
 					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SPCallStoreDetailsErrorMsg_Merg_ZipAlloc",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Differential_zipallocation_Semarchy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('Differential_zipallocation_Semarchy').error.errorCode}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('Differential_zipallocation_Semarchy').error.message}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('Differential_zipallocation_Semarchy').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('Differential_zipallocation_Semarchy').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "SD_SITE_MAIN",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('Differential_zipallocation_Semarchy').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "Retail.DACIncrementalSiteMain",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('Differential_zipallocation_Semarchy').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification__Merg_ZipAlloc",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Differential_zipallocation_Semarchy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Differential_zipallocation_Semarchy').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Differential_zipallocation_Semarchy').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Differential_zipallocation_Semarchy').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Differential_zipallocation_Semarchy').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Cancel__Merg_ZipAlloc_LoadId_Stored_Procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Differential_zipallocation_Semarchy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+					"storedProcedureParameters": {
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
 					"type": "LinkedServiceReference"
 				}
 			}
