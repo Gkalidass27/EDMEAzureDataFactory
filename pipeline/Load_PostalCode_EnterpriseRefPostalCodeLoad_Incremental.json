@@ -230,7 +230,7 @@
 										}
 									],
 									"sqlReaderQuery": {
-										"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD]",
+										"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE as F_MSA_ID,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD]",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -238,13 +238,7 @@
 								},
 								"sink": {
 									"type": "AzureSqlSink",
-									"writeBehavior": "upsert",
-									"upsertSettings": {
-										"useTempDB": true,
-										"keys": [
-											"ENT_REF_POSTAL_CODE_ID"
-										]
-									},
+									"writeBehavior": "insert",
 									"sqlWriterUseTableLock": false,
 									"disableMetricsCollection": false
 								},
@@ -528,18 +522,6 @@
 										},
 										{
 											"source": {
-												"name": "MSA_CODE",
-												"type": "String",
-												"physicalType": "nvarchar"
-											},
-											"sink": {
-												"name": "MSA_CODE",
-												"type": "String",
-												"physicalType": "nvarchar"
-											}
-										},
-										{
-											"source": {
 												"name": "FIPS_CODE",
 												"type": "String",
 												"physicalType": "nvarchar"
@@ -552,12 +534,12 @@
 										},
 										{
 											"source": {
-												"name": "ZONE_NAME",
+												"name": "F_MSA_ID",
 												"type": "String",
 												"physicalType": "nvarchar"
 											},
 											"sink": {
-												"name": "NAME",
+												"name": "F_MSA_ID",
 												"type": "String",
 												"physicalType": "nvarchar"
 											}
@@ -588,7 +570,7 @@
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [
 								{
-									"activity": "Load_PostalCode_HIST",
+									"activity": "Load_PostalCode",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -974,19 +956,6 @@
 								"translator": {
 									"type": "TabularTranslator",
 									"mappings": [
-										{
-											"source": {
-												"name": "B_LOADID",
-												"type": "String"
-											},
-											"sink": {
-												"name": "B_LOADID",
-												"type": "Decimal",
-												"physicalType": "decimal",
-												"scale": 0,
-												"precision": 38
-											}
-										},
 										{
 											"source": {
 												"name": "POSTAL_CODE_MASTER_ID",
