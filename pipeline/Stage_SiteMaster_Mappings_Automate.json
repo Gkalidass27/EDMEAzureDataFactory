@@ -439,7 +439,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Sp_LegalEntityID_Assign",
+						"activity": "Sp_LegalEntityID_Assign_RDC",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -583,7 +583,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select legal_entity_id as LegalEntityID,Name as Entityname,LIC_contact as LicenseeContact,\nb_credate as createddate from  dbo.gd_legal_entity",
+						"sqlReaderQuery": "select legal_entity_id as LegalEntityID,Name as Entityname,LIC_contact as LicenseeContact,\nCONVERT(VARCHAR(30), b_credate, 126) as createddate from  dbo.gd_legal_entity",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -594,7 +594,8 @@
 							"useTempDB": false,
 							"keys": [
 								"LegalEntityID",
-								"EntityName"
+								"EntityName",
+								"LicenseeContact"
 							]
 						},
 						"sqlWriterUseTableLock": false,
@@ -684,7 +685,7 @@
 				]
 			},
 			{
-				"name": "Sp_LegalEntityID_Assign",
+				"name": "Sp_LegalEntityID_Assign_Stores",
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
@@ -704,6 +705,33 @@
 				"userProperties": [],
 				"typeProperties": {
 					"storedProcedureName": "[Retail].[Assign_new_legal_entity_id]"
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Sp_LegalEntityID_Assign_RDC",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Sp_LegalEntityID_Assign_Stores",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Retail].[Assign_WH_new_legal_entity_id]"
 				},
 				"linkedServiceName": {
 					"referenceName": "semarchy_staging",
