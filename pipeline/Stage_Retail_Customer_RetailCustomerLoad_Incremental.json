@@ -41,6 +41,10 @@
 						]
 					}
 				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "ToDateTime",
@@ -55,7 +59,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Current_UTCTime",
+						"activity": "C_Varibale",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -84,6 +88,13 @@
 								"name": "createdDate",
 								"value": {
 									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "c_sourcecumentid",
+								"value": {
+									"value": "@variables('C_Value')",
 									"type": "Expression"
 								}
 							}
@@ -994,6 +1005,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -1084,6 +1098,9 @@
 						]
 					}
 				],
+				"policy": {
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
@@ -1325,10 +1342,149 @@
 						"enablePartitionDiscovery": false
 					}
 				}
+			},
+			{
+				"name": "Get_File_ Metadata",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Current_UTCTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ECM_Files_GetMetaData",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"itemName"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "File_Name",
+				"description": "Find the File Name from Get_File_Metadata",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get_File_ Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "File_Name",
+					"value": ""
+				}
+			},
+			{
+				"name": "Valiadate_File_Name",
+				"description": "validate the file name received from get file metadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "File_Name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT SUBSTRING('@{variables('File_Name')}', CHARINDEX('_', '@{variables('File_Name')}') + 1, CHARINDEX('.','@{variables('File_Name')}') - CHARINDEX('_', '@{variables('File_Name')}')-1) as FinalVar;\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Masterdata_CDP_AllSourceCustomers_FileName",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "C_Varibale",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Valiadate_File_Name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "C_Value",
+					"value": ""
+				}
 			}
 		],
 		"variables": {
 			"ToDateTime": {
+				"type": "String"
+			},
+			"filename": {
+				"type": "String"
+			},
+			"LastModified": {
+				"type": "String"
+			},
+			"File_Name": {
+				"type": "String"
+			},
+			"lastmodified": {
+				"type": "String"
+			},
+			"LSTM": {
+				"type": "String"
+			},
+			"setvalue": {
+				"type": "String"
+			},
+			"Finalvalue": {
+				"type": "String"
+			},
+			"C_Value": {
 				"type": "String"
 			}
 		},
