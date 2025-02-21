@@ -110,6 +110,8 @@
 								"value": "@variables('ToDateTime')",
 								"type": "Expression"
 							},
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "*.csv",
 							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
@@ -386,13 +388,7 @@
 				"inputs": [
 					{
 						"referenceName": "ECM_Files",
-						"type": "DatasetReference",
-						"parameters": {
-							"FileNameparam": {
-								"value": "@activity('Get_File_ Metadata').output.itemName",
-								"type": "Expression"
-							}
-						}
+						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
@@ -405,9 +401,14 @@
 			{
 				"name": "Load_Homes_Customer",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Failed",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Load_ECM_Customer",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -824,13 +825,7 @@
 				"inputs": [
 					{
 						"referenceName": "ECM_Files",
-						"type": "DatasetReference",
-						"parameters": {
-							"FileNameparam": {
-								"value": "@activity('Get_File_ Metadata').output.itemName",
-								"type": "Expression"
-							}
-						}
+						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
@@ -884,8 +879,6 @@
 			{
 				"name": "Error_Homes_Files",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load_Homes_Customer",
@@ -962,8 +955,6 @@
 			{
 				"name": "Delete_Homes_Error_Files",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Error_Homes_Files",
@@ -1098,8 +1089,6 @@
 			{
 				"name": "Stage_Retail_Customer_Failure_Notification_Homes",
 				"type": "ExecutePipeline",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load_Homes_Customer",
@@ -1193,8 +1182,6 @@
 			{
 				"name": "Homes_Files_Fail",
 				"type": "Fail",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Stage_Retail_Customer_Failure_Notification_Homes",
@@ -1241,8 +1228,6 @@
 			{
 				"name": "Archive_Files",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load_Homes_Customer",
@@ -1319,8 +1304,6 @@
 			{
 				"name": "Deleta_Files",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Archive_Files",
