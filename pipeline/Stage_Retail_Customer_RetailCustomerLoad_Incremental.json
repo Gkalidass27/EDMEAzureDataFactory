@@ -654,7 +654,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"filename_d": {
-								"value": "@activity('Get_File_ Metadata').output.itemName",
+								"value": "@variables('File_Name')",
 								"type": "Expression"
 							}
 						}
@@ -700,7 +700,7 @@
 						"type": "DatasetReference"
 					},
 					"fieldList": [
-						"itemName"
+						"childItems"
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
@@ -718,7 +718,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Get_File_ Metadata",
+						"activity": "FilterActivity",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -732,7 +732,7 @@
 				"typeProperties": {
 					"variableName": "File_Name",
 					"value": {
-						"value": "@activity('Get_File_ Metadata').output.itemName",
+						"value": "@activity('FilterActivity').output.value[0].name",
 						"type": "Expression"
 					}
 				}
@@ -845,14 +845,6 @@
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
-							"modifiedDatetimeStart": {
-								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-								"type": "Expression"
-							},
-							"modifiedDatetimeEnd": {
-								"value": "@variables('ToDateTime')",
-								"type": "Expression"
-							},
 							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
@@ -1132,7 +1124,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"FileName_Prm": {
-								"value": "@activity('Get_File_ Metadata').output.itemName",
+								"value": "@variables('File_Name')",
 								"type": "Expression"
 							}
 						}
@@ -1488,6 +1480,29 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "FilterActivity",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get_File_ Metadata",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get_File_ Metadata').output.childItems",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@startswith(item().name, 'Homes')",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"variables": {
