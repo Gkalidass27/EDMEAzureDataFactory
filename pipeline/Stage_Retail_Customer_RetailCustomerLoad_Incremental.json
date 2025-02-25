@@ -207,129 +207,6 @@
 				}
 			},
 			{
-				"name": "Error_Homes_Files",
-				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "Load_HOME_Customer",
-						"dependencyConditions": [
-							"Failed"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"modifiedDatetimeStart": {
-								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-								"type": "Expression"
-							},
-							"modifiedDatetimeEnd": {
-								"value": "@variables('ToDateTime')",
-								"type": "Expression"
-							},
-							"wildcardFolderPath": "Retail-Customer-Source-Files",
-							"wildcardFileName": "Homes*.csv",
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
-					},
-					"sink": {
-						"type": "DelimitedTextSink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
-						},
-						"formatSettings": {
-							"type": "DelimitedTextWriteSettings",
-							"quoteAllText": true,
-							"fileExtension": ".csv"
-						}
-					},
-					"enableStaging": false,
-					"dataIntegrationUnits": 2,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "Homes_Files",
-						"type": "DatasetReference",
-						"parameters": {
-							"FileName_Prm": {
-								"value": "@activity('Get_File_ Metadata').output.itemName",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "Retail_Customer_Error_Files",
-						"type": "DatasetReference"
-					}
-				]
-			},
-			{
-				"name": "Delete_Homes_Error_Files",
-				"type": "Delete",
-				"dependsOn": [
-					{
-						"activity": "Error_Homes_Files",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"dataset": {
-						"referenceName": "Delete_Error_Files",
-						"type": "DatasetReference"
-					},
-					"enableLogging": false,
-					"storeSettings": {
-						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
-						"modifiedDatetimeStart": {
-							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-							"type": "Expression"
-						},
-						"modifiedDatetimeEnd": {
-							"value": "@variables('ToDateTime')",
-							"type": "Expression"
-						},
-						"wildcardFileName": "Homes*.csv",
-						"enablePartitionDiscovery": false
-					}
-				}
-			},
-			{
 				"name": "Stage_Retail_Customer_Failure_Notification_ECM",
 				"type": "ExecutePipeline",
 				"dependsOn": [
@@ -423,122 +300,6 @@
 				}
 			},
 			{
-				"name": "Stage_Retail_Customer_Failure_Notification_Homes",
-				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "Load_HOME_Customer",
-						"dependencyConditions": [
-							"Failed"
-						]
-					}
-				],
-				"policy": {
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "Stage_Retail_Customer_Failure_Notification",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"ErrorCode": {
-							"value": "@{activity('Load_HOME_Customer').error.errorCode}",
-							"type": "Expression"
-						},
-						"ErrorMsg": {
-							"value": "@replace(activity('Load_HOME_Customer').error.message,'\"','')",
-							"type": "Expression"
-						},
-						"ErrorStatusCode": {
-							"value": "@activity('Load_HOME_Customer').StatusCode",
-							"type": "Expression"
-						},
-						"FailureType": {
-							"value": "@{activity('Load_HOME_Customer').error.failureType}",
-							"type": "Expression"
-						},
-						"PipelineName": {
-							"value": "@{pipeline().Pipeline}",
-							"type": "Expression"
-						},
-						"RunID": {
-							"value": "@{pipeline().RunId}",
-							"type": "Expression"
-						},
-						"Sink": {
-							"value": "Scratch.CustomerInfo",
-							"type": "Expression"
-						},
-						"Sink_Type": {
-							"value": "@{activity('Load_HOME_Customer').output.executionDetails[0].sink.type}",
-							"type": "Expression"
-						},
-						"Source": {
-							"value": "Source is Homes RET Customers Files",
-							"type": "Expression"
-						},
-						"Source_Type": {
-							"value": "@{activity('Load_HOME_Customer').output.executionDetails[0].source.type}",
-							"type": "Expression"
-						},
-						"TriggerId": {
-							"value": "@{pipeline().TriggerId}",
-							"type": "Expression"
-						},
-						"TriggerName": {
-							"value": "@{pipeline().TriggerName}",
-							"type": "Expression"
-						},
-						"TriggerTime": {
-							"value": "@{pipeline().TriggerTime}",
-							"type": "Expression"
-						},
-						"TriggerType": {
-							"value": "@{pipeline().TriggerType}",
-							"type": "Expression"
-						},
-						"status": {
-							"value": "@activity('Load_HOME_Customer').Status",
-							"type": "Expression"
-						},
-						"runDuration": {
-							"value": "@activity('Load_HOME_Customer').Duration",
-							"type": "Expression"
-						},
-						"executionEndTime": {
-							"value": "@activity('Load_HOME_Customer').ExecutionEndTime",
-							"type": "Expression"
-						}
-					}
-				}
-			},
-			{
-				"name": "Homes_Files_Fail",
-				"type": "Fail",
-				"dependsOn": [
-					{
-						"activity": "Stage_Retail_Customer_Failure_Notification_Homes",
-						"dependencyConditions": [
-							"Completed"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"message": {
-						"value": "@replace(activity('Load_HOME_Customer').error.message,'\"','')",
-						"type": "Expression"
-					},
-					"errorCode": {
-						"value": "@{activity('Load_HOME_Customer').error.errorCode}",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "ECM_Files_Fail",
 				"type": "Fail",
 				"dependsOn": [
@@ -566,7 +327,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Load_HOME_Customer",
+						"activity": "Validate_value",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -796,354 +557,6 @@
 						"type": "Expression"
 					}
 				}
-			},
-			{
-				"name": "Load_HOME_Customer",
-				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "C_Varibale",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"additionalColumns": [
-							{
-								"name": "createddate",
-								"value": {
-									"value": "@utcNow()",
-									"type": "Expression"
-								}
-							},
-							{
-								"name": "updateddate",
-								"value": {
-									"value": "@utcNow()",
-									"type": "Expression"
-								}
-							},
-							{
-								"name": "csourceid",
-								"value": {
-									"value": "@variables('C_Value')",
-									"type": "Expression"
-								}
-							}
-						],
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"modifiedDatetimeStart": {
-								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-								"type": "Expression"
-							},
-							"modifiedDatetimeEnd": {
-								"value": "@variables('ToDateTime')",
-								"type": "Expression"
-							},
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
-					},
-					"enableStaging": false,
-					"dataIntegrationUnits": 2,
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "csourceid",
-									"type": "String"
-								},
-								"sink": {
-									"name": "sourceCustomerId",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posFirstName",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "firstName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posMiddleInitial",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "middleInitial",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posLastName",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "lastName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posCustomerEmail1",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerEmail1",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posCustomerEmail2",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerEmail2",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posCustomerEmail3",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerEmail3",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posCustomerPhone1",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerPhone1",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posCustomerPhone2",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerPhone2",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "posCustomerPhone3",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerPhone3",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "n_address",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "addressLine1",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "n_addr2",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "addressLine2",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "n_city",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "city",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "n_state",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "state",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "n_zip9",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "zipCode",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "market_id",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "marketId",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "customer_type",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customerType",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "SourceSystem",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "sourceSystem",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "SourceSubSystem",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "sourceSubSystem",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "createddate",
-									"type": "String"
-								},
-								"sink": {
-									"name": "createdDate",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								}
-							},
-							{
-								"source": {
-									"name": "updateddate",
-									"type": "String"
-								},
-								"sink": {
-									"name": "updatedDate",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "Homes_Files",
-						"type": "DatasetReference",
-						"parameters": {
-							"FileName_Prm": {
-								"value": "@variables('File_Name')",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "Masterdata_CDP_AllSourceCustomers",
-						"type": "DatasetReference"
-					}
-				]
 			},
 			{
 				"name": "Load_ECM_Customer",
@@ -1511,6 +924,627 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "Validate_value",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "C_Varibale",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(sub(length(variables('C_Value')), length(replace(variables('C_Value'), '_', ''))), 2)\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set variable1",
+							"description": "No action",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "NoACtion",
+								"value": {
+									"value": "'NoRecordinserted'",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Load_HOME_Customer",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "createddate",
+											"value": {
+												"value": "@utcNow()",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "updateddate",
+											"value": {
+												"value": "@utcNow()",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "csourceid",
+											"value": {
+												"value": "@variables('C_Value')",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"modifiedDatetimeStart": {
+											"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+											"type": "Expression"
+										},
+										"modifiedDatetimeEnd": {
+											"value": "@variables('ToDateTime')",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "csourceid",
+												"type": "String"
+											},
+											"sink": {
+												"name": "sourceCustomerId",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posFirstName",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "firstName",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posMiddleInitial",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "middleInitial",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posLastName",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "lastName",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posCustomerEmail1",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerEmail1",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posCustomerEmail2",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerEmail2",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posCustomerEmail3",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerEmail3",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posCustomerPhone1",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerPhone1",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posCustomerPhone2",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerPhone2",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "posCustomerPhone3",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerPhone3",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "n_address",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "addressLine1",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "n_addr2",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "addressLine2",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "n_city",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "city",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "n_state",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "state",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "n_zip9",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "zipCode",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "market_id",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "marketId",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "customer_type",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "customerType",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "SourceSystem",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "sourceSystem",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "SourceSubSystem",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "sourceSubSystem",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "createddate",
+												"type": "String"
+											},
+											"sink": {
+												"name": "createdDate",
+												"type": "DateTime",
+												"physicalType": "datetime"
+											}
+										},
+										{
+											"source": {
+												"name": "updateddate",
+												"type": "String"
+											},
+											"sink": {
+												"name": "updatedDate",
+												"type": "DateTime",
+												"physicalType": "datetime"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Homes_Files",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName_Prm": {
+											"value": "@variables('File_Name')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Masterdata_CDP_AllSourceCustomers",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Error_Homes_Files",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Load_HOME_Customer",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"modifiedDatetimeStart": {
+											"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+											"type": "Expression"
+										},
+										"modifiedDatetimeEnd": {
+											"value": "@variables('ToDateTime')",
+											"type": "Expression"
+										},
+										"wildcardFolderPath": "Retail-Customer-Source-Files",
+										"wildcardFileName": "Homes*.csv",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Homes_Files",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName_Prm": {
+											"value": "@activity('Get_File_ Metadata').output.itemName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Retail_Customer_Error_Files",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_Homes_Error_Files",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Error_Homes_Files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Delete_Error_Files",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": {
+										"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+										"type": "Expression"
+									},
+									"modifiedDatetimeEnd": {
+										"value": "@variables('ToDateTime')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "Homes*.csv",
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "Stage_Retail_Customer_Failure_Notification_Homes",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load_HOME_Customer",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Stage_Retail_Customer_Failure_Notification",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ErrorCode": {
+										"value": "@{activity('Load_HOME_Customer').error.errorCode}",
+										"type": "Expression"
+									},
+									"ErrorMsg": {
+										"value": "@replace(activity('Load_HOME_Customer').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"ErrorStatusCode": {
+										"value": "@activity('Load_HOME_Customer').StatusCode",
+										"type": "Expression"
+									},
+									"FailureType": {
+										"value": "@{activity('Load_HOME_Customer').error.failureType}",
+										"type": "Expression"
+									},
+									"PipelineName": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"RunID": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"Sink": {
+										"value": "Scratch.CustomerInfo",
+										"type": "Expression"
+									},
+									"Sink_Type": {
+										"value": "@{activity('Load_HOME_Customer').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"Source": {
+										"value": "Source is Homes RET Customers Files",
+										"type": "Expression"
+									},
+									"Source_Type": {
+										"value": "@{activity('Load_HOME_Customer').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"TriggerId": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"TriggerName": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"TriggerTime": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"TriggerType": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('Load_HOME_Customer').Status",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Load_HOME_Customer').Duration",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@activity('Load_HOME_Customer').ExecutionEndTime",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Homes_Files_Fail",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Stage_Retail_Customer_Failure_Notification_Homes",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('Load_HOME_Customer').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('Load_HOME_Customer').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
 			}
 		],
 		"variables": {
@@ -1539,6 +1573,9 @@
 				"type": "String"
 			},
 			"C_Value": {
+				"type": "String"
+			},
+			"NoACtion": {
 				"type": "String"
 			}
 		},
