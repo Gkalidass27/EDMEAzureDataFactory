@@ -68,7 +68,14 @@
 						{
 							"name": "Notification_State_Or_Provencecode",
 							"type": "ExecutePipeline",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "Concate_Postal_code",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"secureInput": false
 							},
@@ -99,7 +106,7 @@
 										"type": "Expression"
 									},
 									"message": {
-										"value": "'STATE_OR_PROVINCE_CODE having -- '",
+										"value": "@concat(variables('Concate_Postal'), ', ', if(equals(variables('Concate_Postal'), ''), 'State Or Province code No available', variables('Concate_Postal')))",
 										"type": "Expression"
 									},
 									"executionEndTime": {
@@ -116,6 +123,95 @@
 									}
 								}
 							}
+						},
+						{
+							"name": "LUP_STATEORPROVINCECODE_Value",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "Select Postal_code from [Ref_PostalCode].[PostalCode]   WHERE COUNTRY_CODE = 'CA' AND \nSTATE_OR_PROVINCE_CODE = '--'\n\nselect 1 as ret",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_postalcode_StateOrProvinceCode",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "ForEach1",
+							"type": "ForEach",
+							"dependsOn": [
+								{
+									"activity": "LUP_STATEORPROVINCECODE_Value",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"items": {
+									"value": "@array(activity('LUP_STATEORPROVINCECODE_Value').output.value)",
+									"type": "Expression"
+								},
+								"isSequential": true,
+								"activities": [
+									{
+										"name": "Append_Postalcodes",
+										"description": "Append_Postalcodes",
+										"type": "AppendVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Append_PC",
+											"value": {
+												"value": "@item().Postal_code",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Concate_Postal_code",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "ForEach1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Concate_Postal",
+								"value": {
+									"value": "@{join(variables('Append_PC'),'\",\"')}",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
@@ -127,6 +223,12 @@
 			},
 			"notificaon": {
 				"type": "String"
+			},
+			"Concate_Postal": {
+				"type": "String"
+			},
+			"Append_PC": {
+				"type": "Array"
 			}
 		},
 		"folder": {
