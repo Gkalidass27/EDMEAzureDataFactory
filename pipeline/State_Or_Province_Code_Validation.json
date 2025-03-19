@@ -1,0 +1,248 @@
+{
+	"name": "State_Or_Province_Code_Validation",
+	"properties": {
+		"activities": [
+			{
+				"name": "LUP_STATEORPROVINCECODE",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Concate_Postal_code",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select Count(*) as STATE_OR_PROVINCE_CODE from [Ref_PostalCode].[PostalCode]   WHERE COUNTRY_CODE = 'CA' AND STATE_OR_PROVINCE_CODE = '--'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_postalcode_StateOrProvinceCode",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "CHK_PROVINCE_CODE",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "LUP_STATEORPROVINCECODE",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('LUP_STATEORPROVINCECODE').output.firstRow.STATE_OR_PROVINCE_CODE, 0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "NoActionRequired",
+							"description": "NoActionRequired",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "NoActionRequired",
+								"value": {
+									"value": "NoActionRequired",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Notification_State_Or_Provencecode",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": {
+										"value": "afi-edme-rg",
+										"type": "Expression"
+									},
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "'STATE_OR_PROVINCE_CODE having --'",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "'LUP_STATEORPROVINCECODE'",
+										"type": "Expression"
+									},
+									"message": {
+										"value": "@{concat('The following PostalCodes not assigned the STATE_OR_PROVINCE_CODE: ', variables('Concate_Postal'))}",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "''",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "LUP_STATEORPROVINCECODE_Value",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "Select Postal_code from [Ref_PostalCode].[PostalCode]   WHERE COUNTRY_CODE = 'CA' AND \nSTATE_OR_PROVINCE_CODE = '--'\n\nselect 1 as ret",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_postalcode_StateOrProvinceCode",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Postal_Code_Append",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LUP_STATEORPROVINCECODE_Value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@array(activity('LUP_STATEORPROVINCECODE_Value').output.value)",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Append_Postalcodes",
+							"description": "Append_Postalcodes",
+							"type": "AppendVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Append_PC",
+								"value": {
+									"value": "@item().Postal_code",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Concate_Postal_code",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Postal_Code_Append",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Concate_Postal",
+					"value": {
+						"value": "@{join(variables('Append_PC'), ', ')}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"NoActionRequired": {
+				"type": "String"
+			},
+			"notificaon": {
+				"type": "String"
+			},
+			"Concate_Postal": {
+				"type": "String"
+			},
+			"Append_PC": {
+				"type": "Array"
+			},
+			"StateOrProvinceCode": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Postal_Code"
+		},
+		"annotations": []
+	}
+}
