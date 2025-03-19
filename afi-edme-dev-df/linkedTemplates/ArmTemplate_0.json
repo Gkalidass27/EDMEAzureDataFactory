@@ -16,6 +16,14 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'CDP_CustomerProfiling'"
 		},
+		"EnterpriseMarketingFabricWarehouse_servicePrincipalCredential": {
+			"type": "secureString",
+			"metadata": "Secure string for 'servicePrincipalCredential' of 'EnterpriseMarketingFabricWarehouse'"
+		},
+		"EnterpriseMarketingLakehouse_servicePrincipalCredential": {
+			"type": "secureString",
+			"metadata": "Secure string for 'servicePrincipalCredential' of 'EnterpriseMarketingLakehouse'"
+		},
 		"Enterprise_ReferenceMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
@@ -39,27 +47,21 @@
 			"metadata": "Secure string for 'connectionString' of 'Retail_ProductMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_ProductMaster"
 		},
-		"Retail_SiteMaster_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'Retail_SiteMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_SiteMaster"
-		},
-		"Sink_ReferenceMaster_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
-		},
 		"dataFactory_properties_globalParameters_DAC_Accountid_value": {
 			"type": "string",
-			"defaultValue": "9c249f2d-e157-4844-96fd-c6bbbcc30122"
+			"defaultValue": "836c0e43-b4f9-41b8-80e6-fd2bee658dee"
 		},
 		"dataFactory_properties_globalParameters_DAC_SubscriptionKey_value": {
 			"type": "string",
-			"defaultValue": "5869e8c69e2a44bd828cab17b642edd4"
+			"defaultValue": "331fdee513354dd380cb5977e7cab941"
 		},
 		"dataFactory_properties_globalParameters_ADF_SubscriptionID_value": {
 			"type": "string",
 			"defaultValue": "f2330f9f-3a8b-498c-a2d6-476e4f263349"
+		},
+		"dataFactory_properties_globalParameters_Melissa_LicenseKey_value": {
+			"type": "string",
+			"defaultValue": "https://afide-edmekv.vault.azure.net/secrets/melissa-data-license-key/b0d3207214ea4b0b9fef24ac132a17e1?api-version=7.0"
 		},
 		"dataFactory_location": {
 			"type": "string",
@@ -88,6 +90,26 @@
 		"EDW_Ashleylake_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
+		},
+		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_endpoint": {
+			"type": "string",
+			"defaultValue": "7woj2wroypauvkpn72b56t46ju-efttw5hffxkuvggerajw5qwnzu.datawarehouse.fabric.microsoft.com"
+		},
+		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_tenant": {
+			"type": "string",
+			"defaultValue": "5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d"
+		},
+		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
+		},
+		"EnterpriseMarketingLakehouse_properties_typeProperties_tenant": {
+			"type": "string",
+			"defaultValue": "5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d"
+		},
+		"EnterpriseMarketingLakehouse_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
 		},
 		"Postal_datadownload_properties_typeProperties_url": {
 			"type": "string",
@@ -127,6 +149,10 @@
 					"ADF_SubscriptionID": {
 						"type": "string",
 						"value": "[parameters('dataFactory_properties_globalParameters_ADF_SubscriptionID_value')]"
+					},
+					"Melissa_LicenseKey": {
+						"type": "string",
+						"value": "[parameters('dataFactory_properties_globalParameters_Melissa_LicenseKey_value')]"
 					}
 				}
 			},
@@ -330,6 +356,51 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/EnterpriseMarketingFabricWarehouse')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "warehouse connector for enterprise marketing on microsoft fabric",
+				"annotations": [],
+				"type": "Warehouse",
+				"typeProperties": {
+					"endpoint": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_endpoint')]",
+					"artifactId": "3db94680-4ad7-4d5c-b01a-f4ea9080ee66",
+					"workspaceId": "743b6721-2de5-4ad5-98c4-88136ec2cdcd",
+					"tenant": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_tenant')]",
+					"servicePrincipalCredentialType": "ServicePrincipalKey",
+					"servicePrincipalId": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_servicePrincipalId')]",
+					"servicePrincipalCredential": {
+						"type": "SecureString",
+						"value": "[parameters('EnterpriseMarketingFabricWarehouse_servicePrincipalCredential')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EnterpriseMarketingLakehouse')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "lakehouse connector to fabric for zeta event data",
+				"annotations": [],
+				"type": "Lakehouse",
+				"typeProperties": {
+					"workspaceId": "743b6721-2de5-4ad5-98c4-88136ec2cdcd",
+					"artifactId": "f770fbad-de57-4a3c-a7e6-ae709d5c0e6c",
+					"tenant": "[parameters('EnterpriseMarketingLakehouse_properties_typeProperties_tenant')]",
+					"servicePrincipalId": "[parameters('EnterpriseMarketingLakehouse_properties_typeProperties_servicePrincipalId')]",
+					"servicePrincipalCredentialType": "ServicePrincipalKey",
+					"servicePrincipalCredential": {
+						"type": "SecureString",
+						"value": "[parameters('EnterpriseMarketingLakehouse_servicePrincipalCredential')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Enterprise_ReferenceMaster')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -456,37 +527,6 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('Retail_ProductMaster_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Retail_SiteMaster')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('Retail_SiteMaster_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Sink_ReferenceMaster')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"parameters": {
-					"Database_Name": {
-						"type": "string"
-					}
-				},
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('Sink_ReferenceMaster_connectionString')]"
 				}
 			},
 			"dependsOn": []

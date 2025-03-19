@@ -7,6 +7,16 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
+		"Retail_SiteMaster_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Retail_SiteMaster'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_SiteMaster"
+		},
+		"Sink_ReferenceMaster_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
+		},
 		"Smartsheet_Storemasterlist_apiToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'apiToken' of 'Smartsheet_Storemasterlist'"
@@ -35,43 +45,46 @@
 			"metadata": "Secure string for 'connectionString' of 'semarchy_staging'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_staging"
 		},
-		"EnterpriseMarketingLakehouse_servicePrincipalCredential": {
-			"type": "secureString",
-			"metadata": "Secure string for 'servicePrincipalCredential' of 'EnterpriseMarketingLakehouse'"
-		},
-		"EnterpriseMarketingFabricWarehouse_servicePrincipalCredential": {
-			"type": "secureString",
-			"metadata": "Secure string for 'servicePrincipalCredential' of 'EnterpriseMarketingFabricWarehouse'"
-		},
 		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net"
-		},
-		"EnterpriseMarketingLakehouse_properties_typeProperties_tenant": {
-			"type": "string",
-			"defaultValue": "5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d"
-		},
-		"EnterpriseMarketingLakehouse_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
-		},
-		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_endpoint": {
-			"type": "string",
-			"defaultValue": "7woj2wroypauvkpn72b56t46ju-efttw5hffxkuvggerajw5qwnzu.datawarehouse.fabric.microsoft.com"
-		},
-		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_tenant": {
-			"type": "string",
-			"defaultValue": "5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d"
-		},
-		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Retail_SiteMaster')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('Retail_SiteMaster_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Sink_ReferenceMaster')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"Database_Name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('Sink_ReferenceMaster_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Smartsheet_Storemasterlist')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -160,6 +173,49 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/00_Load_SiteMaster_DAC')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Dac Incremental Daily Load",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2022-05-23T02:55:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Postal_code_API')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Month",
+					"interval": 1,
+					"startTime": "2024-09-10T06:23:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 50,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/AARCWIVDSQ12226-integrationRuntime1')]",
 			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
@@ -167,51 +223,6 @@
 				"type": "SelfHosted",
 				"description": "AARCWIVDSQ12226-Test",
 				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EnterpriseMarketingLakehouse')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "lakehouse connector to fabric for zeta event data",
-				"annotations": [],
-				"type": "Lakehouse",
-				"typeProperties": {
-					"workspaceId": "743b6721-2de5-4ad5-98c4-88136ec2cdcd",
-					"artifactId": "f770fbad-de57-4a3c-a7e6-ae709d5c0e6c",
-					"tenant": "[parameters('EnterpriseMarketingLakehouse_properties_typeProperties_tenant')]",
-					"servicePrincipalId": "[parameters('EnterpriseMarketingLakehouse_properties_typeProperties_servicePrincipalId')]",
-					"servicePrincipalCredentialType": "ServicePrincipalKey",
-					"servicePrincipalCredential": {
-						"type": "SecureString",
-						"value": "[parameters('EnterpriseMarketingLakehouse_servicePrincipalCredential')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EnterpriseMarketingFabricWarehouse')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "warehouse connector for enterprise marketing on microsoft fabric",
-				"annotations": [],
-				"type": "Warehouse",
-				"typeProperties": {
-					"endpoint": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_endpoint')]",
-					"artifactId": "3db94680-4ad7-4d5c-b01a-f4ea9080ee66",
-					"workspaceId": "743b6721-2de5-4ad5-98c4-88136ec2cdcd",
-					"tenant": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_tenant')]",
-					"servicePrincipalCredentialType": "ServicePrincipalKey",
-					"servicePrincipalId": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_servicePrincipalId')]",
-					"servicePrincipalCredential": {
-						"type": "SecureString",
-						"value": "[parameters('EnterpriseMarketingFabricWarehouse_servicePrincipalCredential')]"
-					}
-				}
 			},
 			"dependsOn": []
 		},
@@ -1335,59 +1346,6 @@
 				"schema": []
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Containerrate_Parquet')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Parquet",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "containerrate.parquet",
-						"fileSystem": "test"
-					},
-					"compressionCodec": "snappy"
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Containerrate_csv')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "Containerrate.csv",
-						"fileSystem": "test"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/masterDataHubStg')]"
-			]
 		}
 	]
 }

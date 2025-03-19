@@ -13,6 +13,221 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/DS_SEM_STG_Smartsheet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Status",
+						"type": "varchar"
+					},
+					{
+						"name": "Location",
+						"type": "varchar"
+					},
+					{
+						"name": "BindyID",
+						"type": "varchar"
+					},
+					{
+						"name": "Account",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ShipTo",
+						"type": "varchar"
+					},
+					{
+						"name": "Entity",
+						"type": "varchar"
+					},
+					{
+						"name": "LicenseeContact",
+						"type": "varchar"
+					},
+					{
+						"name": "Address",
+						"type": "varchar"
+					},
+					{
+						"name": "City",
+						"type": "varchar"
+					},
+					{
+						"name": "State",
+						"type": "varchar"
+					},
+					{
+						"name": "Zip",
+						"type": "varchar"
+					},
+					{
+						"name": "Country",
+						"type": "varchar"
+					},
+					{
+						"name": "WarehouseSqFt",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "WarehouseDockDoors",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "IsEcomFulfiller",
+						"type": "varchar"
+					},
+					{
+						"name": "AcquisitionDate",
+						"type": "date"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime2",
+						"scale": 7
+					}
+				],
+				"typeProperties": {
+					"schema": "Smartsheet",
+					"table": "RDCMasterlist"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SemStaging_Portmaster')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "pteID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "pteAESPortCode",
+						"type": "char"
+					},
+					{
+						"name": "ptePortDescription",
+						"type": "varchar"
+					},
+					{
+						"name": "pteCityOfPort",
+						"type": "varchar"
+					},
+					{
+						"name": "pteStateOfPort",
+						"type": "char"
+					},
+					{
+						"name": "pteCountryOfPort",
+						"type": "char"
+					},
+					{
+						"name": "pteFobPortCode",
+						"type": "char"
+					},
+					{
+						"name": "pteFOBPortActiveRecordFlag",
+						"type": "bit"
+					},
+					{
+						"name": "pteEndPortCode",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "pteEndPortActiveRecordFlag",
+						"type": "bit"
+					},
+					{
+						"name": "pteLastModifiedUser",
+						"type": "varchar"
+					},
+					{
+						"name": "pteShortPortDescription",
+						"type": "varchar"
+					},
+					{
+						"name": "acrec",
+						"type": "char"
+					},
+					{
+						"name": "usra",
+						"type": "varchar"
+					},
+					{
+						"name": "dtea",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "usrc",
+						"type": "varchar"
+					},
+					{
+						"name": "dtec",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "pteCanadaActiveRecordFlag",
+						"type": "bit"
+					},
+					{
+						"name": "pteCanadaBorderServiceAgency",
+						"type": "char"
+					},
+					{
+						"name": "pteZipCode",
+						"type": "varchar"
+					},
+					{
+						"name": "pteGeoLatitude",
+						"type": "decimal",
+						"precision": 13,
+						"scale": 4
+					},
+					{
+						"name": "pteGeoLongitude",
+						"type": "decimal",
+						"precision": 11,
+						"scale": 4
+					},
+					{
+						"name": "pteGeoAccuracy",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "wholesale",
+					"table": "PortMaster"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/DS_SemStaging_WHSMST')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1082,11 +1297,20 @@
 					"referenceName": "masterDataHubStg",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"filename_d": {
+						"type": "String"
+					}
+				},
 				"annotations": [],
 				"type": "Binary",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename_d",
+							"type": "Expression"
+						},
 						"folderPath": "Retail-Customer-Source-Files",
 						"fileSystem": "retail-customer"
 					}
@@ -1122,7 +1346,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ECM_Files')]",
+			"name": "[concat(parameters('factoryName'), '/DelimitedText2')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -1135,156 +1359,121 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"folderPath": "Retail-Customer-Source-Files",
-						"fileSystem": "retail-customer"
+						"fileName": "Hist_Mar.csv",
+						"folderPath": "Postal_Code_Source_Files",
+						"fileSystem": "postal-code"
 					},
-					"columnDelimiter": "\t",
+					"columnDelimiter": ",",
 					"escapeChar": "\\",
 					"firstRowAsHeader": true,
 					"quoteChar": "\""
 				},
 				"schema": [
 					{
-						"name": "clusterID",
+						"name": "B_LOADID",
 						"type": "String"
 					},
 					{
-						"name": "globalID",
+						"name": "ENT_REF_POSTAL_CODE_ID",
 						"type": "String"
 					},
 					{
-						"name": "confidence_score",
+						"name": "B_CLASSNAME",
 						"type": "String"
 					},
 					{
-						"name": "RecID",
+						"name": "B_DELETETYPE",
 						"type": "String"
 					},
 					{
-						"name": "posRawContainerRecID",
+						"name": "B_DELETEDATE",
 						"type": "String"
 					},
 					{
-						"name": "market_id",
+						"name": "B_DELETEAUTHOR",
 						"type": "String"
 					},
 					{
-						"name": "posFirstName",
+						"name": "B_DELETEOPERATION",
 						"type": "String"
 					},
 					{
-						"name": "posMiddleInitial",
+						"name": "B_CREDATE",
 						"type": "String"
 					},
 					{
-						"name": "posLastName",
+						"name": "B_UPDDATE",
 						"type": "String"
 					},
 					{
-						"name": "posCustomerEmail1",
+						"name": "B_CREATOR",
 						"type": "String"
 					},
 					{
-						"name": "posCustomerEmail2",
+						"name": "B_UPDATOR",
 						"type": "String"
 					},
 					{
-						"name": "posCustomerEmail3",
+						"name": "POSTAL_CODE",
 						"type": "String"
 					},
 					{
-						"name": "posCustomerPhone1",
+						"name": "STATE_OR_PROVINCE_CODE",
 						"type": "String"
 					},
 					{
-						"name": "posCustomerPhone2",
+						"name": "CITY_NAME",
 						"type": "String"
 					},
 					{
-						"name": "posCustomerPhone3",
+						"name": "CITY_ABBREVIATION",
 						"type": "String"
 					},
 					{
-						"name": "n_address",
+						"name": "COUNTRY_CODE",
 						"type": "String"
 					},
 					{
-						"name": "n_addr2",
+						"name": "TIME_ZONE",
 						"type": "String"
 					},
 					{
-						"name": "n_city",
+						"name": "OBSERVES_DST",
 						"type": "String"
 					},
 					{
-						"name": "n_state",
+						"name": "LATITUDE",
 						"type": "String"
 					},
 					{
-						"name": "n_zip9",
+						"name": "LONGITUDE",
 						"type": "String"
 					},
 					{
-						"name": "posFaceBookID",
+						"name": "IS_PREFERRED_CITY_NAME",
 						"type": "String"
 					},
 					{
-						"name": "posTwitterID",
+						"name": "POSTAL_CODE_TYPE",
 						"type": "String"
 					},
 					{
-						"name": "timestamp",
+						"name": "MSA_CODE",
 						"type": "String"
 					},
 					{
-						"name": "customer_type",
+						"name": "FIPS_CODE",
 						"type": "String"
 					},
 					{
-						"name": "customer_since",
+						"name": "NAME",
 						"type": "String"
 					},
 					{
-						"name": "SourceSystem",
-						"type": "String"
-					},
-					{
-						"name": "SourceSubSystem",
+						"name": "active_flag",
 						"type": "String"
 					}
 				]
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_Cdp_Customer_Preferences')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDME_DataFactory_OptOut')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
 			},
 			"dependsOn": []
 		}
