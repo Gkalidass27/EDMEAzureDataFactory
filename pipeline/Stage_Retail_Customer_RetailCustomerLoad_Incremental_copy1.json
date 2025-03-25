@@ -1,0 +1,1350 @@
+{
+	"name": "Stage_Retail_Customer_RetailCustomerLoad_Incremental_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get_Last_Trigger_Time",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT MAX(LasteTriggerDateTime) AS LasteTriggerDateTime FROM Audit.ADFRetailCustomerWatermark WITH(NOLOCK)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "GetLastTriggerTime",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Current_UTCTime",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get_Last_Trigger_Time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ToDateTime",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Load_ECM_Customer",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Current_UTCTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"additionalColumns": [
+							{
+								"name": "updatedDate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "createdDate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": {
+								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+								"type": "Expression"
+							},
+							"modifiedDatetimeEnd": {
+								"value": "@variables('ToDateTime')\n",
+								"type": "Expression"
+							},
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "D365Ecm*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "posRawContainerRecID",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "sourceCustomerId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posFirstName",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "firstName",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posMiddleInitial",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "middleInitial",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posLastName",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "lastName",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerEmail1",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerEmail1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerEmail2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerEmail2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerEmail3",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerEmail3",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerPhone1",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerPhone1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerPhone2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerPhone2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerPhone3",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerPhone3",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_address",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "addressLine1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_addr2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "addressLine2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_city",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "city",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_state",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "state",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_zip9",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "zipCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "market_id",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "marketId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "customer_type",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SourceSystem",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "sourceSystem",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SourceSubSystem",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "sourceSubSystem",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "createdDate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "createdDate",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "updatedDate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "updatedDate",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ECM_Files",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Masterdata_CDP_AllSourceCustomers",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Load_Homes_Customer",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load_ECM_Customer",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"additionalColumns": [
+							{
+								"name": "updatedDate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "createdDate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": {
+								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+								"type": "Expression"
+							},
+							"modifiedDatetimeEnd": {
+								"value": "@variables('ToDateTime')",
+								"type": "Expression"
+							},
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "Homes*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "posRawContainerRecID",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "sourceCustomerId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posFirstName",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "firstName",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posMiddleInitial",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "middleInitial",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posLastName",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "lastName",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerEmail1",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerEmail1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerEmail2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerEmail2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerEmail3",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerEmail3",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerPhone1",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerPhone1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerPhone2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerPhone2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "posCustomerPhone3",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerPhone3",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_address",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "addressLine1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_addr2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "addressLine2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_city",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "city",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_state",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "state",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "n_zip9",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "zipCode",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "market_id",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "marketId",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "customer_type",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "customerType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SourceSystem",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "sourceSystem",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "createdDate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "createdDate",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "updatedDate",
+									"type": "String"
+								},
+								"sink": {
+									"name": "updatedDate",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Homes_Files",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Masterdata_CDP_AllSourceCustomers",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "UpdateTriggerTime",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Current_UTCTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "UPDATE Audit.ADFRetailCustomerWatermark SET LasteTriggerDateTime='@{formatDateTime(variables('ToDateTime'),'yyyy-MM-ddTHH:mm:ss')}';\nselect 1 as success;",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "UpdateTriggerTime",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Error_ECM_Files",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load_ECM_Customer",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": {
+								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+								"type": "Expression"
+							},
+							"modifiedDatetimeEnd": {
+								"value": "@variables('ToDateTime')",
+								"type": "Expression"
+							},
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "D365Ecm*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ECM_Files",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_Customer_Error_Files",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Delete_ECM_Error_Files",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Error_ECM_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Delete_Error_Files",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+							"type": "Expression"
+						},
+						"modifiedDatetimeEnd": {
+							"value": "@variables('ToDateTime')",
+							"type": "Expression"
+						},
+						"wildcardFileName": "D365Ecm*.csv",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "Error_Homes_Files",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load_Homes_Customer",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": {
+								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+								"type": "Expression"
+							},
+							"modifiedDatetimeEnd": {
+								"value": "@variables('ToDateTime')",
+								"type": "Expression"
+							},
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "Homes*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Homes_Files",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_Customer_Error_Files",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Delete_Homes_Error_Files",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Error_Homes_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Delete_Error_Files",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+							"type": "Expression"
+						},
+						"modifiedDatetimeEnd": {
+							"value": "@variables('ToDateTime')",
+							"type": "Expression"
+						},
+						"wildcardFileName": "Homes*.csv",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "Stage_Retail_Customer_Failure_Notification_ECM",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_ECM_Customer",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_Retail_Customer_Failure_Notification",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ErrorCode": {
+							"value": "@{activity('Load_ECM_Customer').error.errorCode}",
+							"type": "Expression"
+						},
+						"ErrorMsg": {
+							"value": "@replace(activity('Load_ECM_Customer').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"ErrorStatusCode": {
+							"value": "@activity('Load_ECM_Customer').StatusCode",
+							"type": "Expression"
+						},
+						"FailureType": {
+							"value": "@{activity('Load_ECM_Customer').error.failureType}",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@{pipeline().Pipeline}",
+							"type": "Expression"
+						},
+						"RunID": {
+							"value": "@{pipeline().RunId}",
+							"type": "Expression"
+						},
+						"Sink": {
+							"value": "Scratch.CustomerInfo",
+							"type": "Expression"
+						},
+						"Sink_Type": {
+							"value": "@{activity('Load_ECM_Customer').output.executionDetails[0].sink.type}",
+							"type": "Expression"
+						},
+						"Source": {
+							"value": "Source is D365 ECM Customers Files",
+							"type": "Expression"
+						},
+						"Source_Type": {
+							"value": "@{activity('Load_ECM_Customer').output.executionDetails[0].source.type}",
+							"type": "Expression"
+						},
+						"TriggerId": {
+							"value": "@{pipeline().TriggerId}",
+							"type": "Expression"
+						},
+						"TriggerName": {
+							"value": "@{pipeline().TriggerName}",
+							"type": "Expression"
+						},
+						"TriggerTime": {
+							"value": "@{pipeline().TriggerTime}",
+							"type": "Expression"
+						},
+						"TriggerType": {
+							"value": "@{pipeline().TriggerType}",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Load_ECM_Customer').Status",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Load_ECM_Customer').Duration",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@activity('Load_ECM_Customer').ExecutionEndTime",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Stage_Retail_Customer_Failure_Notification_Homes",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_Homes_Customer",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_Retail_Customer_Failure_Notification",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ErrorCode": {
+							"value": "@{activity('Load_Homes_Customer').error.errorCode}",
+							"type": "Expression"
+						},
+						"ErrorMsg": {
+							"value": "@replace(activity('Load_Homes_Customer').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"ErrorStatusCode": {
+							"value": "@activity('Load_Homes_Customer').StatusCode",
+							"type": "Expression"
+						},
+						"FailureType": {
+							"value": "@{activity('Load_Homes_Customer').error.failureType}",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@{pipeline().Pipeline}",
+							"type": "Expression"
+						},
+						"RunID": {
+							"value": "@{pipeline().RunId}",
+							"type": "Expression"
+						},
+						"Sink": {
+							"value": "Scratch.CustomerInfo",
+							"type": "Expression"
+						},
+						"Sink_Type": {
+							"value": "@{activity('Load_Homes_Customer').output.executionDetails[0].sink.type}",
+							"type": "Expression"
+						},
+						"Source": {
+							"value": "Source is Homes RET Customers Files",
+							"type": "Expression"
+						},
+						"Source_Type": {
+							"value": "@{activity('Load_Homes_Customer').output.executionDetails[0].source.type}",
+							"type": "Expression"
+						},
+						"TriggerId": {
+							"value": "@{pipeline().TriggerId}",
+							"type": "Expression"
+						},
+						"TriggerName": {
+							"value": "@{pipeline().TriggerName}",
+							"type": "Expression"
+						},
+						"TriggerTime": {
+							"value": "@{pipeline().TriggerTime}",
+							"type": "Expression"
+						},
+						"TriggerType": {
+							"value": "@{pipeline().TriggerType}",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Load_Homes_Customer').Status",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Load_Homes_Customer').Duration",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@activity('Load_Homes_Customer').ExecutionEndTime",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Homes_Files_Fail",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "Stage_Retail_Customer_Failure_Notification_Homes",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": {
+						"value": "@replace(activity('Load_Homes_Customer').error.message,'\"','')",
+						"type": "Expression"
+					},
+					"errorCode": {
+						"value": "@{activity('Load_Homes_Customer').error.errorCode}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ECM_Files_Fail",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "Stage_Retail_Customer_Failure_Notification_ECM",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": {
+						"value": "@replace(activity('Load_ECM_Customer').error.message,'\"','')",
+						"type": "Expression"
+					},
+					"errorCode": {
+						"value": "@{activity('Load_ECM_Customer').error.errorCode}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Archive_Files",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load_Homes_Customer",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": {
+								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+								"type": "Expression"
+							},
+							"modifiedDatetimeEnd": {
+								"value": "@variables('ToDateTime')",
+								"type": "Expression"
+							},
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Customer_Archive_Files",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Sink_Retail_Customer_Archive_Files",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Deleta_Files",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Archive_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Delete_Succeed_Files",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+							"type": "Expression"
+						},
+						"modifiedDatetimeEnd": {
+							"value": "@variables('ToDateTime')",
+							"type": "Expression"
+						},
+						"wildcardFileName": "*.csv",
+						"enablePartitionDiscovery": false
+					}
+				}
+			}
+		],
+		"variables": {
+			"ToDateTime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Retail_Customer_Flow"
+		},
+		"annotations": []
+	}
+}
