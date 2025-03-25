@@ -745,122 +745,6 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Archive_Files",
-							"type": "Copy",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
-							"dependsOn": [
-								{
-									"activity": "Validate_value",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "DelimitedTextSource",
-									"storeSettings": {
-										"type": "AzureBlobFSReadSettings",
-										"recursive": true,
-										"enablePartitionDiscovery": false
-									},
-									"formatSettings": {
-										"type": "DelimitedTextReadSettings"
-									}
-								},
-								"sink": {
-									"type": "DelimitedTextSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "DelimitedTextWriteSettings",
-										"quoteAllText": true,
-										"fileExtension": ".csv"
-									}
-								},
-								"enableStaging": false,
-								"dataIntegrationUnits": 2,
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
-									}
-								}
-							},
-							"inputs": [
-								{
-									"referenceName": "Customer_Archive_Files",
-									"type": "DatasetReference"
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "Sink_Retail_Customer_Archive_Files",
-									"type": "DatasetReference"
-								}
-							]
-						},
-						{
-							"name": "Deleta_Files",
-							"type": "Delete",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
-							"dependsOn": [
-								{
-									"activity": "Archive_Files",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"dataset": {
-									"referenceName": "Delete_Succeed_Files",
-									"type": "DatasetReference",
-									"parameters": {
-										"filename_d": {
-											"value": "@variables('File_Name')",
-											"type": "Expression"
-										}
-									}
-								},
-								"enableLogging": false,
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"modifiedDatetimeStart": {
-										"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-										"type": "Expression"
-									},
-									"modifiedDatetimeEnd": {
-										"value": "@variables('ToDateTime')",
-										"type": "Expression"
-									},
-									"enablePartitionDiscovery": false
-								}
-							}
-						},
-						{
 							"name": "File_Name",
 							"description": "Find the File Name from Get_File_Metadata",
 							"type": "SetVariable",
@@ -1565,8 +1449,6 @@
 			{
 				"name": "Archive_Files_copy1",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Files_Iteration",
@@ -1635,8 +1517,6 @@
 			{
 				"name": "Deleta_Files_copy1",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Archive_Files_copy1",
@@ -1656,26 +1536,15 @@
 				"typeProperties": {
 					"dataset": {
 						"referenceName": "Delete_Succeed_Files",
-						"type": "DatasetReference",
-						"parameters": {
-							"filename_d": {
-								"value": "@variables('File_Name')",
-								"type": "Expression"
-							}
-						}
+						"type": "DatasetReference"
 					},
 					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
-						"modifiedDatetimeStart": {
-							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-							"type": "Expression"
-						},
-						"modifiedDatetimeEnd": {
-							"value": "@variables('ToDateTime')",
-							"type": "Expression"
-						},
+						"modifiedDatetimeStart": null,
+						"modifiedDatetimeEnd": null,
+						"wildcardFileName": "*.csv",
 						"enablePartitionDiscovery": false
 					}
 				}
