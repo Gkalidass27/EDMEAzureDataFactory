@@ -12,7 +12,15 @@
 					"name": "HOMESCustomerAFCNONAFC"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Masterdata_CDP_AllSourceCustomers",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
@@ -52,8 +60,47 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     rowUrlColumn: 'FileName') ~> HOMESCustomerAFCNONAFC",
-				"HOMESCustomerAFCNONAFC derive(FileName_AFC = substringIndex(filename, '_', -1)\r",
-				") ~> derivedColumn1"
+				"HOMESCustomerAFCNONAFC derive(FileName_AFC = FileName\r",
+				") ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          customerMasterId as long,",
+				"          sourceCustomerId as string,",
+				"          firstName as string,",
+				"          middleInitial as string,",
+				"          lastName as string,",
+				"          customerEmail1 as string,",
+				"          customerEmail2 as string,",
+				"          customerEmail3 as string,",
+				"          customerPhone1 as string,",
+				"          customerPhone2 as string,",
+				"          customerPhone3 as string,",
+				"          addressLine1 as string,",
+				"          addressLine2 as string,",
+				"          city as string,",
+				"          state as string,",
+				"          zipCode as string,",
+				"          marketId as string,",
+				"          customerType as string,",
+				"          sourceSystem as string,",
+				"          sourceSubSystem as string,",
+				"          createdDate as timestamp,",
+				"          updatedDate as timestamp,",
+				"          createdBy as string,",
+				"          updatedBy as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          sourceCustomerId = FileName_AFC",
+				"     )) ~> sink1"
 			]
 		}
 	}
