@@ -397,7 +397,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Filter1",
+						"activity": "Set variable1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -417,25 +417,17 @@
 						"additionalColumns": [
 							{
 								"name": "sourceCustomerId",
-								"value": {
-									"value": "@activity('Filter1').output.value[0].name",
-									"type": "Expression"
-								}
+								"value": "$$FILENAME"
 							}
 						],
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
-							"modifiedDatetimeStart": {
-								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-								"type": "Expression"
-							},
-							"modifiedDatetimeEnd": {
-								"value": "@variables('ToDateTime')",
-								"type": "Expression"
-							},
 							"wildcardFolderPath": "Retail-Customer-Source-Files",
-							"wildcardFileName": "Homes*_*.csv",
+							"wildcardFileName": {
+								"value": "@variables('filteredfiles')",
+								"type": "Expression"
+							},
 							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
@@ -453,120 +445,12 @@
 						"type": "TabularTranslator",
 						"mappings": [
 							{
+								"source": {
+									"name": "sourceCustomerId",
+									"type": "String"
+								},
 								"sink": {
 									"name": "sourceCustomerId",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "firstName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "middleInitial",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "lastName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerEmail1",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerEmail2",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerEmail3",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerPhone1",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerPhone2",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerPhone3",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "addressLine1",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "addressLine2",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "city",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "state",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "zipCode",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "marketId",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "customerType",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
@@ -593,48 +477,6 @@
 									"name": "sourceSubSystem",
 									"type": "String",
 									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "createdDate",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								}
-							},
-							{
-								"sink": {
-									"name": "updatedDate",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								}
-							},
-							{
-								"sink": {
-									"name": "createdBy",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "updatedBy",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"sink": {
-									"name": "doNotSell",
-									"type": "Boolean",
-									"physicalType": "bit"
-								}
-							},
-							{
-								"sink": {
-									"name": "doNotSellRequestDate",
-									"type": "DateTime",
-									"physicalType": "datetime"
 								}
 							}
 						],
@@ -1025,6 +867,8 @@
 			{
 				"name": "Stage_Retail_Customer_Failure_Notification_Homes",
 				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load_Homes_Customer",
@@ -1309,10 +1153,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
-						"modifiedDatetimeStart": {
-							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-							"type": "Expression"
-						},
+						"recursive": true,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -1338,14 +1179,46 @@
 						"type": "Expression"
 					},
 					"condition": {
-						"value": "@and(startsWith(toLower(item().name), 'homes'), not(endsWith(item().name, '_processed.csv')))",
+						"value": "@contains(item().name,'RAC' )",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Filter1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "filteredfiles",
+					"value": {
+						"value": "'*RAC*'",
 						"type": "Expression"
 					}
 				}
 			}
 		],
+		"parameters": {
+			"Filenameparam": {
+				"type": "String"
+			}
+		},
 		"variables": {
 			"ToDateTime": {
+				"type": "String"
+			},
+			"filteredfiles": {
 				"type": "String"
 			}
 		},
