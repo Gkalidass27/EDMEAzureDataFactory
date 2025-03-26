@@ -24,6 +24,9 @@
 			"transformations": [
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "split1"
 				}
 			],
 			"scriptLines": [
@@ -60,8 +63,10 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     rowUrlColumn: 'FileName') ~> HOMESCustomerAFCNONAFC",
-				"HOMESCustomerAFCNONAFC derive(FileName_AFC = FileName\r",
+				"split1@AFC derive(FileName_AFC = substringIndex(FileName,'_',-3)\r",
 				") ~> derivedColumn1",
+				"HOMESCustomerAFCNONAFC split(regex_match(FileName, '.*RAC.*'),",
+				"     disjoint: false) ~> split1@(AFC, NON_AFC)",
 				"derivedColumn1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
