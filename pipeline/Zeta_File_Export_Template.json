@@ -1,0 +1,78 @@
+{
+	"name": "Zeta_File_Export_Template",
+	"properties": {
+		"activities": [
+			{
+				"name": "test cdp dedupe func",
+				"type": "AzureFunctionActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"functionName": "input-incremental-dedupe-func",
+					"method": "TRACE"
+				},
+				"linkedServiceName": {
+					"referenceName": "agr_cdp_func",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Fail1",
+				"type": "Fail",
+				"dependsOn": [
+					{
+						"activity": "test cdp dedupe func",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"message": "FAILURE",
+					"errorCode": "500"
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "test cdp dedupe func",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "success",
+							"value": {
+								"type": "String",
+								"content": "true"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-07-30T12:31:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
