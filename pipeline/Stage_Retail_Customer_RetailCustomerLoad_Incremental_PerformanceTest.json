@@ -1084,14 +1084,273 @@
 									"type": "DatasetReference"
 								}
 							]
+						},
+						{
+							"name": "Error_Homes_Files",
+							"type": "Copy",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [
+								{
+									"activity": "Load_HOME_Customer",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"modifiedDatetimeStart": {
+											"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+											"type": "Expression"
+										},
+										"modifiedDatetimeEnd": {
+											"value": "@variables('ToDateTime')",
+											"type": "Expression"
+										},
+										"wildcardFolderPath": "Retail-Customer-Source-Files",
+										"wildcardFileName": "Homes*.csv",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Homes_Files",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName_Prm": {
+											"value": "@variables('File_Name')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Retail_Customer_Error_Files",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_Homes_Error_Files",
+							"type": "Delete",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [
+								{
+									"activity": "Error_Homes_Files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Delete_Error_Files_Homes",
+									"type": "DatasetReference",
+									"parameters": {
+										"Error_File": {
+											"value": "@variables('File_Name')",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": {
+										"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
+										"type": "Expression"
+									},
+									"modifiedDatetimeEnd": {
+										"value": "@variables('ToDateTime')",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "Stage_Retail_Customer_Failure_Notification_Homes",
+							"type": "ExecutePipeline",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [
+								{
+									"activity": "Load_HOME_Customer",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Stage_Retail_Customer_Failure_Notification",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ErrorCode": {
+										"value": "@{activity('Load_HOME_Customer').error.errorCode}",
+										"type": "Expression"
+									},
+									"ErrorMsg": {
+										"value": "@replace(activity('Load_HOME_Customer').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"ErrorStatusCode": {
+										"value": "@activity('Load_HOME_Customer').StatusCode",
+										"type": "Expression"
+									},
+									"FailureType": {
+										"value": "@{activity('Load_HOME_Customer').error.failureType}",
+										"type": "Expression"
+									},
+									"PipelineName": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"RunID": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"Sink": {
+										"value": "Scratch.CustomerInfo",
+										"type": "Expression"
+									},
+									"Sink_Type": {
+										"value": "@{activity('Load_HOME_Customer').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"Source": {
+										"value": "Source is Homes RET Customers Files",
+										"type": "Expression"
+									},
+									"Source_Type": {
+										"value": "@{activity('Load_HOME_Customer').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"TriggerId": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"TriggerName": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"TriggerTime": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"TriggerType": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('Load_HOME_Customer').Status",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Load_HOME_Customer').Duration",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@activity('Load_HOME_Customer').ExecutionEndTime",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Homes_Files_Fail",
+							"type": "Fail",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [
+								{
+									"activity": "Stage_Retail_Customer_Failure_Notification_Homes",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('Load_HOME_Customer').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('Load_HOME_Customer').error.errorCode}",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
 			},
 			{
-				"name": "Data flow1",
+				"name": "DF_Stage_RetailCustomer_Initial",
 				"type": "ExecuteDataFlow",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Load_ECM_Customer",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -1110,6 +1369,113 @@
 						"computeType": "General"
 					},
 					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Archive_Files",
+				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Files_Iteration",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "Retail-Customer-Source-Files",
+							"wildcardFileName": "*.csv",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Customer_Archive_Files",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Sink_Retail_Customer_Archive_Files",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Deleta_Files",
+				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Archive_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Delete_Succeed_Files",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": null,
+						"modifiedDatetimeEnd": null,
+						"wildcardFileName": "*.csv",
+						"enablePartitionDiscovery": false
+					}
 				}
 			}
 		],
