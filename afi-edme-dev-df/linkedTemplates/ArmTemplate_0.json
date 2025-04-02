@@ -7,14 +7,31 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
+		"AGR_Demo_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AGR_Demo'"
+		},
 		"Ashley_EDW_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Ashley_EDW'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=ashley-edw-dev.database.windows.net;Initial Catalog=ASHLEY_EDW_DEV"
 		},
+		"Ashley_EDW_Prod_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Ashley_EDW_Prod'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=ashley-edw.database.windows.net;Initial Catalog=Ashley_EDW"
+		},
+		"AzureFileStorage1_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'AzureFileStorage1'"
+		},
 		"CDP_CustomerProfiling_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'CDP_CustomerProfiling'"
+		},
+		"DSTrackingTest_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'DSTrackingTest'"
 		},
 		"EnterpriseMarketingFabricWarehouse_servicePrincipalCredential": {
 			"type": "secureString",
@@ -29,6 +46,10 @@
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Enterprise_ReferenceMaster"
 		},
+		"LS_AzureFunction_functionKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'functionKey' of 'LS_AzureFunction'"
+		},
 		"LS_SMARTSHEET_apiToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'apiToken' of 'LS_SMARTSHEET'"
@@ -37,15 +58,9 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'apiToken' of 'LS_Smartsheets'"
 		},
-		"Retail_CustomerMaster_connectionString": {
+		"Ls_CSV_FlatFile_connectionString": {
 			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'Retail_CustomerMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_CustomerMaster"
-		},
-		"Retail_ProductMaster_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'Retail_ProductMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_ProductMaster"
+			"metadata": "Secure string for 'connectionString' of 'Ls_CSV_FlatFile'"
 		},
 		"dataFactory_properties_globalParameters_DAC_Accountid_value": {
 			"type": "string",
@@ -79,6 +94,14 @@
 			"type": "string",
 			"defaultValue": "https://ashleydevlake.dfs.core.windows.net"
 		},
+		"AzureFileStorage1_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "sftp.ashleyfurniture.com"
+		},
+		"AzureFileStorage1_properties_typeProperties_userId": {
+			"type": "string",
+			"defaultValue": "s_Zeta_Analytics"
+		},
 		"AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://afide-edmekv.vault.azure.net/"
@@ -111,21 +134,9 @@
 			"type": "string",
 			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
 		},
-		"Postal_datadownload_properties_typeProperties_url": {
+		"LS_AzureFunction_properties_typeProperties_functionAppUrl": {
 			"type": "string",
-			"defaultValue": "https://releases.melissadata.net/Download/Data/2024.07/z5max.txt"
-		},
-		"Postalcode_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://releases.melissadata.net"
-		},
-		"RawZone_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://ashleydevlake.dfs.core.windows.net/"
-		},
-		"RestService1_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://releases.melissadata.net/releases/data/z5max.txt"
+			"defaultValue": "https://afi-rsm-subscriber-dev-func.azurewebsites.net"
 		}
 	},
 	"variables": {
@@ -258,7 +269,8 @@
 						"type": "String"
 					}
 				},
-				"annotations": []
+				"annotations": [],
+				"lastPublishTime": "2024-12-27T12:10:05Z"
 			},
 			"dependsOn": []
 		},
@@ -271,6 +283,20 @@
 				"type": "AzureKeyVault",
 				"typeProperties": {
 					"baseUrl": "[parameters('AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AGR_Demo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureFileStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AGR_Demo_connectionString')]",
+					"fileShare": "inventoryapiratesdemo"
 				}
 			},
 			"dependsOn": []
@@ -289,6 +315,19 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Ashley_EDW_Prod')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('Ashley_EDW_Prod_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -297,6 +336,24 @@
 				"type": "AzureBlobFS",
 				"typeProperties": {
 					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureFileStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureFileStorage",
+				"typeProperties": {
+					"host": "[parameters('AzureFileStorage1_properties_typeProperties_host')]",
+					"userId": "[parameters('AzureFileStorage1_properties_typeProperties_userId')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('AzureFileStorage1_password')]"
+					}
 				}
 			},
 			"dependsOn": []
@@ -323,6 +380,19 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('CDP_CustomerProfiling_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DSTrackingTest')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "CosmosDb",
+				"typeProperties": {
+					"connectionString": "[parameters('DSTrackingTest_connectionString')]"
 				}
 			},
 			"dependsOn": []
@@ -414,6 +484,24 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureFunction')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureFunction",
+				"typeProperties": {
+					"functionAppUrl": "[parameters('LS_AzureFunction_properties_typeProperties_functionAppUrl')]",
+					"authentication": "Anonymous",
+					"functionKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_AzureFunction_functionKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/LS_SMARTSHEET')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -448,85 +536,14 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Postal_datadownload')]",
+			"name": "[concat(parameters('factoryName'), '/Ls_CSV_FlatFile')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
-				"type": "RestService",
+				"type": "AzureBlobStorage",
 				"typeProperties": {
-					"url": "[parameters('Postal_datadownload_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Postalcode')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "HttpServer",
-				"typeProperties": {
-					"url": "[parameters('Postalcode_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/RawZone')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobFS",
-				"typeProperties": {
-					"url": "[parameters('RawZone_properties_typeProperties_url')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/RestService1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "RestService",
-				"typeProperties": {
-					"url": "[parameters('RestService1_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Retail_CustomerMaster')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('Retail_CustomerMaster_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Retail_ProductMaster')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('Retail_ProductMaster_connectionString')]"
+					"connectionString": "[parameters('Ls_CSV_FlatFile_connectionString')]"
 				}
 			},
 			"dependsOn": []

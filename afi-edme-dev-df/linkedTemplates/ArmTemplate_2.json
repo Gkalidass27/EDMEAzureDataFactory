@@ -6,12 +6,1337 @@
 			"type": "string",
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
+		},
+		"semarchy_repo_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_repo'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_repo"
+		},
+		"semarchy_staging_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_staging'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_staging"
+		},
+		"test_functionKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'functionKey' of 'test'"
+		},
+		"test_properties_typeProperties_functionAppUrl": {
+			"type": "string",
+			"defaultValue": "https://agr-cdp-func.azurewebsites.net"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/semarchy_repo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('semarchy_repo_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/semarchy_staging')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "semarchy_staging",
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('semarchy_staging_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/test')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureFunction",
+				"typeProperties": {
+					"functionAppUrl": "[parameters('test_properties_typeProperties_functionAppUrl')]",
+					"authentication": "Anonymous",
+					"functionKey": {
+						"type": "SecureString",
+						"value": "[parameters('test_functionKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AARCWIVDSQ12226-integrationRuntime1')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"description": "AARCWIVDSQ12226-Test",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_Retail_Customer_Failure_Notification')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Check_Error_Type",
+						"type": "IfCondition",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@contains(pipeline().parameters.ErrorMsg,'The specified path does not exist' )",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Teams_Failed_Notification",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "ASHCOMM_ErrorLogs",
+											"dependencyConditions": [
+												"Completed"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": "afi-edme-rg",
+											"runId": {
+												"value": "@pipeline().parameters.RunID",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().parameters.PipelineName",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@pipeline().parameters.TriggerTime",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@pipeline().parameters.status",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@replace(pipeline().parameters.ErrorMsg,'\"','')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@pipeline().parameters.executionEndTime",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@pipeline().parameters.runDuration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "ASHCOMM_ErrorLogs",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@pipeline().parameters.ErrorCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@pipeline().parameters.ErrorMsg",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@pipeline().parameters.ErrorStatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@pipeline().parameters.FailureType",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().parameters.PipelineName",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().parameters.RunID",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "@pipeline().parameters.Sink",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@pipeline().parameters.Sink_Type",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "@pipeline().parameters.Source",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@pipeline().parameters.Source_Type",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerName",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerTime",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@pipeline().parameters.TriggerType",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "FileNotFound_Igonre_This_Error",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "FileNotFound",
+										"value": {
+											"value": "@pipeline().parameters.ErrorMsg",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"ErrorCode": {
+						"type": "string"
+					},
+					"ErrorMsg": {
+						"type": "string"
+					},
+					"ErrorStatusCode": {
+						"type": "string"
+					},
+					"FailureType": {
+						"type": "string"
+					},
+					"PipelineName": {
+						"type": "string"
+					},
+					"RunID": {
+						"type": "string"
+					},
+					"Sink": {
+						"type": "string"
+					},
+					"Sink_Type": {
+						"type": "string"
+					},
+					"Source": {
+						"type": "string"
+					},
+					"Source_Type": {
+						"type": "string"
+					},
+					"TriggerId": {
+						"type": "string"
+					},
+					"TriggerName": {
+						"type": "string"
+					},
+					"TriggerTime": {
+						"type": "string"
+					},
+					"TriggerType": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"runDuration": {
+						"type": "string"
+					},
+					"executionEndTime": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"FileNotFound": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-07-21T09:16:45Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Zeta_File_Export_Template')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "test cdp dedupe func",
+						"type": "AzureFunctionActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"functionName": "input-incremental-dedupe-func",
+							"headers": {},
+							"method": "TRACE"
+						},
+						"linkedServiceName": {
+							"referenceName": "agr_cdp_func",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Fail1",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "test cdp dedupe func",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "FAILURE",
+							"errorCode": "500"
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "test cdp dedupe func",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "success",
+									"value": {
+										"type": "String",
+										"content": "true"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-07-30T12:31:10Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/All_Max_CustomerMasterId_CustomerInfo')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CANADA_Postal_Code_Table')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "Ref_PostalCode",
+					"table": "GeocoderCA_PCensusNWE"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Dedeped')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"CDP_TableName": {
+						"type": "string"
+					},
+					"Table_Schema": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Table_Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().CDP_TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Deduped_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "String"
+					},
+					"Container_Name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().Container_Name",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Canada_Postal_Code_File')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename_canada": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename_canada",
+							"type": "Expression"
+						},
+						"folderPath": "Postal_Code_Source_Files",
+						"fileSystem": "postal-code"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "PostCode",
+						"type": "String"
+					},
+					{
+						"name": "Latitude",
+						"type": "String"
+					},
+					{
+						"name": "Longitude",
+						"type": "String"
+					},
+					{
+						"name": "City",
+						"type": "String"
+					},
+					{
+						"name": "Province",
+						"type": "String"
+					},
+					{
+						"name": "CityAlt",
+						"type": "String"
+					},
+					{
+						"name": "Neighborhood",
+						"type": "String"
+					},
+					{
+						"name": "Time Zone",
+						"type": "String"
+					},
+					{
+						"name": "Name",
+						"type": "String"
+					},
+					{
+						"name": "Area Code",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cmauid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_ername",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_csdtype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cmatype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cdname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_csduid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cdtype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_sactype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_saccode",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_prname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cmapuid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_csdname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cduid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_ccsname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_eruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_ccsuid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Subdivision_cmaname",
+						"type": "String"
+					},
+					{
+						"name": "Aggregate_Dissemination_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Aggregate_Dissemination_cdname",
+						"type": "String"
+					},
+					{
+						"name": "Aggregate_Dissemination_cdtype",
+						"type": "String"
+					},
+					{
+						"name": "Aggregate_Dissemination_cduid",
+						"type": "String"
+					},
+					{
+						"name": "Aggregate_Dissemination_adauid",
+						"type": "String"
+					},
+					{
+						"name": "Aggregate_Dissemination_prname",
+						"type": "String"
+					},
+					{
+						"name": "Population_Ecumene_ecumene",
+						"type": "String"
+					},
+					{
+						"name": "Population_Ecumene_ecuid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_cdname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_cdtype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_ccsname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_cduid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_ccsuid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Consolidated_Subdivision_prname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cmauid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_ctuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_ername",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_csdtype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_ctname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cmatype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_csduid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cdname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_dbuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cdtype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_sactype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_adauid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_saccode",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_dauid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_prname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cmapuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_dbrplamx",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_feduid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_dbrplamy",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_csdname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_fedname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cduid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_ccsname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_eruid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_ccsuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Block_cmaname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmauid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmatype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_prname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmaname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Metropolitan_Areas_And_Census_Agglomeration_cmapuid",
+						"type": "String"
+					},
+					{
+						"name": "Designated_Place_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Designated_Place_dpluid",
+						"type": "String"
+					},
+					{
+						"name": "Designated_Place_dplname",
+						"type": "String"
+					},
+					{
+						"name": "Designated_Place_prname",
+						"type": "String"
+					},
+					{
+						"name": "Designated_Place_dpltype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Division_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Division_cdname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Division_cdtype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Division_cduid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Division_prname",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_frname",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_revdt",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_creadt",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_enname",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_nid",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_provcode",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_quipopcnt",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_fednum",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_decpopcnt",
+						"type": "String"
+					},
+					{
+						"name": "Federal_Election_reporder",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_cmauid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_ctuid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_cmatype",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_ctname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_prname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_cmaname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Tract_cmapuid",
+						"type": "String"
+					},
+					{
+						"name": "Economic_Region_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Economic_Region_ername",
+						"type": "String"
+					},
+					{
+						"name": "Economic_Region_eruid",
+						"type": "String"
+					},
+					{
+						"name": "Economic_Region_prname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cmauid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_ctuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_ername",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_csdtype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_ctname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cmatype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_csduid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cdname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cdtype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_sactype",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_adauid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_saccode",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_dauid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_prname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cmapuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_csdname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cduid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_ccsname",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_eruid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_ccsuid",
+						"type": "String"
+					},
+					{
+						"name": "Dissemination_Area_cmaname",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_cmauid",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_pcclass",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_pcuid",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_cmatype",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_pcname",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_pctype",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_pcpuid",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_prname",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_cmaname",
+						"type": "String"
+					},
+					{
+						"name": "Population_Centre_cmapuid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Agricultural_pruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Agricultural_caruid",
+						"type": "String"
+					},
+					{
+						"name": "Census_Agricultural_carename",
+						"type": "String"
+					},
+					{
+						"name": "Census_Agricultural_carfname",
+						"type": "String"
+					},
+					{
+						"name": "Census_Agricultural_prname",
+						"type": "String"
+					},
+					{
+						"name": "ISED",
+						"type": "String"
+					},
+					{
+						"name": "ISEDname",
+						"type": "String"
+					},
+					{
+						"name": "Provincial_Riding_of",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Colorwheel')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Colorwheel.parquet",
+						"folderPath": "Retail/SupplyChain/Colorwheel",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Colorwheel_Historical')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "HistoricalColorwheel.parquet",
+						"folderPath": "Retail/SupplyChain/HistoricalColorwheel",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Contaierrate')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "MonthEndContainerStandards1.csv",
+						"folderPath": "Retail/SupplyChain/MonthEndContainerStandards",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Containerrate_Parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "containerrate.parquet",
+						"fileSystem": "test"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Containerrate_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Containerrate.csv",
+						"fileSystem": "test"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Customer_Archive_Files')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
@@ -73,7 +1398,9 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Blob')]",
@@ -146,756 +1473,9 @@
 					}
 				}
 			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Exact_Blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"ContainerName": {
-						"type": "String"
-					},
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().ContainerName",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"Schema": {
-						"type": "String"
-					},
-					"TableName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": {
-						"value": "@dataset().Schema",
-						"type": "Expression"
-					},
-					"table": {
-						"value": "@dataset().TableName",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"ContainerName": {
-						"type": "String"
-					},
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().ContainerName",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Exact')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"Schema": {
-						"type": "String"
-					},
-					"TableName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": {
-						"value": "@dataset().Schema",
-						"type": "Expression"
-					},
-					"table": {
-						"value": "@dataset().TableName",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Exact_Blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"ContainerName": {
-						"type": "String"
-					},
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().ContainerName",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Phone_Exact')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"Schema": {
-						"type": "String"
-					},
-					"TableName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": {
-						"value": "@dataset().Schema",
-						"type": "Expression"
-					},
-					"table": {
-						"value": "@dataset().TableName",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Phone_Exact_Blob')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"ContainerName": {
-						"type": "String"
-					},
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().ContainerName",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Read')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "input.txt",
-						"folderPath": "dac_store_details",
-						"fileSystem": "raw-zone"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Read1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "input.txt",
-						"folderPath": "dac_store_details",
-						"fileSystem": "raw-zone"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Write')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"folderPath": "dac_store_details",
-						"fileSystem": "raw-zone"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "",
-					"quoteChar": ""
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_Details_Write1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"folderPath": "dac_store_details",
-						"fileSystem": "raw-zone"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "",
-					"quoteChar": ""
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_List_Read')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Json",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "dac_api_staging",
-						"fileSystem": "raw-zone"
-					}
-				},
-				"schema": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DAC_Location_List_Write')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"FileName": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "Json",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"folderPath": "dac_api_staging",
-						"fileSystem": "raw-zone"
-					}
-				},
-				"schema": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DSPOSTALCODEHIST')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "B_LOADID",
-						"type": "decimal",
-						"precision": 38,
-						"scale": 0
-					},
-					{
-						"name": "ENT_REF_POSTAL_CODE_ID",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CLASSNAME",
-						"type": "varchar"
-					},
-					{
-						"name": "B_DELETETYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_DELETEAUTHOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_DELETEOPERATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_CREDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_UPDDATE",
-						"type": "datetime2",
-						"scale": 6
-					},
-					{
-						"name": "B_CREATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "B_UPDATOR",
-						"type": "nvarchar"
-					},
-					{
-						"name": "POSTAL_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "STATE_OR_PROVINCE_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CITY_NAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "CITY_ABBREVIATION",
-						"type": "nvarchar"
-					},
-					{
-						"name": "COUNTRY_CODE",
-						"type": "varchar"
-					},
-					{
-						"name": "TIME_ZONE",
-						"type": "varchar"
-					},
-					{
-						"name": "OBSERVES_DST",
-						"type": "bit"
-					},
-					{
-						"name": "LATITUDE",
-						"type": "decimal",
-						"precision": 9,
-						"scale": 5
-					},
-					{
-						"name": "LONGITUDE",
-						"type": "decimal",
-						"precision": 9,
-						"scale": 5
-					},
-					{
-						"name": "IS_PREFERRED_CITY_NAME",
-						"type": "bit"
-					},
-					{
-						"name": "POSTAL_CODE_TYPE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "MSA_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "FIPS_CODE",
-						"type": "nvarchar"
-					},
-					{
-						"name": "NAME",
-						"type": "nvarchar"
-					},
-					{
-						"name": "active_flag",
-						"type": "nvarchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "Ref_PostalCode",
-					"table": "PostalCode_History"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DSSEMGBLUS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "zipZzipcd",
-						"type": "varchar"
-					},
-					{
-						"name": "zipZstate",
-						"type": "varchar"
-					},
-					{
-						"name": "zipZctynm",
-						"type": "varchar"
-					},
-					{
-						"name": "zipZctyab",
-						"type": "varchar"
-					},
-					{
-						"name": "zipZconyn",
-						"type": "varchar"
-					},
-					{
-						"name": "zipZcountry",
-						"type": "varchar"
-					},
-					{
-						"name": "zipMSA",
-						"type": "varchar"
-					},
-					{
-						"name": "zipTimeZoneCode",
-						"type": "varchar"
-					},
-					{
-						"name": "zipDayLightSavings",
-						"type": "char"
-					},
-					{
-						"name": "zipLat",
-						"type": "decimal",
-						"precision": 7,
-						"scale": 4
-					},
-					{
-						"name": "zipLong",
-						"type": "decimal",
-						"precision": 8,
-						"scale": 4
-					},
-					{
-						"name": "usra",
-						"type": "varchar"
-					},
-					{
-						"name": "dtea",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "usrc",
-						"type": "varchar"
-					},
-					{
-						"name": "dtec",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "acrec",
-						"type": "varchar"
-					},
-					{
-						"name": "zipPreferred",
-						"type": "bit"
-					}
-				],
-				"typeProperties": {
-					"schema": "GBLDynamic",
-					"table": "tblZipCode"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DSSEMSTGGBLDYNAMICSCAN')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "znuPostalCode",
-						"type": "varchar"
-					},
-					{
-						"name": "znuCity",
-						"type": "varchar"
-					},
-					{
-						"name": "znuProvince",
-						"type": "varchar"
-					},
-					{
-						"name": "znuCountryCode",
-						"type": "varchar"
-					},
-					{
-						"name": "znuCityAbbrev",
-						"type": "varchar"
-					},
-					{
-						"name": "znuTimeZone",
-						"type": "varchar"
-					},
-					{
-						"name": "znuDayLightSavings",
-						"type": "char"
-					},
-					{
-						"name": "znuLat",
-						"type": "decimal",
-						"precision": 7,
-						"scale": 4
-					},
-					{
-						"name": "znuLong",
-						"type": "decimal",
-						"precision": 8,
-						"scale": 4
-					},
-					{
-						"name": "usra",
-						"type": "varchar"
-					},
-					{
-						"name": "dtea",
-						"type": "smalldatetime",
-						"precision": 16,
-						"scale": 0
-					},
-					{
-						"name": "usrc",
-						"type": "varchar"
-					},
-					{
-						"name": "dtec",
-						"type": "smalldatetime",
-						"precision": 16,
-						"scale": 0
-					}
-				],
-				"typeProperties": {
-					"schema": "GBLDynamic",
-					"table": "tblZipNonUSA"
-				}
-			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
 		}
 	]
 }
