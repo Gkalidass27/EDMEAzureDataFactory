@@ -13,6 +13,218 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/StageInitialLoadRetailChunkControl_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_PostalCode_Query')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Staging_AllSourceCustomers')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StoreMasterCustom_LegalEntities_CompanyCodes')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": "StoreMasterCustom_LegalEntities_CompanyCodes",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "legal_entity_id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "type",
+						"type": "String"
+					},
+					{
+						"name": "lic_contact",
+						"type": "String"
+					},
+					{
+						"name": "company_code",
+						"type": "String"
+					},
+					{
+						"name": "lic_contact_email",
+						"type": "String"
+					},
+					{
+						"name": "raw_lic_contact_phone",
+						"type": "String"
+					},
+					{
+						"name": "raw_addr_line1",
+						"type": "String"
+					},
+					{
+						"name": "raw_addr_line2",
+						"type": "String"
+					},
+					{
+						"name": "raw_city",
+						"type": "String"
+					},
+					{
+						"name": "raw_state",
+						"type": "String"
+					},
+					{
+						"name": "raw_state_code",
+						"type": "String"
+					},
+					{
+						"name": "raw_country",
+						"type": "String"
+					},
+					{
+						"name": "raw_country_code",
+						"type": "String"
+					},
+					{
+						"name": "raw_postal_code",
+						"type": "String"
+					},
+					{
+						"name": "raw_longitude",
+						"type": "String"
+					},
+					{
+						"name": "raw_latitude",
+						"type": "String"
+					},
+					{
+						"name": "mailing_addr_line1",
+						"type": "String"
+					},
+					{
+						"name": "mailing_addr_line2",
+						"type": "String"
+					},
+					{
+						"name": "mailing_city",
+						"type": "String"
+					},
+					{
+						"name": "mailing_state",
+						"type": "String"
+					},
+					{
+						"name": "mailing_state_code",
+						"type": "String"
+					},
+					{
+						"name": "mailing_country",
+						"type": "String"
+					},
+					{
+						"name": "mailing_country_code",
+						"type": "String"
+					},
+					{
+						"name": "mailing_postal_code",
+						"type": "String"
+					},
+					{
+						"name": "os_legal_entity_id",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/StoreMasterCustom_LegalEntities_Mapping')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1704,76 +1916,6 @@
 					"schema": "Masterdata_CDP",
 					"table": "CrossWalk_DU_OUT"
 				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/masterdata_CDP_CrossWalk_MD_OUT')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "Masterdata_CDP",
-					"table": "CrossWalk_MD_OUT"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/retailCustomer_dbo_CrossWalk_MD_OUT')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Retail_CustomerMaster",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "CrossWalk_MD_OUT"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/retail_v_legal_entity_scd')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/usp_ASH_REMOVE_LOAD')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Retail_CustomerMaster",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [],
-				"typeProperties": {}
 			},
 			"dependsOn": []
 		}

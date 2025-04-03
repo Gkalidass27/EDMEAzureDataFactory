@@ -13,6 +13,110 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/EDME_Datafactory')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Ashley_EDW",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					},
+					"SchemaName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().SchemaName",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDW_ContainerRate_Parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "MonthEndContainerStandards.parquet",
+						"folderPath": "Retail/SupplyChain/MonthEndContainerStandards",
+						"fileSystem": "raw-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDW_Containerrate')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "string"
+					},
+					"Foldername": {
+						"type": "string"
+					},
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().Foldername",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/EDW_CustomersShippingLocations')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -4143,431 +4247,6 @@
 				"typeProperties": {
 					"schema": "Retail",
 					"table": "RSM_LicContact_CompanyCode"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDW_SiteMaster')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "Ashley_EDW",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlDWTable",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDW_StoreMasterCustom')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "Status",
-						"type": "varchar"
-					},
-					{
-						"name": "LocationKey",
-						"type": "varchar"
-					},
-					{
-						"name": "ProspectID",
-						"type": "varchar"
-					},
-					{
-						"name": "GoogleID",
-						"type": "varchar"
-					},
-					{
-						"name": "BindyID",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreID",
-						"type": "varchar"
-					},
-					{
-						"name": "ProfitCenter",
-						"type": "varchar"
-					},
-					{
-						"name": "Location",
-						"type": "varchar"
-					},
-					{
-						"name": "Country",
-						"type": "varchar"
-					},
-					{
-						"name": "Account",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreFrontShipTo",
-						"type": "varchar"
-					},
-					{
-						"name": "Entity",
-						"type": "varchar"
-					},
-					{
-						"name": "LicenseeContact",
-						"type": "varchar"
-					},
-					{
-						"name": "SoftOpenDate",
-						"type": "date"
-					},
-					{
-						"name": "AcquisitionDate",
-						"type": "date"
-					},
-					{
-						"name": "ClosureDate",
-						"type": "date"
-					},
-					{
-						"name": "ShopperTrakLocID",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreAddress",
-						"type": "varchar"
-					},
-					{
-						"name": "City",
-						"type": "varchar"
-					},
-					{
-						"name": "StateProvince",
-						"type": "varchar"
-					},
-					{
-						"name": "ZIP",
-						"type": "varchar"
-					},
-					{
-						"name": "DMAID",
-						"type": "varchar"
-					},
-					{
-						"name": "DMARegion",
-						"type": "varchar"
-					},
-					{
-						"name": "ShowroomSqFt",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreType",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreModel",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreVersion",
-						"type": "varchar"
-					},
-					{
-						"name": "Market",
-						"type": "varchar"
-					},
-					{
-						"name": "Region",
-						"type": "varchar"
-					},
-					{
-						"name": "BuildingOwnership",
-						"type": "varchar"
-					},
-					{
-						"name": "CountryCategory",
-						"type": "varchar"
-					},
-					{
-						"name": "DomesticCategory",
-						"type": "varchar"
-					},
-					{
-						"name": "Classification",
-						"type": "varchar"
-					},
-					{
-						"name": "StorePhone",
-						"type": "varchar"
-					},
-					{
-						"name": "DistrictManager",
-						"type": "varchar"
-					},
-					{
-						"name": "BDDirector",
-						"type": "varchar"
-					},
-					{
-						"name": "LicenseeEmail",
-						"type": "varchar"
-					},
-					{
-						"name": "LicenseePhone",
-						"type": "varchar"
-					},
-					{
-						"name": "CorporationAddress",
-						"type": "varchar"
-					},
-					{
-						"name": "CorpCity",
-						"type": "varchar"
-					},
-					{
-						"name": "CorpState",
-						"type": "varchar"
-					},
-					{
-						"name": "CorpZip",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCAddress",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCCity",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCState",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCZip",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCShipTo",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCSqFt",
-						"type": "varchar"
-					},
-					{
-						"name": "RDCDockDoors",
-						"type": "varchar"
-					},
-					{
-						"name": "TUAExpirationDate",
-						"type": "date"
-					},
-					{
-						"name": "LicensedTerritory",
-						"type": "varchar"
-					},
-					{
-						"name": "Latitude",
-						"type": "varchar"
-					},
-					{
-						"name": "Longitude",
-						"type": "varchar"
-					},
-					{
-						"name": "Notes",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreEmail",
-						"type": "varchar"
-					},
-					{
-						"name": "Unit",
-						"type": "varchar"
-					},
-					{
-						"name": "OneSourceID",
-						"type": "varchar"
-					},
-					{
-						"name": "HSDatabaseName",
-						"type": "varchar"
-					},
-					{
-						"name": "SVP",
-						"type": "varchar"
-					},
-					{
-						"name": "VP",
-						"type": "varchar"
-					},
-					{
-						"name": "SrRD",
-						"type": "varchar"
-					},
-					{
-						"name": "RD",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreManager",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreMgrPhone",
-						"type": "varchar"
-					},
-					{
-						"name": "SalesManager1",
-						"type": "varchar"
-					},
-					{
-						"name": "SalesManager2",
-						"type": "varchar"
-					},
-					{
-						"name": "SalesManager3",
-						"type": "varchar"
-					},
-					{
-						"name": "SalesManager4",
-						"type": "varchar"
-					},
-					{
-						"name": "OfficeManager",
-						"type": "varchar"
-					},
-					{
-						"name": "DirectorOfOps",
-						"type": "varchar"
-					},
-					{
-						"name": "RegionalOpsMgr",
-						"type": "varchar"
-					},
-					{
-						"name": "OpsMgr",
-						"type": "varchar"
-					},
-					{
-						"name": "CompStatus",
-						"type": "varchar"
-					},
-					{
-						"name": "Kit",
-						"type": "varchar"
-					},
-					{
-						"name": "TrafficDivisor",
-						"type": "varchar"
-					},
-					{
-						"name": "ERP",
-						"type": "varchar"
-					},
-					{
-						"name": "DTCTechnology",
-						"type": "varchar"
-					},
-					{
-						"name": "DTCBrand",
-						"type": "varchar"
-					},
-					{
-						"name": "ForumID",
-						"type": "varchar"
-					},
-					{
-						"name": "AccountType",
-						"type": "varchar"
-					},
-					{
-						"name": "FacadeCurrentImage",
-						"type": "varchar"
-					},
-					{
-						"name": "WebsiteFacadeCurrent",
-						"type": "varchar"
-					},
-					{
-						"name": "StoreManagerImage",
-						"type": "varchar"
-					},
-					{
-						"name": "EnterpriseFacadeImage",
-						"type": "varchar"
-					},
-					{
-						"name": "LicenseeSalesDistrict",
-						"type": "varchar"
-					},
-					{
-						"name": "LicenseeSalesRegion",
-						"type": "varchar"
-					},
-					{
-						"name": "ModifiedDate",
-						"type": "date"
-					}
-				],
-				"typeProperties": {
-					"schema": "EDW",
-					"table": "StoreMasterCustom"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EDW_StoreMasterCustom_LegalEntities_CompanyCodes')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "semarchy_staging",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "LegalEntityID",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "EntityName",
-						"type": "varchar"
-					},
-					{
-						"name": "LicContact",
-						"type": "varchar"
-					},
-					{
-						"name": "CompanyCode",
-						"type": "varchar"
-					},
-					{
-						"name": "Createddate",
-						"type": "varchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "RETAIL",
-					"table": "StoreMasterCustom_LegalEntities_CompanyCodes"
 				}
 			},
 			"dependsOn": []
