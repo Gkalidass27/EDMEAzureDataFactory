@@ -17,19 +17,23 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT\n      server_id\n       ,server_name\n      ,ser_database_name\n      ,ser_schema_name\n      ,tab_name\n      ,ser_user_name\n      ,ser_pwd\n      ,isactive\n\n\t  from Ref_PostalCode.MSATargetServerConfig",
+						"sqlReaderQuery": {
+							"value": "SELECT\n      server_id\n       ,server_name\n      ,ser_database_name\n      ,ser_schema_name\n      ,tab_name\n      ,ser_user_name\n      ,ser_pwd\n      ,isactive\n\n\t  from Ref_PostalCode.MSATargetServerConfig",
+							"type": "Expression"
+						},
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"dataset": {
 						"referenceName": "Semarchy_Staging",
 						"type": "DatasetReference"
-					}
+					},
+					"firstRowOnly": true
 				}
 			},
 			{
-				"name": "ForEach1",
-				"type": "ForEach",
+				"name": "Copy data1",
+				"type": "Copy",
 				"dependsOn": [
 					{
 						"activity": "Lookup1",
@@ -38,58 +42,77 @@
 						]
 					}
 				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
 				"userProperties": [],
 				"typeProperties": {
-					"activities": [
-						{
-							"name": "MSA_Master_Data",
-							"type": "Copy",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "AzureSqlSource",
-									"sqlReaderQuery": "SELECT TOP 5 \nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME \nFROM [Ref_PostalCode].[PostalCode_bkp26]",
-									"queryTimeout": "02:00:00",
-									"partitionOption": "None"
-								},
-								"sink": {
-									"type": "AzureSqlSink",
-									"writeBehavior": "insert",
-									"sqlWriterUseTableLock": false
-								},
-								"enableStaging": false,
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
-									}
-								}
-							},
-							"inputs": [
-								{
-									"referenceName": "Semarchy_Staging",
-									"type": "DatasetReference"
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "ds_msamaster",
-									"type": "DatasetReference"
-								}
-							]
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT TOP 5 POSTAL_CODE,STATE_OR_PROVINCE_CODE,CITY_NAME \nFROM [Ref_PostalCode].[PostalCode_bkp26]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
 						}
-					]
-				}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_msamaster",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema_name": {
+								"value": "@activity('Lookup1').output.ser_schema_name.firstrow",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@activity('Lookup1').output.firstRow.tab_name",
+								"type": "Expression"
+							},
+							"ser_server_name": {
+								"value": "@activity('Lookup1').output.firstRow.server_name",
+								"type": "Expression"
+							},
+							"database_name": {
+								"value": "@activity('Lookup1').output.firstRow.ser_database_name",
+								"type": "Expression"
+							},
+							"user_name": {
+								"value": "@activity('Lookup1').output.firstRow.ser_user_name",
+								"type": "Expression"
+							},
+							"db_pwd": {
+								"value": "@activity('Lookup1').output.firstRow.ser_pwd",
+								"type": "Expression"
+							}
+						}
+					}
+				]
 			}
 		],
 		"parameters": {
