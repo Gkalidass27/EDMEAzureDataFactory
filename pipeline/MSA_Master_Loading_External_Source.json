@@ -51,7 +51,7 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Copy_MSA_DownStream",
+							"name": "Copy_MSA_Masterdata_External_source",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -129,6 +129,91 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "Fail_Load_PostalCode",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Teams_Failed_Notification_PostalCode",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('Load_PostalCode').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('Load_PostalCode').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Teams_Failed_Notification_PostalCode",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Copy_MSA_Masterdata_External_source",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "@activity('Copy_MSA_Masterdata_External_source').output.executionDetails[0].start",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('Copy_MSA_Masterdata_External_source').output.executionDetails[0].status",
+										"type": "Expression"
+									},
+									"message": {
+										"value": "@replace(activity('Copy_MSA_Masterdata_External_source').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Copy_MSA_Masterdata_External_source').output.copyDuration",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+										"type": "Expression"
+									}
+								}
+							}
 						}
 					]
 				}
