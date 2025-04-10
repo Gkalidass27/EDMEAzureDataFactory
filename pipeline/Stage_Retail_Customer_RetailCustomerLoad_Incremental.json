@@ -94,7 +94,7 @@
 						],
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
+							"recursive": false,
 							"modifiedDatetimeStart": {
 								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 								"type": "Expression"
@@ -777,7 +777,7 @@
 						"type": "DelimitedTextSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
+							"recursive": false,
 							"modifiedDatetimeStart": {
 								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 								"type": "Expression"
@@ -856,7 +856,7 @@
 					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
+						"recursive": false,
 						"modifiedDatetimeStart": {
 							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 							"type": "Expression"
@@ -894,7 +894,7 @@
 						"type": "DelimitedTextSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
+							"recursive": false,
 							"modifiedDatetimeStart": {
 								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 								"type": "Expression"
@@ -973,7 +973,7 @@
 					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
+						"recursive": false,
 						"modifiedDatetimeStart": {
 							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 							"type": "Expression"
@@ -1224,7 +1224,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Load_Homes_Customer",
+						"activity": "Load_Homes_Customer_Afc",
 						"dependencyConditions": [
 							"Completed"
 						]
@@ -1243,7 +1243,7 @@
 						"type": "DelimitedTextSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": false,
+							"recursive": true,
 							"modifiedDatetimeStart": {
 								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 								"type": "Expression"
@@ -1296,7 +1296,7 @@
 				]
 			},
 			{
-				"name": "Deleta_Files",
+				"name": "Delete_Files",
 				"type": "Delete",
 				"dependsOn": [
 					{
@@ -1376,7 +1376,7 @@
 						],
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
+							"recursive": false,
 							"modifiedDatetimeStart": {
 								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 								"type": "Expression"
@@ -1710,7 +1710,7 @@
 						"type": "DelimitedTextSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
+							"recursive": false,
 							"modifiedDatetimeStart": {
 								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 								"type": "Expression"
@@ -1757,7 +1757,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Retail_Customer_Error_Files",
+						"referenceName": "Retail_Customer_Error_Files_afc",
 						"type": "DatasetReference"
 					}
 				]
@@ -1789,7 +1789,7 @@
 					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
+						"recursive": false,
 						"modifiedDatetimeStart": {
 							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
 							"type": "Expression"
@@ -1916,123 +1916,6 @@
 					"errorCode": {
 						"value": "@{activity('Load_Homes_Customer').error.errorCode}",
 						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Archive_Files_afc",
-				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "Load_Homes_Customer_Afc",
-						"dependencyConditions": [
-							"Completed"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"modifiedDatetimeStart": {
-								"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-								"type": "Expression"
-							},
-							"modifiedDatetimeEnd": {
-								"value": "@variables('ToDateTime')",
-								"type": "Expression"
-							},
-							"wildcardFolderPath": "Retail-Customer-Source-Files/afc",
-							"wildcardFileName": "*.csv",
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
-					},
-					"sink": {
-						"type": "DelimitedTextSink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
-						},
-						"formatSettings": {
-							"type": "DelimitedTextWriteSettings",
-							"quoteAllText": true,
-							"fileExtension": ".csv"
-						}
-					},
-					"enableStaging": false,
-					"dataIntegrationUnits": 2,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "Customer_Archive_Files_afc",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "Sink_Retail_Customer_Archive_Files",
-						"type": "DatasetReference"
-					}
-				]
-			},
-			{
-				"name": "Deleta_Files_afc",
-				"type": "Delete",
-				"dependsOn": [
-					{
-						"activity": "Archive_Files_afc",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"dataset": {
-						"referenceName": "Delete_Succeed_Files_afc",
-						"type": "DatasetReference"
-					},
-					"enableLogging": false,
-					"storeSettings": {
-						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
-						"modifiedDatetimeStart": {
-							"value": "@activity('Get_Last_Trigger_Time').output.firstRow.LasteTriggerDateTime",
-							"type": "Expression"
-						},
-						"modifiedDatetimeEnd": {
-							"value": "@variables('ToDateTime')",
-							"type": "Expression"
-						},
-						"wildcardFileName": "*.csv",
-						"enablePartitionDiscovery": false
 					}
 				}
 			}
