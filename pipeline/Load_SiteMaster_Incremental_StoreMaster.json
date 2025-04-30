@@ -4609,7 +4609,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "SELECT \r\n    cast(newid() as uniqueidentifier) AS HS_OPC_TRACKING_ID,\r\n    B_CLASSNAME,\r\n\tB_CREDATE,\r\n\tB_UPDDATE,\r\n\tB_CREATOR,\r\n\t operation_id AS OPERATION_ID,\r\n\t primary_profit_center AS PRIMARY_PROFIT_CENTER,\r\n\t erp_database_name AS ERP_DATABASE_NAME,\r\n\t erp_system_name AS ERP_SYSTEM_NAME,\r\n\t effective_start_date AS EFFECTIVE_START_DATE,\r\n\t effective_end_date AS EFFECTIVE_END_DATE,\r\n\t legacy_location_id AS LEGACY_LOCATION_ID,\r\n\t site_name AS SITE_NAME,\r\n\t CAST(comp_flag AS BIT) AS COMP_FLAG,\r\n\t CAST(enterprise_flag AS BIT) AS ENTERPRISE_FLAG,\r\n\t traffic_system_id AS TRAFFIC_SYSTEM_ID,\r\n\t lic_territory AS LIC_TERRITORY,\r\n\t tua_expiration_date AS TUA_EXPIRATION_DATE,\r\n\t notes AS NOTES,\r\n\t os_id AS OS_ID,\r\n\t os_location_id AS OS_LOCATION_ID,\r\n\t raw_addr_line1 AS SITE_RAW_ADDR_LINE1,\r\n\t raw_addr_line2 AS SITE_RAW_ADDR_LINE2,\r\n\t raw_city AS SITE_RAW_CITY,\r\n\t raw_state AS SITE_RAW_STATE,\r\n\t raw_state_code AS SITE_RAW_STATE_CODE,\r\n\t raw_postal_code AS SITE_RAW_POSTAL_CODE,\r\n\t raw_country AS SITE_RAW_COUNTRY,\r\n\t raw_country_code AS SITE_RAW_COUNTRY_CODE,\r\n\t raw_latitude AS SITE_RAW_LATITUDE,\r\n\t raw_longitude AS SITE_RAW_LONGITUDE,\r\n\t legal_entity_id AS F_LEGAL_ENTITY_ID,\r\n\t FP_SITE_ID,\r\n\t FS_SITE_ID ,   \r\n     CHANGE_TYPE  as CHANGE_TYPE ,\r\n\t  Salesmanager1,\r\n\t Salesmanager2,\r\n\t Salesmanager3,\r\n\t store_manager\r\nFROM Retail.v_hs_opc_tracking_incremental",
+						"sqlReaderQuery": "select HS_OPC_TRACKING_ID,B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,OPERATION_ID,\nltrim(PRIMARY_PROFIT_CENTER,'0') as PRIMARY_PROFIT_CENTER,\n--ltrim(PRIMARY_PROFIT_CENTER,'0') as PRIMARY_PROFIT_CENTER\nERP_DATABASE_NAME,ERP_SYSTEM_NAME,EFFECTIVE_START_DATE,EFFECTIVE_END_DATE,LEGACY_LOCATION_ID,SITE_NAME,COMP_FLAG,ENTERPRISE_FLAG,TRAFFIC_SYSTEM_ID,LIC_TERRITORY,TUA_EXPIRATION_DATE,NOTES,OS_ID,OS_LOCATION_ID,SITE_RAW_ADDR_LINE1,SITE_RAW_ADDR_LINE2,SITE_RAW_CITY,SITE_RAW_STATE,SITE_RAW_STATE_CODE,SITE_RAW_POSTAL_CODE,SITE_RAW_COUNTRY,SITE_RAW_COUNTRY_CODE,\nSITE_RAW_LATITUDE,SITE_RAW_LONGITUDE,F_LEGAL_ENTITY_ID,\n Salesmanager1 as Sales_Manager1,\n\t Salesmanager2 as Sales_Manager2,\n\t Salesmanager3 as Sales_Manager3,\n\t Store_manager,Status,\nFP_SITE_ID,FS_SITE_ID from (\nSELECT \n    cast(newid() as uniqueidentifier) HS_OPC_TRACKING_ID,\n    B_CLASSNAME,\n\tB_CREDATE,\n\tB_UPDDATE,\n\tB_CREATOR,\n\tB_PUBID,\n\tB_SOURCEID,\n\t operation_id AS OPERATION_ID,\n\t primary_profit_center AS PRIMARY_PROFIT_CENTER,\n\t erp_database_name AS ERP_DATABASE_NAME,\n\t erp_system_name AS ERP_SYSTEM_NAME,\n\t effective_start_date AS EFFECTIVE_START_DATE,\n\t effective_end_date AS EFFECTIVE_END_DATE,\n\t legacy_location_id AS LEGACY_LOCATION_ID,\n\t site_name AS SITE_NAME,\n\t CAST(comp_flag AS BIT) AS COMP_FLAG,\n\t CAST(enterprise_flag AS BIT) AS ENTERPRISE_FLAG,\n\t traffic_system_id AS TRAFFIC_SYSTEM_ID,\n\t lic_territory AS LIC_TERRITORY,\n\t tua_expiration_date AS TUA_EXPIRATION_DATE,\n\t notes AS NOTES,\n\t os_id AS OS_ID,\n\t os_location_id AS OS_LOCATION_ID,\n\t raw_addr_line1 AS SITE_RAW_ADDR_LINE1,\n\t raw_addr_line2 AS SITE_RAW_ADDR_LINE2,\n\t raw_city AS SITE_RAW_CITY,\n\t raw_state AS SITE_RAW_STATE,\n\t raw_state_code AS SITE_RAW_STATE_CODE,\n\t raw_postal_code AS SITE_RAW_POSTAL_CODE,\n\t raw_country AS SITE_RAW_COUNTRY,\n\t raw_country_code AS SITE_RAW_COUNTRY_CODE,\n\t raw_latitude AS SITE_RAW_LATITUDE,\n\t raw_longitude AS SITE_RAW_LONGITUDE,\n\t legal_entity_id AS F_LEGAL_ENTITY_ID,\n\t FP_SITE_ID,\n\t FS_SITE_ID ,\n\t Salesmanager1,\n\t Salesmanager2,\n\t Salesmanager3,\n\t Store_manager,\n\t status,\n     ROW_NUMBER() OVER (PARTITION BY B_SOURCEID ORDER BY effective_start_date DESC, effective_end_date asc) AS rn     \nFROM Retail.v_hs_opc_tracking_incremental)a\nwhere rn=1\nand upper(Status)='ACTIVE'",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -5041,18 +5041,6 @@
 							},
 							{
 								"source": {
-									"name": "CHANGE_TYPE",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "change_type",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
 									"name": "B_LoadID",
 									"type": "String"
 								},
@@ -5064,48 +5052,24 @@
 							},
 							{
 								"source": {
-									"name": "Salesmanager1",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "SalesManager1",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Salesmanager2",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "SalesManager2",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Salesmanager3",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "SalesManager3",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "store_manager",
+									"name": "Store_manager",
 									"type": "String",
 									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "Store_manager",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Status",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "status",
 									"type": "String",
 									"physicalType": "varchar"
 								}
