@@ -1,20 +1,12 @@
 {
-	"name": "Load_SiteMaster_Incremental__Storis_Integration",
+	"name": "Storis_Integration_WH",
 	"properties": {
-		"description": "Storis Integration",
 		"activities": [
 			{
-				"name": "IncrementalSAStoris_Intgeration",
+				"name": "IncrementalSAStoris_Intgeration_WH",
 				"description": "select all data from SA_Storis_Intgeration view",
 				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "SetNewLoadId",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -30,20 +22,27 @@
 							{
 								"name": "B_LoadId",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@pipeline().parameters.B_loadid",
 									"type": "Expression"
 								}
 							},
 							{
-								"name": "B_UPDDATE_C",
+								"name": "B_UPDDATE",
 								"value": {
 									"value": "@utcnow()",
+									"type": "Expression"
+								}
+							},
+							{
+								"name": "B_CREDATE",
+								"value": {
+									"value": "@utcNow()",
 									"type": "Expression"
 								}
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "Select \nB_sourceid\n,B_PUBID\n,'Site' as B_CLASSNAME\n,UnitNumber as Unit_Number\n,LocationName \n,StoreType as Type\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\nFROM RsmSiteSubscriber.site_source_Incremental",
+							"value": "Select \nB_Sourceid\n,B_PUBID\n,'Site' as B_CLASSNAME\n,StoreType as Type\n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n\nFROM RsmSiteSubscriber.site_source_WH_Incremental",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -86,9 +85,9 @@
 							},
 							{
 								"source": {
-									"name": "B_sourceid",
+									"name": "B_Sourceid",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "B_SOURCEID",
@@ -158,6 +157,28 @@
 							},
 							{
 								"source": {
+									"name": "B_CREDATE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
 									"name": "Type",
 									"type": "String",
 									"physicalType": "varchar"
@@ -170,14 +191,16 @@
 							},
 							{
 								"source": {
-									"name": "Unit_Number",
+									"name": "RETAIL_SYSTEM_NUMBER",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "UNIT_NUMBER",
-									"type": "String",
-									"physicalType": "nvarchar"
+									"name": "RETAIL_SYSTEM_NUMBER",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
 								}
 							}
 						],
@@ -196,124 +219,17 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Storis_Integration_Site",
+						"referenceName": "Storis_Integration_Site_WH",
 						"type": "DatasetReference"
 					}
 				]
-			},
-			{
-				"name": "GetNewLoadId",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "7.00:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-							"type": "Expression"
-						},
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "Semarchy_Repo",
-						"type": "DatasetReference"
-					},
-					"firstRowOnly": true
-				}
-			},
-			{
-				"name": "SetNewLoadId",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "GetNewLoadId",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "LoadID",
-					"value": {
-						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "SubmitLoad",
-				"type": "SqlServerStoredProcedure",
-				"dependsOn": [
-					{
-						"activity": "HsOpcTracker_storis_integration_His",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "7.00:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
-					"storedProcedureParameters": {
-						"P_INTEGRATION_JOB_NAME": {
-							"value": {
-								"value": "SiteDACLoad",
-								"type": "Expression"
-							},
-							"type": "String"
-						},
-						"P_LOAD_ID": {
-							"value": {
-								"value": "@variables('LoadID')",
-								"type": "Expression"
-							},
-							"type": "Decimal"
-						},
-						"P_USERNAME": {
-							"value": {
-								"value": "semadmin",
-								"type": "Expression"
-							},
-							"type": "String"
-						},
-						"return_value_argument": {
-							"value": null,
-							"type": "Decimal"
-						}
-					}
-				},
-				"linkedServiceName": {
-					"referenceName": "semarchy_repo",
-					"type": "LinkedServiceReference"
-				}
 			},
 			{
 				"name": "SPCallStoreDetailsErrorMsg_storisintegration",
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSAStoris_Intgeration",
+						"activity": "IncrementalSAStoris_Intgeration_WH",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -332,28 +248,28 @@
 					"storedProcedureParameters": {
 						"ErrorCode": {
 							"value": {
-								"value": "@{activity('IncrementalSAStoris_Intgeration').error.errorCode}",
+								"value": "@{activity('IncrementalSAStoris_Intgeration_WH').error.errorCode}",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"ErrorMsg": {
 							"value": {
-								"value": "@{activity('IncrementalSAStoris_Intgeration').error.message}\n",
+								"value": "@{activity('IncrementalSAStoris_Intgeration_WH').error.message}\n",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"ErrorStatusCode": {
 							"value": {
-								"value": "@activity('IncrementalSAStoris_Intgeration').StatusCode",
+								"value": "@activity('IncrementalSAStoris_Intgeration_WH').StatusCode",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"FailureType": {
 							"value": {
-								"value": "@{activity('IncrementalSAStoris_Intgeration').error.failureType}",
+								"value": "@{activity('IncrementalSAStoris_Intgeration_WH').error.failureType}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -381,7 +297,7 @@
 						},
 						"Sink_Type": {
 							"value": {
-								"value": "@{activity('IncrementalSAStoris_Intgeration').output.executionDetails[0].sink.type}",
+								"value": "@{activity('IncrementalSAStoris_Intgeration_WH').output.executionDetails[0].sink.type}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -395,7 +311,7 @@
 						},
 						"Source_Type": {
 							"value": {
-								"value": "@{activity('IncrementalSAStoris_Intgeration').output.executionDetails[0].source.type}",
+								"value": "@{activity('IncrementalSAStoris_Intgeration_WH').output.executionDetails[0].source.type}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -440,7 +356,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSAStoris_Intgeration",
+						"activity": "IncrementalSAStoris_Intgeration_WH",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -471,15 +387,15 @@
 							"type": "Expression"
 						},
 						"triggerTime": {
-							"value": "@activity('IncrementalSAStoris_Intgeration').output.executionDetails[0].start",
+							"value": "@activity('IncrementalSAStoris_Intgeration_WH').output.executionDetails[0].start",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@activity('IncrementalSAStoris_Intgeration').output.executionDetails[0].status",
+							"value": "@activity('IncrementalSAStoris_Intgeration_WH').output.executionDetails[0].status",
 							"type": "Expression"
 						},
 						"message": {
-							"value": "@replace(activity('IncrementalSAStoris_Intgeration').error.message,'\"','')",
+							"value": "@replace(activity('IncrementalSAStoris_Intgeration_WH').error.message,'\"','')",
 							"type": "Expression"
 						},
 						"executionEndTime": {
@@ -487,7 +403,7 @@
 							"type": "Expression"
 						},
 						"runDuration": {
-							"value": "@activity('IncrementalSAStoris_Intgeration').output.copyDuration",
+							"value": "@activity('IncrementalSAStoris_Intgeration_WH').output.copyDuration",
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
@@ -502,7 +418,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSAStoris_Intgeration",
+						"activity": "IncrementalSAStoris_Intgeration_WH",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -521,7 +437,7 @@
 					"storedProcedureParameters": {
 						"P_LOAD_ID": {
 							"value": {
-								"value": "@variables('LoadID')",
+								"value": "@pipeline().parameters.B_LoadID",
 								"type": "Expression"
 							},
 							"type": "Decimal"
@@ -541,12 +457,12 @@
 				}
 			},
 			{
-				"name": "Storis_Integration_His",
+				"name": "Storis_Integration_His_WH",
 				"description": "select all data from ZipAllocation_INC_V view",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSAStoris_Intgeration",
+						"activity": "IncrementalSAStoris_Intgeration_WH",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -567,13 +483,13 @@
 							{
 								"name": "B_LoadId",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@pipeline().parameters.B_loadid",
 									"type": "Expression"
 								}
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT \n B_sourceid\n,B_PUBID\n,UnitNumber\n,LocationName\n,StoreType\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.site_source_Incremental",
+							"value": "SELECT \n B_Sourceid\n,B_PUBID\n,StoreType \n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.site_source_WH_Incremental",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -585,7 +501,7 @@
 						"upsertSettings": {
 							"useTempDB": true,
 							"keys": [
-								"UnitNumber"
+								"B_Sourceid"
 							]
 						},
 						"sqlWriterUseTableLock": false,
@@ -598,12 +514,12 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "B_sourceid",
+									"name": "B_Sourceid",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
-									"name": "B_sourceid",
+									"name": "B_Sourceid",
 									"type": "String",
 									"physicalType": "varchar"
 								}
@@ -622,36 +538,24 @@
 							},
 							{
 								"source": {
-									"name": "UnitNumber",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "UnitNumber",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "LocationName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "LocationName",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
 									"name": "StoreType",
 									"type": "String",
 									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "StoreType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RETAIL_SYSTEM_NUMBER",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "RETAIL_SYSTEM_NUMBER",
 									"type": "String",
 									"physicalType": "varchar"
 								}
@@ -755,17 +659,17 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Semarchy_Staging_site_his_storis_Inte",
+						"referenceName": "Semarchy_Staging_sit_his_StorisIntegration_WH",
 						"type": "DatasetReference"
 					}
 				]
 			},
 			{
-				"name": "HsOpcTracker_storis_integration",
+				"name": "WH_LE_Tracker_storis_integration",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Storis_Integration_His",
+						"activity": "Storis_Integration_His_WH",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -786,7 +690,7 @@
 							{
 								"name": "B_LoadId",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@pipeline().parameters.B_loadid",
 									"type": "Expression"
 								}
 							},
@@ -796,10 +700,17 @@
 									"value": "@utcnow()",
 									"type": "Expression"
 								}
+							},
+							{
+								"name": "B_CREDATE",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,SITE_NAME\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,B_SourceID as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'HomeStoreOperationProfitCenterTracking' as B_CLASSNAME\nFROM RsmSiteSubscriber.Opc_Tracker_Incremental",
+							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Concat(StoreID,'-',upper('Warehouse')) as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'WarehouseLegalEntityTracking' as B_CLASSNAME\nFROM RsmSiteSubscriber.WH_LE_Tracker_Incremental",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -844,7 +755,7 @@
 								"source": {
 									"name": "B_SourceID",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "B_SOURCEID",
@@ -914,6 +825,17 @@
 							},
 							{
 								"source": {
+									"name": "B_CREDATE",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
 									"name": "B_UPDDATE",
 									"type": "String"
 								},
@@ -949,18 +871,6 @@
 							},
 							{
 								"source": {
-									"name": "SITE_NAME",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "SITE_NAME",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
 									"name": "SITE_RAW_ADDR_LINE1",
 									"type": "String",
 									"physicalType": "varchar"
@@ -1023,7 +933,7 @@
 								"source": {
 									"name": "FS_SITE_ID",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "FS_SITE_ID",
@@ -1047,7 +957,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "Retail_SiteMaster_SD_HS_OP_PC_Tracker_DAC",
+						"referenceName": "Retail_SiteMaster_StirisIntegration_LE_WH_Tracker",
 						"type": "DatasetReference"
 					}
 				]
@@ -1057,7 +967,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "HsOpcTracker_storis_integration",
+						"activity": "WH_LE_Tracker_storis_integration",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -1076,28 +986,28 @@
 					"storedProcedureParameters": {
 						"ErrorCode": {
 							"value": {
-								"value": "@{activity('HsOpcTracker_storis_integration').error.errorCode}",
+								"value": "@{activity('WH_LE_Tracker_storis_integration').error.errorCode}",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"ErrorMsg": {
 							"value": {
-								"value": "@{activity('HsOpcTracker_storis_integration').error.message}\n",
+								"value": "@{activity('WH_LE_Tracker_storis_integration').error.message}\n",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"ErrorStatusCode": {
 							"value": {
-								"value": "@activity('HsOpcTracker_storis_integration').StatusCode",
+								"value": "@activity('WH_LE_Tracker_storis_integration').StatusCode",
 								"type": "Expression"
 							},
 							"type": "String"
 						},
 						"FailureType": {
 							"value": {
-								"value": "@{activity('HsOpcTracker_storis_integration').error.failureType}",
+								"value": "@{activity('WH_LE_Tracker_storis_integration').error.failureType}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -1125,7 +1035,7 @@
 						},
 						"Sink_Type": {
 							"value": {
-								"value": "@{activity('HsOpcTracker_storis_integration').output.executionDetails[0].sink.type}",
+								"value": "@{activity('WH_LE_Tracker_storis_integration').output.executionDetails[0].sink.type}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -1139,7 +1049,7 @@
 						},
 						"Source_Type": {
 							"value": {
-								"value": "@{activity('HsOpcTracker_storis_integration').output.executionDetails[0].source.type}",
+								"value": "@{activity('WH_LE_Tracker_storis_integration').output.executionDetails[0].source.type}",
 								"type": "Expression"
 							},
 							"type": "String"
@@ -1184,7 +1094,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "HsOpcTracker_storis_integration",
+						"activity": "WH_LE_Tracker_storis_integration",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -1215,15 +1125,15 @@
 							"type": "Expression"
 						},
 						"triggerTime": {
-							"value": "@activity('HsOpcTracker_storis_integration').output.executionDetails[0].start",
+							"value": "@activity('WH_LE_Tracker_storis_integration').output.executionDetails[0].start",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@activity('HsOpcTracker_storis_integration').output.executionDetails[0].status",
+							"value": "@activity('WH_LE_Tracker_storis_integration').output.executionDetails[0].status",
 							"type": "Expression"
 						},
 						"message": {
-							"value": "@replace(activity('HsOpcTracker_storis_integration').error.message,'\"','')",
+							"value": "@replace(activity('WH_LE_Tracker_storis_integration').error.message,'\"','')",
 							"type": "Expression"
 						},
 						"executionEndTime": {
@@ -1231,7 +1141,7 @@
 							"type": "Expression"
 						},
 						"runDuration": {
-							"value": "@activity('HsOpcTracker_storis_integration').output.copyDuration",
+							"value": "@activity('WH_LE_Tracker_storis_integration').output.copyDuration",
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
@@ -1246,7 +1156,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "HsOpcTracker_storis_integration",
+						"activity": "WH_LE_Tracker_storis_integration",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -1265,7 +1175,7 @@
 					"storedProcedureParameters": {
 						"P_LOAD_ID": {
 							"value": {
-								"value": "@variables('LoadID')",
+								"value": "@pipeline().parameters.B_LoadID",
 								"type": "Expression"
 							},
 							"type": "Decimal"
@@ -1285,11 +1195,11 @@
 				}
 			},
 			{
-				"name": "HsOpcTracker_storis_integration_His",
+				"name": "LE_WH_Tracker_Storis_Integration",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "HsOpcTracker_storis_integration",
+						"activity": "WH_LE_Tracker_storis_integration",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1310,13 +1220,13 @@
 							{
 								"name": "B_LoadID",
 								"value": {
-									"value": "@variables('LoadID')",
+									"value": "@pipeline().parameters.B_loadid",
 									"type": "Expression"
 								}
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT\n Address1\n,State\n,City\n,PostalCodeID\n,StoreID\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,SITE_NAME\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.Opc_Tracker_Incremental\n",
+							"value": "SELECT\n Address1\n,State\n,City\n,PostalCodeID\n,StoreID\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.WH_LE_Tracker_Incremental",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -1426,22 +1336,10 @@
 								"source": {
 									"name": "B_SourceID",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "B_Sourceid",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "SITE_NAME",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "SITE_NAME",
 									"type": "String",
 									"physicalType": "varchar"
 								}
@@ -1545,26 +1443,74 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "DS_Semarchy_staging",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "RsmSiteSubscriber",
-							"TableName": "Opc_Tracker_Incremental_His"
-						}
+						"referenceName": "Semarchy_Staging_LE_WH_tracker_storiesIntegration",
+						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "SubmitLoad",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "LE_WH_Tracker_Storis_Integration",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "SiteDACLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@pipeline().parameters.b_loadId",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
-		"variables": {
-			"LoadID": {
-				"type": "String"
+		"parameters": {
+			"B_LoadID": {
+				"type": "string"
 			}
 		},
 		"folder": {
 			"name": "SiteMaster"
 		},
-		"annotations": [],
-		"lastPublishTime": "2025-03-19T14:56:56Z"
-	},
-	"type": "Microsoft.DataFactory/factories/pipelines"
+		"annotations": []
+	}
 }
