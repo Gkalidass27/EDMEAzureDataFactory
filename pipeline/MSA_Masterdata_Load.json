@@ -28,8 +28,8 @@
 				}
 			},
 			{
-				"name": "MSA_GD_DataLoad",
-				"type": "Copy",
+				"name": "Servers_Iteration",
+				"type": "ForEach",
 				"dependsOn": [
 					{
 						"activity": "Server_lookup",
@@ -38,29 +38,72 @@
 						]
 					}
 				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
 				"userProperties": [],
 				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select MSA_MASTER_ID,MSA_DESCRIPTION from dbo.GD_MSA_MASTER",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
+					"items": {
+						"value": "@activity('Server_lookup').output.item",
+						"type": "Expression"
 					},
-					"enableStaging": false
-				},
-				"inputs": [
-					{
-						"referenceName": "GD_MAS_Master_Dataset",
-						"type": "DatasetReference"
-					}
-				]
+					"activities": [
+						{
+							"name": "MSA_GD_DataLoad",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": "select MSA_MASTER_ID,MSA_DESCRIPTION from dbo.GD_MSA_MASTER",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "GD_MAS_Master_Dataset",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Msa_select_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"Schema_Name": {
+											"value": "@item().ser_schema_name",
+											"type": "Expression"
+										},
+										"Table_Name": {
+											"value": "@item().tab_name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
 			}
 		],
 		"folder": {
