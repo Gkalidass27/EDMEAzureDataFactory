@@ -98,7 +98,7 @@
 							},
 							{
 								"source": {
-									"name": "AccountNumber",
+									"name": "Account",
 									"type": "String",
 									"physicalType": "String"
 								},
@@ -192,7 +192,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select legal_entity_id,Name,LIC_contact,company_code,\r\ngetdate() as created_date from  dbo.gd_legal_entity\r\n",
+						"sqlReaderQuery": "select SEQUENCE_ID as legal_entity_id,Name,LIC_contact,company_code,\r\ngetdate() as created_date from  dbo.gd_legal_entity\r\n",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -219,7 +219,7 @@
 									"type": "Decimal",
 									"physicalType": "decimal",
 									"scale": 0,
-									"precision": 38
+									"precision": 10
 								},
 								"sink": {
 									"name": "LegalEntityID",
@@ -319,20 +319,14 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select legal_entity_id as LegalEntityID,Name as Entityname,\nCONVERT(VARCHAR(30), b_credate, 126) as createddate from  dbo.gd_legal_entity",
+						"sqlReaderQuery": "select \nB_PUBID,\nB_SOURCEID,\nName as Entityname,\nSEQUENCE_ID as LegalEntityID,\nLIC_CONTACT as LICCONTACT,\nCOMPANY_CODE as CompanyCode,\nCONVERT(VARCHAR(30), b_credate, 126) as createddate \nfrom  dbo.gd_legal_entity",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"writeBehavior": "upsert",
-						"upsertSettings": {
-							"useTempDB": false,
-							"keys": [
-								"LegalEntityID",
-								"EntityName"
-							]
-						},
+						"preCopyScript": "Delete from Retail.StoreMasterCustom_LegalEntities_Mapping",
+						"writeBehavior": "insert",
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -349,7 +343,7 @@
 								"sink": {
 									"name": "EntityName",
 									"type": "String",
-									"physicalType": "varchar"
+									"physicalType": "nvarchar"
 								}
 							},
 							{
@@ -358,12 +352,36 @@
 									"type": "Decimal",
 									"physicalType": "decimal",
 									"scale": 0,
-									"precision": 38
+									"precision": 10
 								},
 								"sink": {
 									"name": "LegalEntityID",
 									"type": "Int32",
 									"physicalType": "int"
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							},
 							{
