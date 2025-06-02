@@ -43,7 +43,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT  B_PUBID\n      ,B_SOURCEID\n      ,DAC_ACCOUNT_ID\n      ,DAC_LOCATION_ID\n      ,SITE_NAME\n      ,RAW_PHONE\n      ,RAW_FAX\n      ,LAND_LINE\n      ,OPERATIONAL_STATUS\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n      ,STORE_LOCATOR_DISABLED\n      ,Location_Number\n      ,B_ClassName\n      ,B_DELETETYPE\n      ,B_DELETEDATE\n      ,B_DELETEAUTHOR\n      ,B_DELETEOPERATION\n  FROM [Retail].[DACIncrementalSite_INC]\n",
+							"value": "SELECT  B_PUBID\n      ,B_SOURCEID\n      ,DAC_ACCOUNT_ID\n      ,DAC_LOCATION_ID\n      ,SITE_NAME\n      ,SITE_TYPE as Type\n      ,RAW_PHONE\n      ,RAW_FAX\n      ,LAND_LINE\n      ,OPERATIONAL_STATUS\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n      ,STORE_LOCATOR_DISABLED\n      ,Location_Number\n      ,B_ClassName\n      ,B_DELETETYPE\n      ,B_DELETEDATE\n      ,B_DELETEAUTHOR\n      ,B_DELETEOPERATION\n  FROM [Retail].[DACIncrementalSite_INC]\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -218,6 +218,18 @@
 							},
 							{
 								"source": {
+									"name": "Type",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
 									"name": "RAW_PHONE",
 									"type": "String",
 									"physicalType": "nvarchar"
@@ -286,6 +298,18 @@
 									"name": "STORE_LOCATOR_DISABLED",
 									"type": "Boolean",
 									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "Location_Number",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LOCATION_NUMBER",
+									"type": "String",
+									"physicalType": "nvarchar"
 								}
 							}
 						],
@@ -405,7 +429,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "select \n[LocationNumber] AS SITE_CONTENT_ID\n,'SiteContent' AS B_CLASSNAME\n,[LocationNumber]\n,[ExteriorPhoto]\n,[FlyerLink]\n,[Promotion1Image]  \n      ,[Promotion1URL]\n      ,[Promotion2URL]\n      ,[Promotion2Image]\n      ,[ScheduleApptURL]\n      ,[AlternateWebsiteURL]\n      ,convert(nvarchar(128),WebsiteURL) as WebsiteURL\n\t  ,convert(nvarchar(128),[BusinessDescription]) as BusinessDescription\n      ,[BusinessLongDescription]\n      ,convert(nvarchar(128),BusinessShortDescription) as BusinessShortDescription\n\t  ,convert(nvarchar(128),[BusinessName]) as BusinessName\n      ,[ContentLanguage]\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n      ,FS_SITE_ID\n      ,B_DELETETYPE\n      ,B_DELETEDATE\n      ,B_DELETEAUTHOR\n      ,B_DELETEOPERATION\nFROM [Retail].[DACIncrementalSiteContent_INC]",
+							"value": "select \nLocationNumber AS SITE_CONTENT_ID\n,'SiteContent' AS B_CLASSNAME\n,[LocationNumber]\n,[ExteriorPhoto]\n,[FlyerLink]\n,[Promotion1Image]  \n      ,[Promotion1URL]\n      ,[Promotion2URL]\n      ,[Promotion2Image]\n      ,[ScheduleApptURL]\n      ,[AlternateWebsiteURL]\n      ,convert(nvarchar(128),WebsiteURL) as WebsiteURL\n\t  ,convert(nvarchar(128),[BusinessDescription]) as BusinessDescription\n      ,[BusinessLongDescription]\n      ,convert(nvarchar(128),BusinessShortDescription) as BusinessShortDescription\n\t  ,convert(nvarchar(128),[BusinessName]) as BusinessName\n      ,[ContentLanguage]\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n      ,FP_SITE_ID\n      ,FS_SITE_ID\n      ,B_DELETETYPE\n      ,B_DELETEDATE\n      ,B_DELETEAUTHOR\n      ,B_DELETEOPERATION\nFROM [Retail].[DACIncrementalSiteContent_INC]",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -711,7 +735,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT \n      B_CLASSNAME\n      ,SITE_HOURS_TYPE\n      ,DAY_OF_WEEK\n      \n\t  ,CASE\n    WHEN Cast (START_TIME as nvarchar(10)) = 'Closed' Then ''\n\tElse Cast (START_TIME as nvarchar(10)) end as Starttm\n\t,CASE\n    WHEN Cast (END_TIME as nvarchar(10))='' Then ''\n\tElse Cast (END_TIME as nvarchar(10)) end as endtm\n\n      ,FP_SITE\n      ,FS_SITE\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n\t,Concat(FS_SITE,'_',DAY_OF_WEEK) as Key1\n      ,BUSINESS_STATE\n  FROM [Retail].[DACIncrementalSiteDefaultHours_INC]",
+							"value": "SELECT \n      B_CLASSNAME\n      ,SITE_HOURS_TYPE\n      ,DAY_OF_WEEK\n      \n\t  ,CASE\n    WHEN Cast (START_TIME as nvarchar(10)) = 'Closed' Then ''\n\tElse Cast (START_TIME as nvarchar(10)) end as Starttm\n\t,CASE\n    WHEN Cast (END_TIME as nvarchar(10))='' Then ''\n\tElse Cast (END_TIME as nvarchar(10)) end as endtm\n\n      ,FP_SITE\n      ,FS_SITE\n      ,B_CREDATE\n      ,B_CREATOR\n      ,B_UPDATOR\n\t,Concat(DAY_OF_WEEK,'_',FS_SITE) as Key1\n      ,BUSINESS_STATE\n  FROM [Retail].[DACIncrementalSiteDefaultHours_INC]",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -1905,20 +1929,6 @@
 							},
 							{
 								"source": {
-									"name": "F_LEGAL_ENTITY_ID",
-									"type": "Int32",
-									"physicalType": "int"
-								},
-								"sink": {
-									"name": "F_LEGAL_ENTITY_ID",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 0,
-									"precision": 38
-								}
-							},
-							{
-								"source": {
 									"name": "FP_SITE_ID",
 									"type": "String",
 									"physicalType": "varchar"
@@ -2233,7 +2243,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT \n    'SiteSpecialHour' AS B_CLASSNAME,\n    SPH_Date,\n    SPH_StartTime,\n    SPH_Endtime,\n    SPH_State,\n    FP_SITE,\n    FS_SITE,\n    B_CREDATE,\n    B_CREATOR,\n    B_UPDATOR,\n    CASE \n        WHEN SPH_Date IS NULL THEN NULL\n        ELSE CONCAT(FS_SITE, '_', SPH_Date)\n    END AS key1\nFROM Retail.DACIncrementalSiteSpecialHours_INC\n",
+							"value": "SELECT \n    'SiteSpecialHour' AS B_CLASSNAME,\n    SPH_Date,\n    SPH_StartTime,\n    SPH_Endtime,\n    SPH_State,\n    FP_SITE,\n    FS_SITE,\n    B_CREDATE,\n    B_CREATOR,\n    B_UPDATOR,\n    CASE \n        WHEN SPH_Date IS NULL THEN NULL\n        ELSE CONCAT(SPH_Date,'_',FS_SITE)\n    END AS key1\nFROM Retail.DACIncrementalSiteSpecialHours_INC\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -2701,7 +2711,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT [B_PUBID]\n      ,[B_SOURCEID]\n      ,[DAC_ACCOUNT_ID]\n      ,[DAC_LOCATION_ID]\n      ,[Location_Number]\n      ,[STORE_LOCATOR_DISABLED]\n      ,[RAW_PHONE]\n      ,[RAW_FAX]\n      ,[LAND_LINE]\n      ,[OPERATIONAL_STATUS]\n      ,[SITE_NAME]\n      ,[B_CREDATE]\n      ,[B_CREATOR]\n      ,[B_UPDATOR]\n      ,[FP_SITE_ID]\n      ,[B_ClassName]\n      ,[IsActiveType]  \n      ,B_DELETETYPE\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n  FROM [Retail].[DACIncrementalSite_INC]",
+							"value": "SELECT [B_PUBID]\n      ,[B_SOURCEID]\n      ,[DAC_ACCOUNT_ID]\n      ,[DAC_LOCATION_ID]\n      ,[Location_Number]\n      ,[STORE_LOCATOR_DISABLED]\n      ,[RAW_PHONE]\n      ,[RAW_FAX]\n      ,[LAND_LINE]\n      ,[OPERATIONAL_STATUS]\n      ,[SITE_NAME]\n      ,SITE_TYPE\n      ,[B_CREDATE]\n      ,[B_CREATOR]\n      ,[B_UPDATOR]\n      ,[FP_SITE_ID]\n      ,[B_ClassName]\n      ,[IsActiveType]  \n      ,B_DELETETYPE\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n  FROM [Retail].[DACIncrementalSite_INC]",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -2713,7 +2723,7 @@
 						"upsertSettings": {
 							"useTempDB": true,
 							"keys": [
-								"Location_Number"
+								"B_SOURCEID"
 							]
 						},
 						"sqlWriterUseTableLock": false,
