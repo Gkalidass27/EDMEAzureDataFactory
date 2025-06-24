@@ -16,25 +16,62 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select g.* from [Ref_PostalCode].[GeocoderCA_PCensusNWE] g with (Nolock)\ninner join Ref_PostalCode.MelissaCA_PCensusNWE m with (Nolock) \non CHECKSUM( g.postcode,g.PROVINCE,g.CITY)!=CHECKSUM( m.PostalCode,m.PROVINCE,m.CITY)",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"sink": {
-						"type": "DelimitedTextSink",
+						"type": "DelimitedTextSource",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
-							"type": "DelimitedTextWriteSettings",
-							"quoteAllText": true,
-							"fileExtension": ".txt"
+							"type": "DelimitedTextReadSettings"
 						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
 					},
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "PostalCode",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Postalcode",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "City",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "City",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Province",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Province",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
@@ -44,13 +81,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Semarchy_Staging_copy1",
+						"referenceName": "Canada_Postal_Code_File_copy1",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "Canada_Postal_Code_File_copy1",
+						"referenceName": "Semarchy_Staging_copy1",
 						"type": "DatasetReference"
 					}
 				]
