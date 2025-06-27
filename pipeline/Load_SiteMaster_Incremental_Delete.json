@@ -56,7 +56,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "HSOPCTracking",
+						"activity": "WHLETracking",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -3880,6 +3880,397 @@
 				"outputs": [
 					{
 						"referenceName": "Retail_SiteMaster_SD_HS_OP_PC_Tracker",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "WHLETracking",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "HSOPCTracking",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LoadID",
+								"value": {
+									"value": "@variables('LoadID0')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "WITH RankedRecords AS (\r\n    SELECT \r\n        cast(newid() as uniqueidentifier) AS WH_LE_TRACKING_ID,\r\n        site_id as B_sourceid,\r\n        'WarehouseLegalEntityTracking' as B_CLASSNAME,\r\n        GETDATE() AS B_CREDATE,\r\n        GETDATE() AS B_UPDDATE,\r\n        'semadmin' AS B_CREATOR,\r\n        CAST(effective_start_date AS DATE) AS EFFECTIVE_START_DATE,\r\n        site_name AS SITE_NAME,\r\n        notes AS NOTES,\r\n        legacy_location_id AS LEGACY_LOCATION_ID,\r\n        os_id AS OS_ID,\r\n        os_location_id AS OS_LOCATION_ID,\r\n        raw_addr_line1 AS SITE_RAW_ADDR_LINE1,\r\n        raw_addr_line2 AS SITE_RAW_ADDR_LINE2,\r\n        raw_city AS SITE_RAW_CITY,\r\n        raw_state AS SITE_RAW_STATE,\r\n        raw_state_code AS SITE_RAW_STATE_CODE,\r\n        raw_postal_code AS SITE_RAW_POSTAL_CODE,\r\n        raw_country AS SITE_RAW_COUNTRY,\r\n        raw_country_code AS SITE_RAW_COUNTRY_CODE,\r\n        raw_latitude AS SITE_RAW_LATITUDE,\r\n        raw_longitude AS SITE_RAW_LONGITUDE,\r\n        --legal_entity_id AS F_LEGAL_ENTITY_ID,\r\n        'SSMASTER_RDC' AS B_PUBID,\r\n        'SSMASTER_RDC' AS FP_SITE_ID,\r\n        site_id AS FS_SITE_ID,\r\n        'SSMASTER_RDC' AS FP_LEGAL_ENTITY,\r\n        site_id AS FS_LEGAL_ENTITY,\r\n        status,\r\n        ROW_NUMBER() OVER (\r\n            PARTITION BY site_id \r\n            ORDER BY \r\n                CASE \r\n                    WHEN status = 'Active' THEN 1 \r\n                    WHEN status = 'Inactive' THEN 2 \r\n                    ELSE 3 \r\n                END,\r\n                effective_start_date DESC\r\n        ) as rn\r\n    FROM Retail.v_wh_le_tracking_inc\r\n)\r\nSELECT \r\n    WH_LE_TRACKING_ID,\r\n    B_sourceid,\r\n    B_CLASSNAME,\r\n    B_CREDATE,\r\n    B_UPDDATE,\r\n    B_CREATOR,\r\n    EFFECTIVE_START_DATE,\r\n    SITE_NAME,\r\n    NOTES,\r\n    LEGACY_LOCATION_ID,\r\n    OS_ID,\r\n    OS_LOCATION_ID,\r\n    SITE_RAW_ADDR_LINE1,\r\n    SITE_RAW_ADDR_LINE2,\r\n    SITE_RAW_CITY,\r\n    SITE_RAW_STATE,\r\n    SITE_RAW_STATE_CODE,\r\n    SITE_RAW_POSTAL_CODE,\r\n    SITE_RAW_COUNTRY,\r\n    SITE_RAW_COUNTRY_CODE,\r\n    SITE_RAW_LATITUDE,\r\n    SITE_RAW_LONGITUDE,\r\n    --F_LEGAL_ENTITY_ID,\r\n    B_PUBID,\r\n    FP_SITE_ID,\r\n    FS_SITE_ID,\r\n    FP_LEGAL_ENTITY,\r\n    FS_LEGAL_ENTITY,\r\n    status,\r\n    'SOFT_DELETE' as B_DELETETYPE,\r\ngetdate() as B_DELETEDATE,\r\n'Semadmin' as B_DELETEAUTHOR,\r\ncast(newid() as uniqueidentifier) as B_DELETEOPERATION\r\nFROM RankedRecords\r\nWHERE rn = 1\r\nand upper(status)='INACTIVE'\r\n;",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LoadID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_sourceid",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "NOTES",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "NOTES",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_ADDR_LINE1",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_ADDR_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_ADDR_LINE2",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_ADDR_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_CITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_STATE",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "SITE_RAW_STATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_STATE_CODE",
+									"type": "String",
+									"physicalType": "char"
+								},
+								"sink": {
+									"name": "SITE_RAW_STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_COUNTRY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_COUNTRY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_POSTAL_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_LONGITUDE",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "SITE_RAW_LONGITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_LATITUDE",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "SITE_RAW_LATITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LEGACY_LOCATION_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "LEGACY_LOCATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OS_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "OS_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OS_LOCATION_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "OS_LOCATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FS_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FS_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SD_WH_LE_Tracking",
 						"type": "DatasetReference"
 					}
 				]
