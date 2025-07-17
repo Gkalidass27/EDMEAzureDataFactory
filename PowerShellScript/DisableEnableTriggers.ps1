@@ -73,12 +73,12 @@ if ($predeployment -eq $true) {
         Stop-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
     }
 }
-# else {
-#     #Start active triggers - after cleanup efforts
-# 	Write-Host "Starting triggers`n"
-# 	$triggersList | ForEach-Object {
-# 		Write-Host "Starting trigger" $_.Name
-# 		Start-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
-#	}
+else {
+    #Start active triggers - after cleanup efforts
+	Write-Host "Starting triggers`n"
+	$triggersList | ForEach-Object {
+		Write-Host "Starting trigger" $_.Name
+		Start-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
+	}
     
-#}
+}
