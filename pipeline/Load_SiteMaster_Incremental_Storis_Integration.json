@@ -766,7 +766,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Storis_Integration_His",
+						"activity": "HsOpcTracker_SI_ST_INC",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -807,7 +807,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,SITE_NAME\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,B_SourceID as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'HomeStoreOperationProfitCenterTracking' as B_CLASSNAME\nFROM RsmSiteSubscriber.Opc_Tracker_Incremental",
+							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,SITE_NAME\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,B_SourceID as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'HomeStoreOperationProfitCenterTracking' as B_CLASSNAME\nFROM RsmSiteSubscriber.Opc_Tracker_Incremental_activity_V\nWhere Activity_Type in('Insert'.'Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -1801,6 +1801,63 @@
 				"outputs": [
 					{
 						"referenceName": "Semarchy_Staging_ST_SI_SITE_INC_SINK",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "HsOpcTracker_SI_ST_INC",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Storis_Integration_His",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [Address1]\n      ,[State]\n      ,[City]\n      ,[PostalCodeID]\n      ,[StoreID]\n      ,[Operation_ID]\n      ,[B_PUBID]\n      ,[B_Sourceid]\n      ,[SITE_NAME]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n      ,[IsActiveType]\n  FROM [RsmSiteSubscriber].[Opc_Tracker_Incremental]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging_ST_SI_HSOPC_INC",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Semarchy_Staging_ST_SI_HSOPC_INC_SINC",
 						"type": "DatasetReference"
 					}
 				]
