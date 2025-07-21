@@ -5,7 +5,14 @@
 			{
 				"name": "EDW_Storis_Integration",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "EDW_Location_Number",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -1665,6 +1672,61 @@
 					},
 					"waitOnCompletion": true
 				}
+			},
+			{
+				"name": "EDW_Location_Number",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [Operation]\n      ,[DateChanged]\n      ,[DateCreated]\n      ,[LastBatchID]\n      ,[RecStatus]\n      ,[SourceID]\n      ,[UserSettingID]\n      ,[UserSettingSourceID]\n      ,[UserSettingValueID]\n      ,[Value]\n      ,[ValueSourceID]\n  FROM [EDME_DataFactory].[UserSettingValue]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": {
+							"value": "Truncate table  edw.UserSettingValue",
+							"type": "Expression"
+						},
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "EDW_Storis_Integration_LocationNumber",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Semarchy_Staging_SI_Location_Number",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
