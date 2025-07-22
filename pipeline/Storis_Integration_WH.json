@@ -6,7 +6,14 @@
 				"name": "IncrementalSAStoris_Intgeration_WH",
 				"description": "select all data from SA_Storis_Intgeration view",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "SI_WH_SITE_INC",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -42,7 +49,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "Select \nB_Sourceid\n,B_PUBID\n,'Site' as B_CLASSNAME\n,StoreType as Type\n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n\nFROM RsmSiteSubscriber.site_source_WH_Incremental",
+							"value": "Select \nB_Sourceid\n,B_PUBID\n,'Site' as B_CLASSNAME\n,StoreType as Type\n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\nFROM [RsmSiteSubscriber].[site_source_WH_Incremental_activity_V]\nwhere Activity_Type in('Insert','Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -489,7 +496,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT \n B_Sourceid\n,B_PUBID\n,StoreType \n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.site_source_WH_Incremental",
+							"value": "SELECT \n B_Sourceid\n,B_PUBID\n,StoreType \n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM [RsmSiteSubscriber].[site_source_WH_Incremental_activity_V]\nwhere Activity_Type in('Insert','Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -669,7 +676,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Storis_Integration_His_WH",
+						"activity": "WH_LE_Tracker_SI_INC",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1501,6 +1508,113 @@
 					"referenceName": "semarchy_repo",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "SI_WH_SITE_INC",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [B_Sourceid]\n      ,[B_PUBID]\n      ,[StoreType]\n      ,[RETAIL_SYSTEM_NUMBER]\n      ,[UnitNumber]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n      ,[IsActiveType]\n  FROM [RsmSiteSubscriber].[site_source_WH_Incremental]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging_ST_WH_SITE_INC",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Semarchy_Staging_ST_WH_SITE_INC_SINK",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "WH_LE_Tracker_SI_INC",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Storis_Integration_His_WH",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [Address1]\n      ,[State]\n      ,[City]\n      ,[PostalCodeID]\n      ,[StoreID]\n      ,[Operation_ID]\n      ,[B_PUBID]\n      ,[B_Sourceid]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n      ,[IsActiveType]\n  FROM [RsmSiteSubscriber].[WH_LE_Tracker_Incremental]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging_WH_SI_LE_INC",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Semarchy_Staging_WH_SI_LE_INC_SINK",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"parameters": {
