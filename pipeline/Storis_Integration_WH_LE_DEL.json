@@ -48,7 +48,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Concat(StoreID,'-',upper('Warehouse')) as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'WarehouseLegalEntityTracking' as B_CLASSNAME\nFROM [RsmSiteSubscriber].[WH_LE_Tracker_Incremental_activity_V]\nWhere Activity_Type in('Insert','Update')",
+							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Concat(StoreID,'-',upper('Warehouse')) as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'WarehouseLegalEntityTracking' as B_CLASSNAME\nFROM [RsmSiteSubscriber].[WH_LE_Tracker_Incremental_activity_V]\nWhere Activity_Type in('Delete')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -289,7 +289,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Semarchy_Staging",
+						"referenceName": "Semarchy_Staging_WH_SI_LE_INC_DEL",
 						"type": "DatasetReference"
 					}
 				],
@@ -487,49 +487,6 @@
 							"type": "Expression"
 						}
 					}
-				}
-			},
-			{
-				"name": "Cancel_SD_HS_OPC_TRACKING_LoadId_Stored_Procedure_",
-				"type": "SqlServerStoredProcedure",
-				"dependsOn": [
-					{
-						"activity": "WH_LE_Tracker_storis_integration",
-						"dependencyConditions": [
-							"Failed"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"storedProcedureName": "[dbo].[CANCEL_LOAD]",
-					"storedProcedureParameters": {
-						"P_LOAD_ID": {
-							"value": {
-								"value": "@pipeline().parameters.B_LoadID",
-								"type": "Expression"
-							},
-							"type": "Decimal"
-						},
-						"P_USERNAME": {
-							"value": {
-								"value": "semadmin",
-								"type": "Expression"
-							},
-							"type": "String"
-						}
-					}
-				},
-				"linkedServiceName": {
-					"referenceName": "semarchy_repo",
-					"type": "LinkedServiceReference"
 				}
 			},
 			{
@@ -891,6 +848,49 @@
 						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
 						"type": "Expression"
 					}
+				}
+			},
+			{
+				"name": "Cancel_storis_Integration_LoadId_Stored_Procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "WH_LE_Tracker_storis_integration",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+					"storedProcedureParameters": {
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],
