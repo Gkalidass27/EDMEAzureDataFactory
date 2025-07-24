@@ -6,7 +6,14 @@
 				"name": "IncrementalSAStoris_Intgeration_WH",
 				"description": "select all data from SA_Storis_Intgeration view",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "SI_WH_SITE_INC",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -22,7 +29,7 @@
 							{
 								"name": "B_LoadId",
 								"value": {
-									"value": "@pipeline().parameters.B_LoadID",
+									"value": "@pipeline().parameters.B_loadid",
 									"type": "Expression"
 								}
 							},
@@ -42,7 +49,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "Select \nB_Sourceid\n,B_PUBID\n,'Site' as B_CLASSNAME\n,StoreType as Type\n,RETAIL_SYSTEM_NUMBER\n,UnitNumber\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n\nFROM RsmSiteSubscriber.site_source_WH_Incremental",
+							"value": "Select \nB_Sourceid\n,B_PUBID\n,'Site' as B_CLASSNAME\n,StoreType as Type\n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\nFROM [RsmSiteSubscriber].[site_source_WH_Incremental_activity_V]\nwhere Activity_Type in('Insert','Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -87,7 +94,7 @@
 								"source": {
 									"name": "B_Sourceid",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "B_SOURCEID",
@@ -193,7 +200,7 @@
 								"source": {
 									"name": "RETAIL_SYSTEM_NUMBER",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "RETAIL_SYSTEM_NUMBER",
@@ -201,18 +208,6 @@
 									"physicalType": "decimal",
 									"scale": 0,
 									"precision": 10
-								}
-							},
-							{
-								"source": {
-									"name": "UnitNumber",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "UNIT_NUMBER",
-									"type": "String",
-									"physicalType": "nvarchar"
 								}
 							}
 						],
@@ -419,7 +414,7 @@
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
-							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda/V28E5kP8YZAlzxR47diCA_z54ghZOHwx7-ds0EdE-hZG41",
 							"type": "Expression"
 						}
 					}
@@ -501,7 +496,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT \n B_Sourceid\n,B_PUBID\n,StoreType \n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.site_source_WH_Incremental",
+							"value": "SELECT \n B_Sourceid\n,B_PUBID\n,StoreType \n,RETAIL_SYSTEM_NUMBER\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM [RsmSiteSubscriber].[site_source_WH_Incremental_activity_V]\nwhere Activity_Type in('Insert','Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -681,7 +676,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Storis_Integration_His_WH",
+						"activity": "WH_LE_Tracker_SI_INC",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -722,7 +717,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Concat(StoreID,'-',upper('Warehouse')) as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'WarehouseLegalEntityTracking' as B_CLASSNAME\nFROM RsmSiteSubscriber.WH_LE_Tracker_Incremental",
+							"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Concat(StoreID,'-',upper('Warehouse')) as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'WarehouseLegalEntityTracking' as B_CLASSNAME\nFROM [RsmSiteSubscriber].[WH_LE_Tracker_Incremental_activity_V]\nWhere Activity_Type in('Insert','Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -1157,7 +1152,7 @@
 							"type": "Expression"
 						},
 						"teamWebhookUrl": {
-							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
 							"type": "Expression"
 						}
 					}
@@ -1238,7 +1233,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT\n Address1\n,State\n,City\n,PostalCodeID\n,StoreID\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.WH_LE_Tracker_Incremental",
+							"value": "SELECT\n Address1\n,State\n,City\n,PostalCodeID\n,StoreID\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM [RsmSiteSubscriber].[WH_LE_Tracker_Incremental_activity_V]\nWhere Activity_Type in('Insert','Update')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -1513,12 +1508,432 @@
 					"referenceName": "semarchy_repo",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "SI_WH_SITE_INC",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [B_Sourceid]\n      ,[B_PUBID]\n      ,[StoreType]\n      ,[RETAIL_SYSTEM_NUMBER]\n      ,[UnitNumber]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n      ,[IsActiveType]\n  FROM [RsmSiteSubscriber].[site_source_WH_Incremental]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": {
+							"value": "Truncate Table RsmSiteSubscriber.site_source_WH_Incremental_activity",
+							"type": "Expression"
+						},
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_Sourceid",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_Sourceid",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "StoreType",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "StoreType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RETAIL_SYSTEM_NUMBER",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "RETAIL_SYSTEM_NUMBER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "UnitNumber",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "UnitNumber",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEOPERATION",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Activity_Type",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "Activity_Type",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "IsActiveType",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "IsActiveType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging_ST_WH_SITE_INC",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Semarchy_Staging_ST_WH_SITE_INC_SINK",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "WH_LE_Tracker_SI_INC",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Storis_Integration_His_WH",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT [Address1]\n      ,[State]\n      ,[City]\n      ,[PostalCodeID]\n      ,[StoreID]\n      ,[Operation_ID]\n      ,[B_PUBID]\n      ,[B_Sourceid]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n      ,[IsActiveType]\n  FROM [RsmSiteSubscriber].[WH_LE_Tracker_Incremental]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": {
+							"value": "Truncate Table RsmSiteSubscriber.WH_LE_Tracker_Incremental_activity",
+							"type": "Expression"
+						},
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Address1",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "Address1",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "State",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "State",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "City",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "City",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PostalCodeID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "PostalCodeID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "StoreID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "StoreID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Operation_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "Operation_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_Sourceid",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_Sourceid",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEOPERATION",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Activity_Type",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "Activity_Type",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "IsActiveType",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "IsActiveType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging_WH_SI_LE_INC",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Semarchy_Staging_WH_SI_LE_INC_SINK",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"parameters": {
 			"B_LoadID": {
-				"type": "string",
-				"defaultValue": "14501"
+				"type": "string"
 			}
 		},
 		"folder": {
