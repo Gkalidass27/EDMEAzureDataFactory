@@ -5070,6 +5070,513 @@
 					"referenceName": "semarchy_staging",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "UNITS_IFM_SuccessLogging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CP_IFM_UNITS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+					"storedProcedureParameters": {
+						"CopyActivity_End_Time": {
+							"value": {
+								"value": "@{utcnow()}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_Start_Time": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.executionDetails[0].start}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_transferDuration_in_secs": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.executionDetails[0]. detailedDurations.transferDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"CopyDuration_in_secs": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.copyDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Execution_Status": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.executionDetails[0].status}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_Name": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.rowsCopied}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.rowsRead}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RunId": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "Retail.Location_Code",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "EDW.Units",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_Locationcode_copy1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "CP_IFM_UNITS",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('CP_IFM_UNITS').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('CP_IFM_UNITS').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('CP_IFM_UNITS').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('CP_IFM_UNITS').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "IFM_UNITS_Copy",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CP_IFM_UNITS",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').error.errorCode}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').error.message}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('CP_IFM_UNITS').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "EDW.Units",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('CP_IFM_UNITS').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "EDME_DataFactory.IFM_Units",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('CP_LocationCode').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "CP_IFM_UNITS",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "RSALocations_SuccessLogging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "Select trim(untUnit) as untUnit ,trim(untUnitDesc) as untUnitDesc,trim(untUnitCategory) as untUnitCategory,\r\ntrim(untUnitGroup) as untUnitGroup,trim(untUnitGroupDesc) as untUnitGroupDesc,trim(untDivision) as untDivision,\r\ntrim(untLocation) as untLocation,trim(untUnitType) as untUnitType,trim(untarea) as untarea\r\nfrom [EDME_DataFactory].[IFM_Units] ",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "--Truncate table EDW.IFM_units",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "untUnit",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untUnit",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untUnitDesc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untUnitDesc",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untUnitCategory",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untUnitCategory",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untUnitGroup",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untUnitGroup",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untUnitGroupDesc",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untUnitGroupDesc",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untDivision",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untDivision",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untLocation",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untLocation",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untUnitType",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untUnitType",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "untarea",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "untarea",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "IFM_UNITS_EDW",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "EDW",
+							"TableName": "IFM_UNITS"
+						}
+					}
+				]
 			}
 		],
 		"folder": {
