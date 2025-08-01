@@ -393,14 +393,7 @@
 			{
 				"name": "IncrementalSiteContentView",
 				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "IncrementalSite_His",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -5267,6 +5260,90 @@
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "LkP_ReturnValue",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSite_His",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\n    COALESCE(Count(Location_Number),1,0) as rtn_value\nFROM [Retail].[DACIncrementalSite] s\nJOIN smartsheet.storemastercustom sm ON s.Location_Number = sm.GoogleID\nWHERE sm.Status LIKE 'Active%'\n  AND sm.GoogleID IN (\n      SELECT Location_Number\n      FROM [Retail].[DACIncrementalSite_His]\n      WHERE B_DELETETYPE = 'SOFT_DELETE' and  ReActive_Flag='1'\n  )",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Staging_dac_rtn_value",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update_Softdel_Rec",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "LkP_ReturnValue",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('LkP_ReturnValue').output.firstRow.rtn_value, 'true')\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Update_softdel",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "UPDATE h\nSET  h.ReActive_Flag='0'\nFROM [Retail].[DACIncrementalSite_His] h\nJOIN [Retail].[DACIncrementalSite] s ON h.Location_Number = s.Location_Number\nJOIN smartsheet.storemastercustom sm ON s.Location_Number = sm.GoogleID\nWHERE h.B_DELETETYPE = 'SOFT_DELETE'\n  AND sm.Status LIKE 'Active%'\n\n select 1; \n",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Staging_dac_updatesoftdel",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
 				}
 			}
 		],
