@@ -2209,7 +2209,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "If Condition2",
+						"activity": "Cond_update",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -5556,6 +5556,26 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Lookup_site_content').output.firstRow.rtn_value, 'true')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "NoUpdates",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "noupdats",
+								"value": "0"
+							}
+						}
+					],
 					"ifTrueActivities": [
 						{
 							"name": "update_sitecontent",
@@ -5589,20 +5609,72 @@
 				}
 			},
 			{
-				"name": "If Condition2",
+				"name": "Cond_update",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Lookup2",
+						"activity": "Lookup_defaultHr",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					}
 				],
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Lookup_defaultHr').output.firstRow.rtn_value, 'true')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Noupdates",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Noupdate",
+								"value": "0"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Update_DefaultHr",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "UPDATE h\nSET  h.ReActive_Flag='0'\nFROM [Retail].[DACIncrementalSiteDefaultHours_His] h\nJOIN [Retail].[DACIncrementalSiteDefaultHours] s ON h.FS_SITE = s.FS_SITE\nJOIN smartsheet.storemastercustom sm ON LEFT(s.FS_SITE, CHARINDEX('-',s.FS_SITE) - 1) = sm.GoogleID\nWHERE h.B_DELETETYPE = 'SOFT_DELETE'\n  AND sm.Status LIKE 'Active%'\n\n select 1; ",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Staging_dac_upd_defaultHr",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
 			},
 			{
-				"name": "Lookup2",
+				"name": "Lookup_defaultHr",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -5619,10 +5691,25 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\n    CASE \n    WHEN COUNT(s.FS_SITE) > 0 THEN 'true'\n    ELSE 'false'\n  END AS rtn_value\nFROM [Retail].[DACIncrementalSiteDefaultHours] s\nJOIN smartsheet.storemastercustom sm ON LEFT(s.FS_SITE, CHARINDEX('-',s.FS_SITE) - 1) = sm.GoogleID\nWHERE sm.Status LIKE 'Active%'\n  AND sm.GoogleID IN (\n      SELECT LEFT(FS_SITE, CHARINDEX('-', FS_SITE) - 1)\n      FROM [Retail].[DACIncrementalSiteDefaultHours_His]\n      WHERE B_DELETETYPE = 'SOFT_DELETE' and  ReActive_Flag='1'\n  )",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Staging_dac_lkp_defaultHr",
+						"type": "DatasetReference"
+					}
+				}
 			},
 			{
-				"name": "Lookup3",
+				"name": "Lookup_SpecialHe",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -5639,20 +5726,87 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\n    CASE \n    WHEN COUNT(s.FS_SITE) > 0 THEN 'true'\n    ELSE 'false'\n  END AS rtn_value\nFROM [Retail].[DACIncrementalSiteSpecialHours] s\nJOIN smartsheet.storemastercustom sm ON LEFT(s.FS_SITE, CHARINDEX('-',s.FS_SITE) - 1) = sm.GoogleID\nWHERE sm.Status LIKE 'Active%'\n  AND sm.GoogleID IN (\n      SELECT LEFT(FS_SITE, CHARINDEX('-', FS_SITE) - 1)\n      FROM [Retail].[DACIncrementalSiteSpecialHours_His]\n      WHERE B_DELETETYPE = 'SOFT_DELETE' and  ReActive_Flag='1'\n  )",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Staging_dac_lkp_spcialHr",
+						"type": "DatasetReference"
+					}
+				}
 			},
 			{
 				"name": "If Condition3",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Lookup3",
+						"activity": "Lookup_SpecialHe",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					}
 				],
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Lookup_SpecialHe').output.firstRow.rtn_value, 'true')\r\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "NOupdaatesSH",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "SHnoupdtes",
+								"value": "0"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Lookup_update_specialHr",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "UPDATE h\nSET  h.ReActive_Flag='0'\nFROM [Retail].[DACIncrementalSiteSpecialHours_His] h\nJOIN [Retail].[DACIncrementalSiteSpecialHours] s ON h.FS_SITE = s.FS_SITE\nJOIN smartsheet.storemastercustom sm ON LEFT(s.FS_SITE, CHARINDEX('-',s.FS_SITE) - 1) = sm.GoogleID\nWHERE h.B_DELETETYPE = 'SOFT_DELETE'\n  AND sm.Status LIKE 'Active%'\n\n select 1; ",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Staging_dac_update_spcialHr",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
 			}
 		],
 		"variables": {
@@ -5663,6 +5817,12 @@
 				"type": "String"
 			},
 			"noupdate_hsopc": {
+				"type": "String"
+			},
+			"noupdats": {
+				"type": "String"
+			},
+			"SHnoupdtes": {
 				"type": "String"
 			}
 		},
