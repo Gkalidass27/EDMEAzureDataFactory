@@ -701,7 +701,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSiteContent_His",
+						"activity": "If Condition1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -2209,7 +2209,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSiteDefaultHours_HIs",
+						"activity": "If Condition2",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -3059,7 +3059,7 @@
 							}
 						],
 						"sqlReaderQuery": {
-							"value": "SELECT [LocationNumber]\n      ,[ExteriorPhoto]\n      ,[FlyerLink]\n      ,[Promotion1Image]\n      ,[Promotion1URL]\n      ,[Promotion2URL]\n      ,[Promotion2Image]\n      ,[ScheduleApptURL]\n      ,[AlternateWebsiteURL]\n      ,[WebsiteURL]\n      ,[BusinessDescription]\n      ,[BusinessLongDescription]\n      ,[BusinessShortDescription]\n      ,[BusinessName]\n      ,[ContentLanguage]\n      ,[B_CREDATE]\n      ,[B_CREATOR]\n      ,[B_UPDATOR]\n      ,[FP_SITE_ID]\n      ,[FS_SITE_ID]\n      ,[IsActiveType]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n  FROM [Retail].[DACIncrementalSiteContent_INC]",
+							"value": "SELECT [LocationNumber]\n      ,[ExteriorPhoto]\n      ,[FlyerLink]\n      ,[Promotion1Image]\n      ,[Promotion1URL]\n      ,[Promotion2URL]\n      ,[Promotion2Image]\n      ,[ScheduleApptURL]\n      ,[AlternateWebsiteURL]\n      ,[WebsiteURL]\n      ,[BusinessDescription]\n      ,[BusinessLongDescription]\n      ,[BusinessShortDescription]\n      ,[BusinessName]\n      ,[ContentLanguage]\n      ,[B_CREDATE]\n      ,[B_CREATOR]\n      ,[B_UPDATOR]\n      ,[FP_SITE_ID]\n      ,[FS_SITE_ID]\n      ,[IsActiveType]\n      ,[B_DELETETYPE]\n      ,[B_DELETEDATE]\n      ,[B_DELETEAUTHOR]\n      ,[B_DELETEOPERATION]\n      ,[Activity_Type]\n      ,ReActive_Flag\n  FROM [Retail].[DACIncrementalSiteContent_INC]",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -3175,7 +3175,7 @@
 								"source": {
 									"name": "AlternateWebsiteURL",
 									"type": "String",
-									"physicalType": "nvarchar"
+									"physicalType": "varchar"
 								},
 								"sink": {
 									"name": "AlternateWebsiteURL",
@@ -3323,8 +3323,8 @@
 								},
 								"sink": {
 									"name": "B_DELETETYPE",
-									"type": "DateTime",
-									"physicalType": "datetime"
+									"type": "String",
+									"physicalType": "varchar"
 								}
 							},
 							{
@@ -3394,6 +3394,18 @@
 								},
 								"sink": {
 									"name": "B_LoadID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ReActive_Flag",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "ReActive_Flag",
 									"type": "String",
 									"physicalType": "varchar"
 								}
@@ -4846,7 +4858,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "IncrementalSiteSpecialHours_His",
+						"activity": "If Condition3",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -5495,6 +5507,105 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteContent_His",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": []
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": []
+			},
+			{
+				"name": "If Condition2",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": []
+			},
+			{
+				"name": "Lookup2",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteDefaultHours_HIs",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": []
+			},
+			{
+				"name": "Lookup3",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteSpecialHours_His",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": []
+			},
+			{
+				"name": "If Condition3",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup3",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": []
 			}
 		],
 		"variables": {
