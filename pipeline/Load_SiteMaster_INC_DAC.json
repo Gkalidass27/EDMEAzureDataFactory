@@ -5529,7 +5529,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT\n    CASE \n    WHEN COUNT(s.LocationNumber) > 0 THEN 'true'\n    ELSE 'false'\n  END AS rtn_value\nFROM [Retail].[DACIncrementalSiteContent] s\nJOIN smartsheet.storemastercustom sm ON s.LocationNumber = sm.GoogleID\nWHERE sm.Status LIKE 'Active%'\n  AND sm.GoogleID IN (\n      SELECT LocationNumber\n      FROM [Retail].[DACIncrementalSiteContent_His]\n      WHERE B_DELETETYPE = 'SOFT_DELETE' and  ReActive_Flag='1'\n  )",
+							"value": "SELECT\n    CASE \n    WHEN COUNT(s.FS_SITE_ID) > 0 THEN 'true'\n    ELSE 'false'\n  END AS rtn_value\nFROM [Retail].[DACIncrementalSiteContent] s\nJOIN smartsheet.storemastercustom sm ON LEFT(s.FS_SITE_ID, CHARINDEX('-', s.FS_SITE_ID) - 1) = sm.GoogleID\nWHERE sm.Status LIKE 'Active%'\n  AND sm.GoogleID IN (\n      SELECT LEFT(FS_SITE_ID, CHARINDEX('-', FS_SITE_ID) - 1)\n      FROM [Retail].[DACIncrementalSiteContent_His]\n      WHERE B_DELETETYPE = 'SOFT_DELETE' and  ReActive_Flag='1'\n  )",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -5591,7 +5591,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "UPDATE h\nSET  h.ReActive_Flag='0'\nFROM [Retail].[DACIncrementalSiteContent_His] h\nJOIN [Retail].[DACIncrementalSiteContent] s ON h.LocationNumber = s.LocationNumber\nJOIN smartsheet.storemastercustom sm ON h.LocationNumber = sm.GoogleID\nWHERE h.B_DELETETYPE = 'SOFT_DELETE'\n  AND sm.Status LIKE 'Active%'\n\n select 1; ",
+										"value": "UPDATE h\nSET  h.ReActive_Flag='0'\nFROM [Retail].[DACIncrementalSiteContent_His] h\nJOIN [Retail].[DACIncrementalSiteContent] s ON h.FS_SITE_ID = \ns.FS_SITE_ID\nJOIN smartsheet.storemastercustom sm ON LEFT(h.FS_SITE_ID, CHARINDEX('-', h.FS_SITE_ID) - 1) = sm.GoogleID\nWHERE h.B_DELETETYPE = 'SOFT_DELETE' AND sm.Status LIKE 'Active%'\n\n select 1; ",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
