@@ -935,7 +935,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Incrementalsdhsopctracking_His",
+						"activity": "Return_hsopc_cond",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -5395,6 +5395,106 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Lookup_hsopc",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Incrementalsdhsopctracking_His",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\n    CASE \n    WHEN COUNT(s.B_SOURCEID) > 0 THEN 'true'\n    ELSE 'false'\n  END AS rtn_value\nFROM [Retail].[DACIncrementalOPCTracking] s\nJOIN smartsheet.storemastercustom sm ON LEFT(s.B_SOURCEID, CHARINDEX('-',s.B_SOURCEID) - 1) = sm.GoogleID\nWHERE sm.Status LIKE 'Active%'\n  AND sm.GoogleID IN (\n      SELECT LEFT(B_SOURCEID, CHARINDEX('-', B_SOURCEID) - 1)\n      FROM [Retail].[DACIncrementalOPCTracking_His]\n      WHERE B_DELETETYPE = 'SOFT_DELETE' and  ReActive_Flag='1'\n  )",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Staging_dac_lkp_hsopc",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Return_hsopc_cond",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup_hsopc",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Lookup_hsopc').output.firstRow.rtn_value, 'true')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "hspocupdateNoaction",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "noupdate_hsopc",
+								"value": "0"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Lookup_hsopc_update",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "UPDATE h\nSET  h.ReActive_Flag='0'\nFROM [Retail].[DACIncrementalOPCTracking_His] h\nJOIN [Retail].[DACIncrementalOPCTracking] s ON h.B_SOURCEID = s.B_SOURCEID\nJOIN smartsheet.storemastercustom sm ON LEFT(s.B_SOURCEID, CHARINDEX('-',s.B_SOURCEID) - 1) = sm.GoogleID\nWHERE h.B_DELETETYPE = 'SOFT_DELETE'\n  AND sm.Status LIKE 'Active%'\n\n select 1; ",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Staging_dac_lkp_hsopc_update",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
 			}
 		],
 		"variables": {
@@ -5402,6 +5502,9 @@
 				"type": "String"
 			},
 			"Noupdate": {
+				"type": "String"
+			},
+			"noupdate_hsopc": {
 				"type": "String"
 			}
 		},
