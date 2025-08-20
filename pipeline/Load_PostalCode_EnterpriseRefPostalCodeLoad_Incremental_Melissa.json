@@ -1,0 +1,1357 @@
+{
+	"name": "Load_PostalCode_EnterpriseRefPostalCodeLoad_Incremental_Melissa",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get_Count",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECt COUNT(1) AS [count] FROM [Ref_PostalCode].[vw_PostalCode_IUD_Melissa]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Stage_PostalCode_Query",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check_PostalCode_Count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get_Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(equals(activity('Get_Count').output.firstRow.count ,null))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Data_Not_Found_Logs_Stored_Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": "404",
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": "No RAW Data Available For PostalCode",
+										"type": "String"
+									},
+									"ErrorStatusCode": {
+										"value": "404",
+										"type": "String"
+									},
+									"FailureType": {
+										"value": "Data Not available",
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@{pipeline().Pipeline}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@{pipeline().RunId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink": {
+										"value": null,
+										"type": "String"
+									},
+									"Sink_Type": {
+										"value": null,
+										"type": "String"
+									},
+									"Source": {
+										"value": null,
+										"type": "String"
+									},
+									"Source_Type": {
+										"value": null,
+										"type": "String"
+									},
+									"TriggerId": {
+										"value": {
+											"value": "@{pipeline().TriggerId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerName": {
+										"value": {
+											"value": "@{pipeline().TriggerName}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerTime": {
+										"value": {
+											"value": "@{pipeline().TriggerTime}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerType": {
+										"value": {
+											"value": "@{pipeline().TriggerType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "GetNewLoadId",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Enterprise_ReferenceMaster'\n,@P_PROGRAM_NAME = 'EnterpriseRefPostalCodeLoad'\n,@P_LOAD_DESCRIPTION = 'EnterpriseRefPostalCodeLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Semarchy_Repo",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Set_LoadID_Variable",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "GetNewLoadId",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LoadID",
+								"value": {
+									"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Load_PostalCode",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set_LoadID_Variable",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadID')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": {
+										"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD_Melissa]",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "B_LOADID",
+												"type": "String"
+											},
+											"sink": {
+												"name": "B_LOADID",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 0,
+												"precision": 38
+											}
+										},
+										{
+											"source": {
+												"name": "POSTAL_CODE_MASTER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "ENT_REF_POSTAL_CODE_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETETYPE",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_DELETETYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETEDATE",
+												"type": "DateTime",
+												"physicalType": "datetime"
+											},
+											"sink": {
+												"name": "B_DELETEDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETEAUTHOR",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_DELETEAUTHOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETEOPERATION",
+												"type": "Guid",
+												"physicalType": "uniqueidentifier"
+											},
+											"sink": {
+												"name": "B_DELETEOPERATION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "POSTAL_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "POSTAL_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "STATE_OR_PROVINCE_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "STATE_OR_PROVINCE_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CITY_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CITY_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CITY_ABBREVIATION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CITY_ABBREVIATION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "COUNTRY_CODE",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "COUNTRY_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "TIME_ZONE",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "TIME_ZONE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "OBSERVES_DST",
+												"type": "Boolean",
+												"physicalType": "bit"
+											},
+											"sink": {
+												"name": "OBSERVES_DST",
+												"type": "Boolean",
+												"physicalType": "bit"
+											}
+										},
+										{
+											"source": {
+												"name": "LATITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											},
+											"sink": {
+												"name": "LATITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "LONGITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											},
+											"sink": {
+												"name": "LONGITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "IS_PREFERRED_CITY_NAME",
+												"type": "Boolean",
+												"physicalType": "bit"
+											},
+											"sink": {
+												"name": "IS_PREFERRED_CITY_NAME",
+												"type": "Boolean",
+												"physicalType": "bit"
+											}
+										},
+										{
+											"source": {
+												"name": "POSTAL_CODE_TYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "POSTAL_CODE_TYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "MSA_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "MSA_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FIPS_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "FIPS_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ZONE_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Stage_PostalCode_Query_melissa_poc",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SA_POSTAL_CODE_MASTER",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "SubmitLoadID",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load_PostalCode_HIST",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+								"storedProcedureParameters": {
+									"P_INTEGRATION_JOB_NAME": {
+										"value": {
+											"value": "EnterpriseRefPostalCodeLoad",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"P_LOAD_ID": {
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										},
+										"type": "Decimal"
+									},
+									"P_USERNAME": {
+										"value": {
+											"value": "semadmin",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"return_value_argument": {
+										"value": null,
+										"type": "Decimal"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_repo",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "PostalCode_ErrorLoags",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load_PostalCode",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+								"storedProcedureParameters": {
+									"ErrorCode": {
+										"value": {
+											"value": "@{activity('Load_PostalCode').error.errorCode}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorMsg": {
+										"value": {
+											"value": "@{activity('Load_PostalCode').error.message}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ErrorStatusCode": {
+										"value": {
+											"value": "@activity('Load_PostalCode').StatusCode",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FailureType": {
+										"value": {
+											"value": "@{activity('Load_PostalCode').error.failureType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@{pipeline().Pipeline}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"RunID": {
+										"value": {
+											"value": "@{pipeline().RunId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink": {
+										"value": {
+											"value": "SA_ENT_REF_POSTAL_CODE",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Sink_Type": {
+										"value": {
+											"value": "@{activity('Load_PostalCode').output.executionDetails[0].sink.type}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source": {
+										"value": {
+											"value": "[Ref_PostalCode].[PostalCode]",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source_Type": {
+										"value": {
+											"value": "@{activity('Load_PostalCode').output.executionDetails[0].source.type}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerId": {
+										"value": {
+											"value": "@{pipeline().TriggerId}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerName": {
+										"value": {
+											"value": "@{pipeline().TriggerName}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerTime": {
+										"value": {
+											"value": "@{pipeline().TriggerTime}",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"TriggerType": {
+										"value": {
+											"value": "@{pipeline().TriggerType}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "semarchy_staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Fail_Load_PostalCode",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "Teams_Failed_Notification_PostalCode",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('Load_PostalCode').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('Load_PostalCode').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Teams_Failed_Notification_PostalCode",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load_PostalCode",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "@activity('Load_PostalCode').output.executionDetails[0].start",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('Load_PostalCode').output.executionDetails[0].status",
+										"type": "Expression"
+									},
+									"message": {
+										"value": "@replace(activity('Load_PostalCode').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('Load_PostalCode').output.copyDuration",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Remove_From_USPostalCode_Stage_Table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "SubmitLoadID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DELETE FROM [Ref_PostalCode].[ZipInfo_USz5max];\nSELECT 1 as success;",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Stage_PostalCode_Query",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Remove_From_CanadainPostalCode_Stage_Table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "SubmitLoadID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "DELETE FROM [Ref_PostalCode].[MelissaCA_PCensusNWE];\nSELECT 1 as success;",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Stage_PostalCode_Query",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Load_PostalCode_HIST",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Load_PostalCode",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"additionalColumns": [
+										{
+											"name": "B_LOADID",
+											"value": {
+												"value": "@variables('LoadID')",
+												"type": "Expression"
+											}
+										}
+									],
+									"sqlReaderQuery": {
+										"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD_Melissa]",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"ENT_REF_POSTAL_CODE_ID"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "POSTAL_CODE_MASTER_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "ENT_REF_POSTAL_CODE_ID",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_CLASSNAME",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETETYPE",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_DELETETYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETEDATE",
+												"type": "DateTime",
+												"physicalType": "datetime"
+											},
+											"sink": {
+												"name": "B_DELETEDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETEAUTHOR",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "B_DELETEAUTHOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_DELETEOPERATION",
+												"type": "Guid",
+												"physicalType": "uniqueidentifier"
+											},
+											"sink": {
+												"name": "B_DELETEOPERATION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_CREDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											},
+											"sink": {
+												"name": "B_UPDDATE",
+												"type": "DateTime",
+												"physicalType": "datetime2"
+											}
+										},
+										{
+											"source": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_CREATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "B_UPDATOR",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "POSTAL_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "POSTAL_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "STATE_OR_PROVINCE_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "STATE_OR_PROVINCE_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CITY_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CITY_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CITY_ABBREVIATION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "CITY_ABBREVIATION",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "COUNTRY_CODE",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "COUNTRY_CODE",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "TIME_ZONE",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "TIME_ZONE",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "OBSERVES_DST",
+												"type": "Boolean",
+												"physicalType": "bit"
+											},
+											"sink": {
+												"name": "OBSERVES_DST",
+												"type": "Boolean",
+												"physicalType": "bit"
+											}
+										},
+										{
+											"source": {
+												"name": "LATITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											},
+											"sink": {
+												"name": "LATITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "LONGITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											},
+											"sink": {
+												"name": "LONGITUDE",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "IS_PREFERRED_CITY_NAME",
+												"type": "Boolean",
+												"physicalType": "bit"
+											},
+											"sink": {
+												"name": "IS_PREFERRED_CITY_NAME",
+												"type": "Boolean",
+												"physicalType": "bit"
+											}
+										},
+										{
+											"source": {
+												"name": "POSTAL_CODE_TYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "POSTAL_CODE_TYPE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "MSA_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "MSA_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FIPS_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "FIPS_CODE",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ZONE_NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											},
+											"sink": {
+												"name": "NAME",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "active_flag",
+												"type": "String",
+												"physicalType": "varchar"
+											},
+											"sink": {
+												"name": "active_flag",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Stage_PostalCode_Query_melissa_poc",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DSPOSTALCODEHIST_melissa_POC",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Cancel_PostalCode_LoadId_Stored_Procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Check_PostalCode_Count",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[CANCEL_LOAD]",
+					"storedProcedureParameters": {
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"variables": {
+			"LoadID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Postal_Code"
+		},
+		"annotations": []
+	}
+}

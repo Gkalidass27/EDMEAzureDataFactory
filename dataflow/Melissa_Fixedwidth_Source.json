@@ -1,0 +1,113 @@
+{
+	"name": "Melissa_Fixedwidth_Source",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Canada_Postal_Code_File_melissa",
+						"type": "DatasetReference"
+					},
+					"name": "PostalCodeFixedWidthData"
+				},
+				{
+					"dataset": {
+						"referenceName": "Canada_Postal_Code_File_melissa_overlay",
+						"type": "DatasetReference"
+					},
+					"name": "OverlayFixedWidthData",
+					"description": "Import data from Canada_Postal_Code_File_melissa overley"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "CANADA_Postal_Code_Table_Melissa",
+						"type": "DatasetReference"
+					},
+					"name": "SinkPostalCode"
+				},
+				{
+					"dataset": {
+						"referenceName": "CANADA_Postal_Code_Table_Melissa_overlay",
+						"type": "DatasetReference"
+					},
+					"name": "SinkOverlay"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DCPostalCode"
+				},
+				{
+					"name": "SelectPostalCode"
+				},
+				{
+					"name": "DCOverlay"
+				},
+				{
+					"name": "SelectOverlay"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          {_col0_} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     ignoreNoFilesFound: false) ~> PostalCodeFixedWidthData",
+				"source(output(",
+				"          {_col0_} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     limit: 100,",
+				"     ignoreNoFilesFound: false) ~> OverlayFixedWidthData",
+				"PostalCodeFixedWidthData derive(PostalCode = substring({_col0_},1,6),",
+				"          City = substring({_col0_}, 7, 30),",
+				"          Province = substring({_col0_}, 37,2),",
+				"          Latitude = substring({_col0_}, 39, 9),",
+				"          Longitude = substring({_col0_}, 48, 11),",
+				"          TimeZone = substring({_col0_}, 59, 2),",
+				"          DST = substring({_col0_}, 61, 1),",
+				"          AreaCode = substring({_col0_}, 62, 3),",
+				"          Overlay = substring({_col0_}, 65, 1)) ~> DCPostalCode",
+				"DCPostalCode select(skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> SelectPostalCode",
+				"OverlayFixedWidthData derive(Parent = substring({_col0_},1,3),",
+				"          Overlay = substring({_col0_},4,3),",
+				"          Group = substring({_col0_},5,1)) ~> DCOverlay",
+				"DCOverlay select(mapColumn(",
+				"          Parent,",
+				"          Overlay,",
+				"          Group",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> SelectOverlay",
+				"SelectPostalCode sink(allowSchemaDrift: true,",
+				"     validateSchema: true,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     errorHandlingOption: 'stopOnFirstError') ~> SinkPostalCode",
+				"SelectOverlay sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     preCommands: [],",
+				"     postCommands: []) ~> SinkOverlay"
+			]
+		}
+	}
+}
