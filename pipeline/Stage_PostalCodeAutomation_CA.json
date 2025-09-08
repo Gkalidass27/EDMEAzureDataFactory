@@ -61,41 +61,6 @@
 				}
 			},
 			{
-				"name": "GetFilelist",
-				"type": "WebActivity",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Set Licensekey",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [
-					{
-						"name": "Task",
-						"value": "Get folder available list from Release URL"
-					}
-				],
-				"typeProperties": {
-					"method": "GET",
-					"httpRequestTimeout": "00:10:00",
-					"url": {
-						"value": "@concat('https://releases.melissadata.net/Download/Data/latest/canada.txt?FORMAT=JSON&ID=',variables('license_key'))\n",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "Filter_LatestFileProcessed",
 				"type": "Filter",
 				"dependsOn": [
@@ -124,42 +89,11 @@
 				}
 			},
 			{
-				"name": "Set Datelist",
-				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "GetFilelist",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [
-					{
-						"name": "Task",
-						"value": "Set Folderlist to variable"
-					}
-				],
-				"typeProperties": {
-					"variableName": "datelist",
-					"value": {
-						"value": "@activity('GetFilelist').output.Response",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "Set parsedatelist",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Set Datelist",
+						"activity": "Set Licensekey",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -250,8 +184,10 @@
 				}
 			},
 			{
-				"name": "ForEach",
-				"type": "ForEach",
+				"name": "Copy_PostalCode_CA",
+				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Filter_LatestFileProcessed",
@@ -260,433 +196,134 @@
 						]
 					}
 				],
+				"policy": {
+					"timeout": "0.10:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
 				"userProperties": [
 					{
 						"name": "Task",
-						"value": "For each Files"
+						"value": "Copy File from download URL to Blob container"
 					}
 				],
 				"typeProperties": {
-					"items": {
-						"value": "@activity('Filter_LatestFileProcessed').output.Value\n",
-						"type": "Expression"
+					"source": {
+						"type": "HttpSource",
+						"httpRequestTimeout": "00:01:40"
 					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "If Condition1",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "Set variable",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [
-								{
-									"name": "Task",
-									"value": "Will execute if latest file from Release url > previously processed file"
-								}
-							],
-							"typeProperties": {
-								"expression": {
-									"value": "@greater(length(activity('Filter_LatestFileProcessed').output.value),1)\n",
-									"type": "Expression"
-								},
-								"ifFalseActivities": [
-									{
-										"name": "Teams_Failed_Notification_PostalCode",
-										"type": "ExecutePipeline",
-										"dependsOn": [],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Notify Team "
-											}
-										],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "Notify_Teams_Channale_Pipeline",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"subscription": {
-													"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-													"type": "Expression"
-												},
-												"resourceGroup": "afi-edme-rg",
-												"runId": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"name": {
-													"value": "@pipeline().Pipeline",
-													"type": "Expression"
-												},
-												"triggerTime": {
-													"value": "@activity('Filter_LatestFileProcessed').output.executionDetails[0].start\n",
-													"type": "Expression"
-												},
-												"status": {
-													"value": "'Success'",
-													"type": "Expression"
-												},
-												"message": {
-													"value": "'Not yet received Melissa data'",
-													"type": "Expression"
-												},
-												"executionEndTime": {
-													"value": "@{utcnow()}",
-													"type": "Expression"
-												},
-												"runDuration": {
-													"value": "@activity('Filter_LatestFileProcessed').output.copyDuration",
-													"type": "Expression"
-												},
-												"teamWebhookUrl": {
-													"value": "@pipeline().globalParameters.GP_WebhookUrl",
-													"type": "Expression"
-												}
-											}
-										}
-									}
-								],
-								"ifTrueActivities": [
-									{
-										"name": "Set variable2",
-										"type": "SetVariable",
-										"dependsOn": [],
-										"policy": {
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Set new file to be processed"
-											}
-										],
-										"typeProperties": {
-											"variableName": "New_processed_YearMonth",
-											"value": {
-												"value": "@item()",
-												"type": "Expression"
-											}
-										}
-									},
-									{
-										"name": "Copy_PostalCode_CA",
-										"type": "Copy",
-										"dependsOn": [
-											{
-												"activity": "Set variable2",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"timeout": "0.10:00:00",
-											"retry": 2,
-											"retryIntervalInSeconds": 60,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Copy File from download URL to Blob container"
-											}
-										],
-										"typeProperties": {
-											"source": {
-												"type": "HttpSource",
-												"httpRequestTimeout": "00:01:40"
-											},
-											"sink": {
-												"type": "BinarySink",
-												"storeSettings": {
-													"type": "AzureBlobFSWriteSettings"
-												}
-											},
-											"enableStaging": false
-										},
-										"inputs": [
-											{
-												"referenceName": "HttpDataset2_CA",
-												"type": "DatasetReference",
-												"parameters": {
-													"ID": {
-														"value": "@variables('license_key')",
-														"type": "Expression"
-													},
-													"Currentmonthyear": {
-														"value": "@variables('New_processed_YearMonth')",
-														"type": "Expression"
-													}
-												}
-											}
-										],
-										"outputs": [
-											{
-												"referenceName": "DS_PostalCode_CA",
-												"type": "DatasetReference",
-												"parameters": {
-													"Filename": {
-														"value": "@concat('canada','.txt')",
-														"type": "Expression"
-													},
-													"FolderName": {
-														"value": "@pipeline().parameters.FolderName",
-														"type": "Expression"
-													}
-												}
-											}
-										]
-									},
-									{
-										"name": "Teams_Success_Notification_PostalCode_copy1",
-										"type": "ExecutePipeline",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
-										"dependsOn": [
-											{
-												"activity": "Script1",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Notify Team about new file processed"
-											}
-										],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "Notify_Teams_Channale_Pipeline",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"subscription": {
-													"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-													"type": "Expression"
-												},
-												"resourceGroup": "afi-edme-rg",
-												"runId": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"name": {
-													"value": "@pipeline().Pipeline",
-													"type": "Expression"
-												},
-												"triggerTime": {
-													"value": "@activity('Copy_PostalCode_US').output.executionDetails[0].start",
-													"type": "Expression"
-												},
-												"status": {
-													"value": "@activity('Copy_PostalCode_US').output.executionDetails[0].status",
-													"type": "Expression"
-												},
-												"message": {
-													"value": "'Postal codes file available in blob container'",
-													"type": "Expression"
-												},
-												"executionEndTime": {
-													"value": "@{utcnow()}",
-													"type": "Expression"
-												},
-												"runDuration": {
-													"value": "@activity('Copy_PostalCode_US').output.copyDuration",
-													"type": "Expression"
-												},
-												"teamWebhookUrl": {
-													"value": "@pipeline().globalParameters.GP_WebhookUrl",
-													"type": "Expression"
-												}
-											}
-										}
-									},
-									{
-										"name": "Script1",
-										"type": "Script",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
-										"dependsOn": [
-											{
-												"activity": "Set ApiPath",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 0,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Update file processed to Retail.Postalcode_Processed_files table"
-											}
-										],
-										"linkedServiceName": {
-											"referenceName": "semarchy_staging",
-											"type": "LinkedServiceReference"
-										},
-										"typeProperties": {
-											"scripts": [
-												{
-													"type": "Query",
-													"text": {
-														"value": "@concat('INSERT INTO Retail.Postalcode_Processed_files ',\n'(',\n'Country, ',\n'API_path, ',\n'Processed_date, ',\n'Processed_for_YrMonth',\n') ',\n'VALUES ',\n'(',\n'''US'', ',\n'''', variables('Api_Path'), ''', ',\n'GETDATE(), ',\n'''', variables('New_processed_YearMonth'), '''',\n')'\n)",
-														"type": "Expression"
-													}
-												}
-											],
-											"scriptBlockExecutionTimeout": "02:00:00"
-										}
-									},
-									{
-										"name": "Set ApiPath",
-										"type": "SetVariable",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
-										"dependsOn": [
-											{
-												"activity": "Copy_PostalCode_CA",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Set API path"
-											}
-										],
-										"typeProperties": {
-											"variableName": "Api_Path",
-											"value": {
-												"value": "@concat('https://releases.melissadata.net/download/Data/latest/canada.txt?ID={{licenseKey}}')",
-												"type": "Expression"
-											}
-										}
-									},
-									{
-										"name": "Teams_Failed_Notification_PostalCode_Failed",
-										"type": "ExecutePipeline",
-										"dependsOn": [
-											{
-												"activity": "Copy_PostalCode_CA",
-												"dependencyConditions": [
-													"Failed"
-												]
-											}
-										],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [
-											{
-												"name": "Task",
-												"value": "Notify Team "
-											}
-										],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "Notify_Teams_Channale_Pipeline",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"subscription": {
-													"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-													"type": "Expression"
-												},
-												"resourceGroup": "afi-edme-rg",
-												"runId": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"name": {
-													"value": "@pipeline().Pipeline",
-													"type": "Expression"
-												},
-												"triggerTime": {
-													"value": "@activity('Filter_LatestFileProcessed').output.executionDetails[0].start\n",
-													"type": "Expression"
-												},
-												"status": {
-													"value": "'Failure'",
-													"type": "Expression"
-												},
-												"message": {
-													"value": "'File Copy failed . Please have a look'",
-													"type": "Expression"
-												},
-												"executionEndTime": {
-													"value": "@{utcnow()}",
-													"type": "Expression"
-												},
-												"runDuration": {
-													"value": "@activity('Filter_LatestFileProcessed').output.copyDuration",
-													"type": "Expression"
-												},
-												"teamWebhookUrl": {
-													"value": "@pipeline().globalParameters.GP_WebhookUrl",
-													"type": "Expression"
-												}
-											}
-										}
-									}
-								]
-							}
-						},
-						{
-							"name": "Set variable",
-							"type": "SetVariable",
-							"dependsOn": [],
-							"policy": {
-								"secureOutput": false,
-								"secureInput": false
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "HttpDataset2_CA",
+						"type": "DatasetReference",
+						"parameters": {
+							"ID": {
+								"value": "@variables('license_key')",
+								"type": "Expression"
 							},
-							"userProperties": [
-								{
-									"name": "Task",
-									"value": "Latest file from Release URL"
-								}
-							],
-							"typeProperties": {
-								"variableName": "New_processed_YearMonth",
-								"value": {
-									"value": "@item()",
-									"type": "Expression"
-								}
+							"Currentmonthyear": {
+								"value": "@variables('New_processed_YearMonth')",
+								"type": "Expression"
 							}
 						}
-					]
-				}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_PostalCode_CA",
+						"type": "DatasetReference",
+						"parameters": {
+							"Filename": {
+								"value": "@concat('canada','.txt')",
+								"type": "Expression"
+							},
+							"FolderName": {
+								"value": "@pipeline().parameters.FolderName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy_PostalCode_CA_OverLay",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Filter_LatestFileProcessed",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.10:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Copy File from download URL to Blob container"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "HttpSource",
+						"httpRequestTimeout": "00:01:40"
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "HttpDataset2_CA",
+						"type": "DatasetReference",
+						"parameters": {
+							"ID": {
+								"value": "@variables('license_key')",
+								"type": "Expression"
+							},
+							"Currentmonthyear": {
+								"value": "@variables('New_processed_YearMonth')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_PostalCode_CA",
+						"type": "DatasetReference",
+						"parameters": {
+							"Filename": {
+								"value": "@concat('overlay','.txt')",
+								"type": "Expression"
+							},
+							"FolderName": {
+								"value": "@pipeline().parameters.FolderName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
 			}
 		],
 		"parameters": {
