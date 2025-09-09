@@ -1,0 +1,507 @@
+{
+	"name": "Stage_PostalCodeAutomation_CA",
+	"properties": {
+		"activities": [
+			{
+				"name": "Getlicensekey_Melissa",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "To get license key from KV"
+					}
+				],
+				"typeProperties": {
+					"method": "GET",
+					"url": {
+						"value": "@pipeline().globalParameters.Melissa_LicenseKey",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Set Licensekey",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Getlicensekey_Melissa",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Set License key to variable"
+					}
+				],
+				"typeProperties": {
+					"variableName": "license_key",
+					"value": {
+						"value": "@activity('Getlicensekey_Melissa').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy_PostalCode_CA",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set Licensekey",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.10:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Copy File from download URL to Blob container"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "HttpSource",
+						"httpRequestTimeout": "00:01:40"
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "HttpDataset2_CA_canadatxt",
+						"type": "DatasetReference",
+						"parameters": {
+							"ID": {
+								"value": "@variables('license_key')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_PostalCode_CA",
+						"type": "DatasetReference",
+						"parameters": {
+							"Filename": {
+								"value": "@concat('canada','.txt')",
+								"type": "Expression"
+							},
+							"FolderName": {
+								"value": "@pipeline().parameters.FolderName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy_PostalCode_CA_OverLay",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set Licensekey",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.10:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Copy File from download URL to Blob container"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "HttpSource",
+						"httpRequestTimeout": "00:01:40"
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "HttpDataset2_CA_overlaytxt",
+						"type": "DatasetReference",
+						"parameters": {
+							"ID": "ZJERTAWalLbr19V1DoknD4**"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_PostalCode_CA",
+						"type": "DatasetReference",
+						"parameters": {
+							"Filename": {
+								"value": "@concat('overlay','.txt')",
+								"type": "Expression"
+							},
+							"FolderName": {
+								"value": "@pipeline().parameters.FolderName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Teams_Failed_Notification_PostalCode_Failed_overlaytxt",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Copy_PostalCode_CA_OverLay",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Notify Team "
+					}
+				],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Copy_PostalCode_CA_OverLay').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "'Failure'",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "'File Copy failed . Please have a look'",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Copy_PostalCode_CA_OverLay').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_PostalCode_Failed_canadatxt",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Copy_PostalCode_CA",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Notify Team "
+					}
+				],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Copy_PostalCode_CA').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "'Failure'",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "'File Copy failed . Please have a look'",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Copy_PostalCode_CA').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Success_Notification_PostalCode_overlaytxt",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Copy_PostalCode_CA_OverLay",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Notify Team about new file processed"
+					}
+				],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Copy_PostalCode_CA_OverLay').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Copy_PostalCode_CA_OverLay').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "'Postal codes file available in blob container'",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Copy_PostalCode_CA_OverLay').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Success_Notification_PostalCode_canadatxt",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Copy_PostalCode_CA",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Task",
+						"value": "Notify Team about new file processed"
+					}
+				],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Copy_PostalCode_CA').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Copy_PostalCode_CA').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "'Postal codes file available in blob container'",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Copy_PostalCode_CA').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"FolderName": {
+				"type": "string",
+				"defaultValue": "Postal_Code_Source_Files"
+			},
+			"GetLicensekey": {
+				"type": "string",
+				"defaultValue": "https://afide-edmekv.vault.azure.net/secrets/melissa-data-license-key/b0d3207214ea4b0b9fef24ac132a17e1?api-version=7.0"
+			}
+		},
+		"variables": {
+			"license_key": {
+				"type": "String"
+			},
+			"folder": {
+				"type": "Array"
+			},
+			"datelist": {
+				"type": "String"
+			},
+			"parsedatelist": {
+				"type": "Array"
+			},
+			"dummy": {
+				"type": "String"
+			},
+			"Processed_for_YrMonth_lkp": {
+				"type": "String"
+			},
+			"Api_Path": {
+				"type": "String"
+			},
+			"insert_stmt": {
+				"type": "String"
+			},
+			"New_processed_YearMonth": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Postal_Code"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-03-19T14:56:55Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
