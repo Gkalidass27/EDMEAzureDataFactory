@@ -7,7 +7,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "RSA_Assignment_Hist",
+						"activity": "RSA_Assignment",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1450,7 +1450,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "RSA_Assignment_Hist_Delete",
+						"activity": "RSA_Assignment_Hist",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -1818,291 +1818,6 @@
 						"parameters": {
 							"SchemaName": "Retail",
 							"TableName": "RSA_Associate_HIST"
-						}
-					}
-				]
-			},
-			{
-				"name": "RSA_Assignment_Hist_Delete",
-				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "RSA_Assignment_Delete",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"additionalColumns": [
-							{
-								"name": "b_loadid",
-								"value": {
-									"value": "@variables('LoadID')",
-									"type": "Expression"
-								}
-							}
-						],
-						"sqlReaderQuery": "select distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,FP_SITE_ID\r\n,FS_SITE_ID\r\n,B_DELETETYPE\r\n,B_DELETEDATE\r\n,B_DELETEAUTHOR\r\n,B_DELETEOPERATION\r\n,active_flag\r\n,Activity_type\r\n,Job_code\r\n,status\r\n,cast(newid() as uniqueidentifier) as B_OPERATIONID\r\nfrom Retail.RSA_Assignment_Inc_UKG_VW\r\nwhere active_flag = 0\r\n\r\n\r\n\r\n\r\n/*\r\nselect distinct RSA_ID\r\n,AssociateID\r\n,B_CLASSNAME\r\n,B_CREDATE\r\n,B_UPDDATE\r\n,B_CREATOR\r\n,B_UPDATOR\r\n,FP_SITE_ID\r\n,FS_SITE_ID\r\n,Job_code\r\nfrom Retail.RSA_Assignment_Inc_UKG_VW\r\nWITH(NOLOCK)\r\n*/",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "upsert",
-						"upsertSettings": {
-							"useTempDB": true,
-							"keys": [
-								"RSA_ID",
-								"AssociateID"
-							]
-						},
-						"sqlWriterUseTableLock": false,
-						"disableMetricsCollection": false
-					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "RSA_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "RSA_ID",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "AssociateID",
-									"type": "Int32",
-									"physicalType": "int"
-								},
-								"sink": {
-									"name": "AssociateID",
-									"type": "Int32",
-									"physicalType": "int"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CLASSNAME",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "B_CLASSNAME",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CREDATE",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								},
-								"sink": {
-									"name": "B_CREDATE",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								}
-							},
-							{
-								"source": {
-									"name": "B_UPDDATE",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								},
-								"sink": {
-									"name": "B_UPDDATE",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								}
-							},
-							{
-								"source": {
-									"name": "B_CREATOR",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "B_CREATOR",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_UPDATOR",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "B_UPDATOR",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "FS_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "FS_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Activity_type",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "Activity_type",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "active_flag",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "active_flag",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Job_code",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "Job_Code",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "FP_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "FP_SITE_ID",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_DELETETYPE",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "B_DELETETYPE",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_DELETEDATE",
-									"type": "DateTime",
-									"physicalType": "datetime"
-								},
-								"sink": {
-									"name": "B_DELETEDATE",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_DELETEAUTHOR",
-									"type": "String",
-									"physicalType": "varchar"
-								},
-								"sink": {
-									"name": "B_DELETEAUTHOR",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "B_DELETEOPERATION",
-									"type": "Guid",
-									"physicalType": "uniqueidentifier"
-								},
-								"sink": {
-									"name": "B_DELETEOPERATION",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "status",
-									"type": "String",
-									"physicalType": "nvarchar"
-								},
-								"sink": {
-									"name": "status",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "DS_Semarchy_staging",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "Retail",
-							"TableName": "RSA_Assignment_Inc_UKG_VW"
-						}
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "DS_Semarchy_staging",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "Retail",
-							"TableName": "RSA_Assignment_HIST"
 						}
 					}
 				]
@@ -2731,7 +2446,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "RSA_Assignment_Hist_Delete",
+						"activity": "RSA_Assignment_Hist",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -2898,7 +2613,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "RSA_Assignment",
+						"activity": "Script1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -3177,6 +2892,39 @@
 						}
 					}
 				]
+			},
+			{
+				"name": "Script1",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "RSA_Assignment_Delete",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "DELETE ah FROM Retail.RSA_Assignment_HIST ah\r\nINNER JOIN (SELECT DISTINCT RSA_ID, AssociateID   FROM Retail.RSA_Assignment_Inc_UKG_VW    WHERE active_flag = 0) src \r\nON ah.RSA_ID = src.RSA_ID \r\nAND ah.AssociateID = src.AssociateID"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
 			}
 		],
 		"variables": {
