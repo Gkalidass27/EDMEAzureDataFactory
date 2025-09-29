@@ -16,7 +16,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "SqlDWSource",
-						"sqlReaderQuery": "SELECT \r\n    S.RecStatus AS STORESTATUS,\r\n    S.StoreID,\r\n    S.Name AS STORISName,\r\n   -- Unit.UntUnitDesc AS FinanceUnitDesc,\r\n    S.SourceID,\r\n    S.locnType,\r\n    S.RegionID,\r\n    S.Address1,\r\n    S.City,\r\n    S.State,\r\n    S.Distribution_StoreID,\r\n    S.DateCreated,\r\n    S.DateChanged \r\nFROM RETAIL_CORPORATE.Store S",
+						"sqlReaderQuery": "SELECT \r\n    S.RecStatus AS STORESTATUS,\r\n    S.StoreID,\r\n    S.Name AS STORISName,\r\n    S.SourceID,\r\n    S.locnType,\r\n    S.RegionID,\r\n    S.Address1,\r\n    S.City,\r\n    S.State,\r\n    S.Distribution_StoreID,\r\n    S.DateCreated,\r\n    S.DateChanged \r\nFROM RETAIL_CORPORATE.Store S",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -73,6 +73,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT COUNT(*) as HistoryCount FROM EDW.EDW_RETAIL_CORPORATE_Store_HIST",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -105,7 +106,7 @@
 					},
 					"ifFalseActivities": [
 						{
-							"name": "Detect Changes",
+							"name": "Detect Changes and Get Count",
 							"type": "SqlServerStoredProcedure",
 							"dependsOn": [],
 							"policy": {
@@ -116,122 +117,11 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"storedProcedureName": "Retail.sp_EDWStoreChanges"
+								"storedProcedureName": "Retail.sp_EDWStoreChanges_WithCount"
 							},
 							"linkedServiceName": {
 								"referenceName": "semarchy_staging",
 								"type": "LinkedServiceReference"
-							}
-						},
-						{
-							"name": "Get Change Count",
-							"type": "Lookup",
-							"dependsOn": [
-								{
-									"activity": "Detect Changes",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "AzureSqlSource",
-									"sqlReaderQuery": "SELECT    SUM(CASE WHEN ChangeType = 'INSERT' THEN 1 ELSE 0 END) as InsertCount,  \r\n            SUM(CASE WHEN ChangeType = 'UPDATE' THEN 1 ELSE 0 END) as UpdateCount,  \r\n            COUNT(*) as TotalChanges\r\n            FROM RETAIL_CORPORATE.Store_Changes_Log \r\n            WHERE ProcessDate = CAST(GETDATE() AS DATE)",
-									"queryTimeout": "02:00:00",
-									"partitionOption": "None"
-								},
-								"dataset": {
-									"referenceName": "DS_Semarchy_staging",
-									"type": "DatasetReference",
-									"parameters": {
-										"SchemaName": "EDW",
-										"TableName": "EDW_RETAIL_CORPORATE_Store_HIST"
-									}
-								}
-							}
-						},
-						{
-							"name": "Check if Changes Found",
-							"type": "IfCondition",
-							"dependsOn": [
-								{
-									"activity": "Get Change Count",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"expression": {
-									"value": "@greater(activity('Get Change Count').output.firstRow.TotalChanges, 0)",
-									"type": "Expression"
-								},
-								"ifTrueActivities": [
-									{
-										"name": "Teams_Notification",
-										"type": "ExecutePipeline",
-										"dependsOn": [],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "Notify_Teams_Channale_Pipeline",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"subscription": {
-													"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-													"type": "Expression"
-												},
-												"resourceGroup": "afi-edme-rg",
-												"runId": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"name": {
-													"value": "@pipeline().Pipeline",
-													"type": "Expression"
-												},
-												"triggerTime": {
-													"value": "@activity('Get Change Count').output.executionDetails[0].start",
-													"type": "Expression"
-												},
-												"status": {
-													"value": "@activity('Get Change Count').output.executionDetails[0].status",
-													"type": "Expression"
-												},
-												"message": {
-													"value": "\"Received new store changes\"",
-													"type": "Expression"
-												},
-												"executionEndTime": {
-													"value": "@{utcnow()}",
-													"type": "Expression"
-												},
-												"runDuration": {
-													"value": "@activity('Get Change Count').output.copyDuration",
-													"type": "Expression"
-												},
-												"teamWebhookUrl": {
-													"value": "@pipeline().globalParameters.GP_WebhookUrl",
-													"type": "Expression"
-												}
-											}
-										}
-									}
-								]
 							}
 						}
 					],
@@ -250,7 +140,7 @@
 							"typeProperties": {
 								"source": {
 									"type": "SqlDWSource",
-									"sqlReaderQuery": "SELECT \n    S.RecStatus AS STORESTATUS,\n    S.StoreID,\n    S.Name AS STORISName,\n   -- Unit.UntUnitDesc AS FinanceUnitDesc,\n    S.SourceID,\n    S.locnType,\n    S.RegionID,\n    S.Address1,\n    S.City,\n    S.State,\n    S.Distribution_StoreID,\n    S.DateCreated,\n    S.DateChanged \nFROM RETAIL_CORPORATE.Store S",
+									"sqlReaderQuery": "SELECT \n    S.RecStatus AS STORESTATUS,\n    S.StoreID,\n    S.Name AS STORISName,\n    S.SourceID,\n    S.locnType,\n    S.RegionID,\n    S.Address1,\n    S.City,\n    S.State,\n    S.Distribution_StoreID,\n    S.DateCreated,\n    S.DateChanged,\n    'INITIAL_LOAD' as ChangeType,\n    GETDATE() as LoadDate\nFROM RETAIL_CORPORATE.Store S",
 									"queryTimeout": "02:00:00",
 									"partitionOption": "None"
 								},
@@ -289,6 +179,114 @@
 									}
 								}
 							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Change Count",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "First Run or Subsequent Run",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \n    ISNULL(SUM(CASE WHEN ChangeType = 'INSERT' THEN 1 ELSE 0 END), 0) as InsertCount,\n    ISNULL(SUM(CASE WHEN ChangeType = 'UPDATE' THEN 1 ELSE 0 END), 0) as UpdateCount,\n    ISNULL(COUNT(*), 0) as TotalChanges\nFROM EDW.Store_Changes_Log \nWHERE ProcessDate = CAST(GETDATE() AS DATE)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "EDW",
+							"TableName": "Store_Changes_Log"
+						}
+					}
+				}
+			},
+			{
+				"name": "Check if Changes Found",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Change Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('Get Change Count').output.firstRow.TotalChanges, 0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Teams_Notification",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "@pipeline().TriggerTime",
+										"type": "Expression"
+									},
+									"status": "Success",
+									"message": {
+										"value": "@concat('Store changes detected: ', activity('Get Change Count').output.firstRow.InsertCount, ' new, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated, Total: ', activity('Get Change Count').output.firstRow.TotalChanges)",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "@pipeline().globalParameters.GP_WebhookUrl",
+										"type": "Expression"
+									}
+								}
+							}
 						}
 					]
 				}
