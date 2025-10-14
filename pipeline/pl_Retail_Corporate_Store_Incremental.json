@@ -1,0 +1,192 @@
+{
+	"name": "pl_Retail_Corporate_Store_Incremental",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy Source to Target",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \n    S.RecStatus AS STORESTATUS,\n    S.StoreID,\n    S.Name AS STORISName,\n    S.SourceID,\n    S.locnType,\n    S.RegionID,\n    S.Address1,\n    S.City,\n    S.State,\n    S.Distribution_StoreID,\n    S.DateCreated,\n    S.DateChanged \nFROM EDW.Store_temp S",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE EDW.EDW_RETAIL_CORPORATE_Store",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "EDW",
+							"TableName": "Store_temp"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "EDW",
+							"TableName": "EDW_RETAIL_CORPORATE_Store"
+						}
+					}
+				]
+			},
+			{
+				"name": "Process Changes",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Source to Target",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "EDW.sp_Store_CDC_Process_Unified"
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Change Count",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Process Changes",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \n    ISNULL(SUM(CASE WHEN ChangeType = 'INSERT' THEN 1 ELSE 0 END), 0) as InsertCount,\n    ISNULL(SUM(CASE WHEN ChangeType = 'UPDATE' THEN 1 ELSE 0 END), 0) as UpdateCount,\n    ISNULL(COUNT(*), 0) as TotalChanges\nFROM EDW.EDW_RETAIL_CORPORATE_Store_Log \nWHERE ProcessDate = CAST(GETDATE() AS DATE)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "EDW",
+							"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
+						}
+					}
+				}
+			},
+			{
+				"name": "Send Notification If Changes",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Change Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('Get Change Count').output.firstRow.TotalChanges, 0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Teams_Notification",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Notify_Teams_Channale_Pipeline",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
+									"resourceGroup": "afi-edme-rg",
+									"runId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"triggerTime": {
+										"value": "@pipeline().TriggerTime",
+										"type": "Expression"
+									},
+									"status": "Success",
+									"message": {
+										"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores')",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
+										"type": "Expression"
+									},
+									"teamWebhookUrl": {
+										"value": "@pipeline().globalParameters.GP_WebhookUrl",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": []
+	}
+}
