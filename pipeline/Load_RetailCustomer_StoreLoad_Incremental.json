@@ -33,7 +33,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": " select RETAIL_STORE_ID,B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,RETAIL_SYSTEM_NUMBER,COMPANY_CODE,PROFIT_CENTER,OWNER_NAME \r\n from RetailCustomer.RetailStoreIncremental",
+						"sqlReaderQuery": " /*select RETAIL_STORE_ID,B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,RETAIL_SYSTEM_NUMBER,COMPANY_CODE,PROFIT_CENTER,OWNER_NAME \r\n from RetailCustomer.RetailStoreIncremental*/\r\nselect RETAIL_STORE_ID,B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,RETAIL_SYSTEM_NUMBER,COMPANY_CODE,PROFIT_CENTER,OWNER_NAME ,\r\n'' as B_DELETETYPE, \r\ncast(Null as datetime) as B_DELETEDATE, \r\n'' as B_DELETEAUTHOR, \r\ncast (Null as uniqueidentifier) as B_DELETEOPERATION\r\n from RetailCustomer.RetailStoreIncremental\r\n where upper(Event_type) not like '%DELETE%'\r\n union \r\nselect RETAIL_STORE_ID,B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,RETAIL_SYSTEM_NUMBER,COMPANY_CODE,PROFIT_CENTER,OWNER_NAME ,\r\n 'SOFT_DELETE' as B_DELETETYPE, \r\ngetdate() as B_DELETEDATE, \r\n'Semadmin' as B_DELETEAUTHOR, \r\ncast(newid() as uniqueidentifier) as B_DELETEOPERATION\r\n from RetailCustomer.RetailStoreIncremental\r\n  where upper(Event_type)  like '%DELETE%'",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -79,6 +79,54 @@
 								},
 								"sink": {
 									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEOPERATION",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "B_DELETEOPERATION",
 									"type": "String",
 									"physicalType": "nvarchar"
 								}
