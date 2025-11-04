@@ -32,7 +32,7 @@
 								}
 							}
 						],
-						"sqlReaderQuery": "SELECT * FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Insert'\r\nand  upper(lease_type)  like 'EXPENSE%'\r\nand property_address not in ('3223 Elida Road')\r\nunion\r\nSELECT * FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Update'\r\nand  upper(lease_type)  like 'EXPENSE%'\r\nand property_address not in ('3223 Elida Road')",
+						"sqlReaderQuery": "SELECT B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,OPERATIONAL_STATUS,TYPE,UNIT_NUMBER,SPACE_SQFT,BUILDING_SQFT,BUILDING_TYPE,LEASE_Commencement_Date,LEASE_Expiration_Date FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Insert'\r\nand  upper(lease_type)  like 'EXPENSE%'\r\nand property_address not in ('3223 Elida Road')\r\nunion\r\nSELECT B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,OPERATIONAL_STATUS,TYPE,UNIT_NUMBER,SPACE_SQFT,BUILDING_SQFT,BUILDING_TYPE,LEASE_Commencement_Date,LEASE_Expiration_Date FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Update'\r\nand  upper(lease_type)  like 'EXPENSE%'\r\nand property_address not in ('3223 Elida Road')",
 						"partitionOption": "None"
 					},
 					"sink": {
@@ -799,6 +799,77 @@
 					"referenceName": "semarchy_repo",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Append_Staging_to_History",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_loadid",
+								"value": {
+									"value": "@variables('Loadid')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "select * from retail.v_LessorPM_Incremental",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Retail",
+							"TableName": "v_LessorPM_Incremental"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SiteMaster",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "SD_LESSOR_PROPERTY_MANAGER"
+						}
+					}
+				]
 			}
 		],
 		"variables": {
