@@ -259,159 +259,11 @@
 				]
 			},
 			{
-				"name": "Update_Changed_RealEstate",
-				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Insert_New_RealEstate",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT * FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Update'",
-						"partitionOption": "None"
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
-					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "B_PUBID"
-								},
-								"sink": {
-									"name": "B_PUBID"
-								}
-							},
-							{
-								"source": {
-									"name": "B_SOURCEID"
-								},
-								"sink": {
-									"name": "B_SOURCEID"
-								}
-							},
-							{
-								"source": {
-									"name": "B_UPDDATE"
-								},
-								"sink": {
-									"name": "B_UPDDATE"
-								}
-							},
-							{
-								"source": {
-									"name": "OPERATIONAL_STATUS"
-								},
-								"sink": {
-									"name": "OPERATIONAL_STATUS"
-								}
-							},
-							{
-								"source": {
-									"name": "TYPE"
-								},
-								"sink": {
-									"name": "TYPE"
-								}
-							},
-							{
-								"source": {
-									"name": "UNIT_NUMBER"
-								},
-								"sink": {
-									"name": "UNIT_NUMBER"
-								}
-							},
-							{
-								"source": {
-									"name": "SPACE_SQFT"
-								},
-								"sink": {
-									"name": "SPACE_SQFT"
-								}
-							},
-							{
-								"source": {
-									"name": "BUILDING_SQFT"
-								},
-								"sink": {
-									"name": "BUILDING_SQFT"
-								}
-							},
-							{
-								"source": {
-									"name": "BUILDING_TYPE"
-								},
-								"sink": {
-									"name": "BUILDING_TYPE"
-								}
-							},
-							{
-								"source": {
-									"name": "LEASE_Commencement_Date"
-								},
-								"sink": {
-									"name": "LEASE_Commencement_Date"
-								}
-							},
-							{
-								"source": {
-									"name": "LEASE_Expiration_Date"
-								},
-								"sink": {
-									"name": "LEASE_Expiration_Date"
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "Tbl_RealEstate_Staging",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "DS_SiteMaster",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "dbo",
-							"TableName": "SD_SITE"
-						}
-					}
-				]
-			},
-			{
 				"name": "Append_Staging_to_History",
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Update_Changed_RealEstate",
+						"activity": "SubmitLoadGD",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -519,7 +371,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Append_Staging_to_History",
+						"activity": "Insert_New_RealEstate",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -562,7 +414,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Append_Staging_to_History",
+						"activity": "Insert_New_RealEstate",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -689,7 +541,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Append_Staging_to_History",
+						"activity": "Insert_New_RealEstate",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -751,7 +603,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Append_Staging_to_History",
+						"activity": "Insert_New_RealEstate",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -899,7 +751,7 @@
 				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
-						"activity": "Append_Staging_to_History",
+						"activity": "Insert_New_RealEstate",
 						"dependencyConditions": [
 							"Succeeded"
 						]
