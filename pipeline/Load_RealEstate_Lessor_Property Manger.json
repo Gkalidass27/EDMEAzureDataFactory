@@ -1,0 +1,388 @@
+{
+	"name": "Load_RealEstate_Lessor_Property Manger",
+	"properties": {
+		"activities": [
+			{
+				"name": "Insert_Lessor_PM",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_loadid",
+								"value": {
+									"value": "@variables('Loadid')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "/*\r\nSELECT 'Site' as B_CLASSNAME,B_PUBID,B_SOURCEID,B_CREDATE,B_UPDDATE,B_CREATOR,B_UPDATOR,CONTACT_TYPE,COMPANY_NAME,\r\n\t  CONTACT_NAME,ADDRESS_LINE1,ADDRESS_LINE2,CITY,STATE_CODE,POSTAL_CODE,PHONE1,PHONE1_TYPE,PHONE2,PHONE2_TYPE,\r\n\t  EMAIL,CREATED_DATE,FP_SITE,FS_SITE,PROPERTY_ADDRESS,PROPERTY_CITY,PROPERTY_STATE,PROPERTY_ZIP,TRY_CONVERT(decimal(10,0), UNIT_NUMBER) \r\n\t  AS UNIT_NUMBER_DEC FROM Retail.v_LessorPM_Incremental\r\n\t  */\r\n\r\n\t  SELECT LEFT(B_CLASSNAME,128) AS B_CLASSNAME, CAST(B_CREDATE AS datetime2(6)) AS B_CREDATE, CAST(B_UPDDATE AS datetime2(6)) AS B_UPDDATE, LEFT(B_CREATOR,128) AS B_CREATOR, LEFT(B_UPDATOR,128) AS B_UPDATOR, LEFT(B_PUBID,30) AS B_PUBID,\r\n\t  -- LEFT(B_SOURCEID,128) AS B_SOURCEID, \r\n\t  concat(unit_number,'-',contact_type,'-',company_name)  as B_sourceid,\r\n\t  TRY_CONVERT(decimal(10,0), UNIT_NUMBER) AS UNIT_NUMBER_DEC, LEFT(CONTACT_TYPE,50) AS CONTACT_TYPE, LEFT(COMPANY_NAME,256) AS COMPANY_NAME, LEFT(CONTACT_NAME,128) AS CONTACT_NAME, LEFT(ADDRESS_LINE1,128) AS ADDRESS_LINE1, LEFT(ADDRESS_LINE2,128) AS ADDRESS_LINE2, LEFT(CITY,50) AS CITY, LEFT(STATE_code,50) AS STATE_code, LEFT(ISNULL(STATE_CODE,''),50) AS STATE_CODE, LEFT(POSTAL_CODE,50) AS POSTAL_CODE, LEFT(ISNULL(PHONE1,''),20) AS PHONE1, LEFT(ISNULL(PHONE1_TYPE,''),50) AS PHONE1_TYPE, LEFT(ISNULL(PHONE2,''),20) AS PHONE2, LEFT(ISNULL(PHONE2_TYPE,''),50) AS PHONE2_TYPE, LEFT(ISNULL(EMAIL,''),50) AS EMAIL, CAST(CREATED_DATE AS date) AS CREATED_DATE, CAST(NULL AS uniqueidentifier) AS F_SITE, LEFT(ISNULL(FP_SITE,''),30) AS FP_SITE, LEFT(ISNULL(FS_SITE,''),128) AS FS_SITE \r\n\t  FROM Retail.v_LessorPM_Incremental",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_loadid",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_UPDATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "UNIT_NUMBER_DEC",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "UNIT_NUMBER",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "CONTACT_TYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "CONTACT_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "COMPANY_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "COMPANY_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTACT_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CONTACT_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "ADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ADDRESS_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "ADDRESS_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PHONE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PHONE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PHONE1_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PHONE1_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PHONE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PHONE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PHONE2_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PHONE2_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CREATED_DATE",
+									"type": "Date",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "CREATED_DATE",
+									"type": "Date",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "Retail",
+							"TableName": "v_LessorPM_Incremental"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SiteMaster",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "SD_LESSOR_PROPERTY_MANAGER"
+						}
+					}
+				]
+			}
+		],
+		"variables": {
+			"loadid": {
+				"type": "String",
+				"defaultValue": "1234"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": []
+	}
+}
