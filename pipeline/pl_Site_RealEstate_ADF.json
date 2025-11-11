@@ -1012,8 +1012,14 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "SnapshotDate",
+								"value": "$$COLUMN:"
+							}
+						],
 						"sqlReaderQuery": {
-							"value": "@{concat( 'SELECT *, SYSUTCDATETIME() AS SnapshotDate, ''', variables('LoadID'), ''' AS LoadID FROM Retail.Tbl_RealEstate_Staging' )}",
+							"value": "select B_SOURCEID,B_PUBID,'HomeStoreOperationProfitCenterTracking' as B_classname,\n GETDATE() AS B_CREDATE,  \n    GETDATE() AS B_UPDDATE,  \n    'semadmin' AS B_CREATOR,\n    'semadmin' AS B_UPDATOR,\n      SITE_NAME,SITE_RAW_ADDR_LINE1,SITE_RAW_CITY,SITE_RAW_STATE_CODE,SITE_RAW_POSTAL_CODE,SITE_RAW_COUNTY,FP_SITE_ID,FS_SITE_ID\nfrom Retail.v_HS_OPC_Tracking_Incremental_RE\nwhere change_type='Insert'\nUNION\nselect B_SOURCEID,B_PUBID,'HomeStoreOperationProfitCenterTracking' as B_classname,\n GETDATE() AS B_CREDATE,  \n    GETDATE() AS B_UPDDATE,  \n    'semadmin' AS B_CREATOR, \n      'semadmin' AS B_UPDATOR, \n    SITE_NAME,SITE_RAW_ADDR_LINE1,SITE_RAW_CITY,SITE_RAW_STATE_CODE,SITE_RAW_POSTAL_CODE,SITE_RAW_COUNTY,FP_SITE_ID,FS_SITE_ID\nfrom Retail.v_HS_OPC_Tracking_Incremental_RE\nwhere change_type='Update'",
 							"type": "Expression"
 						},
 						"partitionOption": "None"
@@ -1021,7 +1027,9 @@
 					"sink": {
 						"type": "AzureSqlSink",
 						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
 					"translator": {
@@ -1044,7 +1052,8 @@
 						"referenceName": "DS_Semarchy_staging",
 						"type": "DatasetReference",
 						"parameters": {
-							"SchemaName": "RETAIL"
+							"SchemaName": "RETAIL",
+							"TableName": "HS_OPC_REALESTATE_HIST"
 						}
 					}
 				]
