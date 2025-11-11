@@ -1,6 +1,98 @@
 {
 	"name": "Orshestrate_RealEstate_LeaseHarbor_Inc",
 	"properties": {
+		"activities": [
+			{
+				"name": "Execute Pipeline1",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_RealEstate_SFTP_SemarchyStaging",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute Pipeline2",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_Load_RetailCustomer",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute Pipeline1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').output['pipelineRunId']",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').output['pipelineName']",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').ExecutionStartTime",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').Status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').ExecutionEndTime",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Load_RetailCustomer_RetailCustomerLoad_Incremental').Duration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
 		"folder": {
 			"name": "SiteMaster"
 		},
