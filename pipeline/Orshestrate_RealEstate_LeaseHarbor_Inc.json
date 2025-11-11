@@ -19,7 +19,7 @@
 				}
 			},
 			{
-				"name": "Execute Pipeline2",
+				"name": "Load_RealEstate_LeaseHarbor_inc",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
@@ -34,6 +34,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_RealEstate_LeaseHarbor_Incremental",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			},
@@ -43,6 +47,68 @@
 				"dependsOn": [
 					{
 						"activity": "Stage_RealEstate_LeaseHarbor_inc",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@activity('Stage_RealEstate_LeaseHarbor_inc').output['pipelineRunId']",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@activity('Stage_RealEstate_LeaseHarbor_inc').output['pipelineName']",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('Stage_RealEstate_LeaseHarbor_inc').ExecutionStartTime",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('Stage_RealEstate_LeaseHarbor_inc').Status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('Stage_RealEstate_LeaseHarbor_inc').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@activity('Stage_RealEstate_LeaseHarbor_inc').ExecutionEndTime",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('Stage_RealEstate_LeaseHarbor_inc').Duration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "@pipeline().globalParameters.GP_WebhookUrl",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_Load_RetailCustomer_copy1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_RealEstate_LeaseHarbor_inc",
 						"dependencyConditions": [
 							"Succeeded"
 						]
