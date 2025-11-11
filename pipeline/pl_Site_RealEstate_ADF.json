@@ -744,7 +744,14 @@
 			{
 				"name": "HS _OPC_tracking_RE",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Append_Staging_to_History",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -1046,7 +1053,14 @@
 			{
 				"name": "Append_Staging_to_History",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Site_SuccessLogging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"retry": 0,
 					"retryIntervalInSeconds": 30,
@@ -1074,9 +1088,16 @@
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"B_PUBID",
+								"B_SOURCEID",
+								"TYPE"
+							]
+						},
 						"sqlWriterUseTableLock": false,
-						"tableOption": "autoCreate",
 						"disableMetricsCollection": false
 					},
 					"enableStaging": false,
