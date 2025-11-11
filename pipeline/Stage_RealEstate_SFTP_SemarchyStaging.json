@@ -5,6 +5,8 @@
 			{
 				"name": "Cp_RealEstate_SFTP_Staging",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -399,6 +401,8 @@
 			{
 				"name": "Stored procedure1",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Cp_RealEstate_SFTP_Staging",
@@ -444,19 +448,15 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "ExcelSource",
-						"additionalColumns": [
-							{
-								"name": "createddate",
-								"value": "$$FILEPATH"
-							}
-						],
+						"type": "BinarySource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": false,
 							"wildcardFolderPath": "RealEstate_Staging/SOURCE",
-							"wildcardFileName": "*",
-							"enablePartitionDiscovery": false
+							"wildcardFileName": "*"
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
 						}
 					},
 					"sink": {
@@ -469,14 +469,17 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "Real_Estate_Xlsx",
+						"referenceName": "Real_estate_BinaryFiles",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
 						"referenceName": "Archive_real_Estate",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"fileName": "archived_file.xlsx"
+						}
 					}
 				]
 			}
