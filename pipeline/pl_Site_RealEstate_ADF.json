@@ -259,67 +259,6 @@
 				]
 			},
 			{
-				"name": "Append_Staging_to_History",
-				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "Insert_New_RealEstate",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": {
-							"value": "\nSELECT B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,case when upper(OPERATIONAL_STATUS)='ACTIVE' then 'Active'\nwhen upper(OPERATIONAL_STATUS)='INACTIVE' then 'Inactive'\nwhen Upper(OPERATIONAL_STATUS) ='PENDING' then 'Pending' else Null end as OPERATIONAL_STATUS,TYPE,UNIT_NUMBER,SPACE_SQFT,BUILDING_SQFT,BUILDING_TYPE,LEASE_Commencement_Date,LEASE_Expiration_Date \nFROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Insert'\n--and  upper(lease_type)  like 'EXPENSE%'\n--and property_address not in ('3223 Elida Road')\n\n\nunion\nSELECT B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,case when upper(OPERATIONAL_STATUS)='ACTIVE' then 'Active'\nwhen upper(OPERATIONAL_STATUS)='INACTIVE' then 'Inactive'\nwhen Upper(OPERATIONAL_STATUS) ='PENDING' then 'Pending' else Null end as OPERATIONAL_STATUS\n,TYPE,UNIT_NUMBER,SPACE_SQFT,BUILDING_SQFT,BUILDING_TYPE,LEASE_Commencement_Date,LEASE_Expiration_Date FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Update'\n--and  upper(lease_type)  like 'EXPENSE%'\n--and property_address not in ('3223 Elida Road')",
-							"type": "Expression"
-						},
-						"partitionOption": "None"
-					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false,
-						"tableOption": "autoCreate",
-						"disableMetricsCollection": false
-					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "Tbl_RealEstate_Staging",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "DS_Semarchy_staging",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "RETAIL",
-							"TableName": "SITE_REALESTATE_Hist"
-						}
-					}
-				]
-			},
-			{
 				"name": "GetNewLoadId",
 				"type": "Lookup",
 				"dependsOn": [],
@@ -1107,6 +1046,80 @@
 						"parameters": {
 							"SchemaName": "RETAIL",
 							"TableName": "Tbl_RealEstate_Staging_Hist"
+						}
+					}
+				]
+			},
+			{
+				"name": "Append_Staging_to_History",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Insert_New_RealEstate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "Snapshot",
+								"value": "$$COLUMN:"
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "\nSELECT B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,case when upper(OPERATIONAL_STATUS)='ACTIVE' then 'Active'\nwhen upper(OPERATIONAL_STATUS)='INACTIVE' then 'Inactive'\nwhen Upper(OPERATIONAL_STATUS) ='PENDING' then 'Pending' else Null end as OPERATIONAL_STATUS,TYPE,UNIT_NUMBER,SPACE_SQFT,BUILDING_SQFT,BUILDING_TYPE,LEASE_Commencement_Date,LEASE_Expiration_Date \nFROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Insert'\n--and  upper(lease_type)  like 'EXPENSE%'\n--and property_address not in ('3223 Elida Road')\n\n\nunion\nSELECT B_CLASSNAME,B_CREDATE,B_UPDDATE,B_CREATOR,B_PUBID,B_SOURCEID,case when upper(OPERATIONAL_STATUS)='ACTIVE' then 'Active'\nwhen upper(OPERATIONAL_STATUS)='INACTIVE' then 'Inactive'\nwhen Upper(OPERATIONAL_STATUS) ='PENDING' then 'Pending' else Null end as OPERATIONAL_STATUS\n,TYPE,UNIT_NUMBER,SPACE_SQFT,BUILDING_SQFT,BUILDING_TYPE,LEASE_Commencement_Date,LEASE_Expiration_Date FROM Retail.v_Site_RealEstate_Incremental WHERE change_type='Update'\n--and  upper(lease_type)  like 'EXPENSE%'\n--and property_address not in ('3223 Elida Road')",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"B_PUBID",
+								"B_SOURCEID",
+								"TYPE"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Tbl_RealEstate_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "RETAIL",
+							"TableName": "SITE_REALESTATE_Hist"
 						}
 					}
 				]
