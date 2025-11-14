@@ -1,0 +1,73 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Append_Staging_to_History_HS",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "SnapshotDate",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "select B_SOURCEID,B_PUBID,\n/*'HomeStoreOperationProfitCenterTracking' as B_classname,\n GETDATE() AS B_CREDATE,  \n    GETDATE() AS B_UPDDATE,  \n    'semadmin' AS B_CREATOR,\n    'semadmin' AS B_UPDATOR,*/\n\n      SITE_NAME,SITE_RAW_ADDR_LINE1,SITE_RAW_CITY,SITE_RAW_STATE_CODE,SITE_RAW_POSTAL_CODE,SITE_RAW_COUNTY,FP_SITE_ID,FS_SITE_ID\nfrom Retail.v_Tracking_Incremental_RE\nwhere change_type='Insert'\nand B_sourceid Not like '%RDC%'\nUNION\nselect B_SOURCEID,B_PUBID,\n/*'HomeStoreOperationProfitCenterTracking' as B_classname,\n GETDATE() AS B_CREDATE,  \n    GETDATE() AS B_UPDDATE,  \n    'semadmin' AS B_CREATOR, \n      'semadmin' AS B_UPDATOR, \n      */\n    SITE_NAME,SITE_RAW_ADDR_LINE1,SITE_RAW_CITY,SITE_RAW_STATE_CODE,SITE_RAW_POSTAL_CODE,SITE_RAW_COUNTY,FP_SITE_ID,FS_SITE_ID\nfrom Retail.v_Tracking_Incremental_RE\nwhere change_type='Update'\nand B_sourceid Not like '%RDC%'",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Tbl_RealEstate_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "RETAIL",
+							"TableName": "TRACKING_RealEstate_Hist"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": []
+	}
+}
