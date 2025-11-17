@@ -1,0 +1,164 @@
+{
+	"name": "PL_Send_Email_Generic",
+	"properties": {
+		"activities": [
+			{
+				"name": "send email using logic app",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set EmailBody",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.Ashley_Generic_Logic_App_URL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\n\t\"subject\":\"@{pipeline().parameters.SubjectName} - Test Case Routine Report Daily\",\n\t\"to\":\"grashmikant@ashleyfurniture.com\",\n\t\"header\":\"@{variables('sendHeader')}\",\n\t\"emailBody\": '@{variables('sendEmailBody')}',\n\t\"jsonData\": @{variables('sendJsonData')},\n\t\"footer\": \"@{variables('sendFooter')}\",\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set EmailBody",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set footer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendEmailBody",
+					"value": {
+						"value": "@pipeline().parameters.emailBody",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set footer",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set header",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendFooter",
+					"value": {
+						"value": "@pipeline().parameters.footer",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set header",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set jsonData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendHeader",
+					"value": {
+						"value": "@pipeline().parameters.header",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set jsonData",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendJsonData",
+					"value": {
+						"value": "@pipeline().parameters.jsonData",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"jsonData": {
+				"type": "string"
+			},
+			"header": {
+				"type": "string"
+			},
+			"footer": {
+				"type": "string"
+			},
+			"emailBody": {
+				"type": "string"
+			},
+			"SubjectName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"sendJsonData": {
+				"type": "String"
+			},
+			"sendHeader": {
+				"type": "String"
+			},
+			"sendFooter": {
+				"type": "String"
+			},
+			"sendEmailBody": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Send Email Generic"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-09-17T08:06:42Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
