@@ -3,80 +3,18 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "send email using logic app",
-				"type": "WebActivity",
-				"dependsOn": [
-					{
-						"activity": "Set EmailBody",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"method": "POST",
-					"url": {
-						"value": "https://prod-89.eastus.logic.azure.com:443/workflows/6e7f777bfad84c9a91be2ffe5357f737/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=T_E8HfmEldFrlT_j2hYf_qhKPkZDhFc5RP2mHjLexxw",
-						"type": "Expression"
-					},
-					"body": {
-						"value": "{\n\t\"subject\":\"@{pipeline().parameters.SubjectName} - Test Case Routine Report Daily\",\n\t\"to\":\"grashmikant@ashleyfurniture.com\",\n\t\"header\":\"@{variables('sendHeader')}\",\n\t\"emailBody\": '@{variables('sendEmailBody')}',\n\t\"jsonData\": @{variables('sendJsonData')},\n\t\"footer\": \"@{variables('sendFooter')}\",\n}",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Set EmailBody",
+				"name": "Set jsonData",
 				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "Set footer",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"secureOutput": false,
 					"secureInput": false
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "sendEmailBody",
+					"variableName": "sendJsonData",
 					"value": {
-						"value": "@pipeline().parameters.emailBody",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Set footer",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "Set header",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "sendFooter",
-					"value": {
-						"value": "@pipeline().parameters.footer",
+						"value": "@pipeline().parameters.jsonData",
 						"type": "Expression"
 					}
 				}
@@ -106,18 +44,80 @@
 				}
 			},
 			{
-				"name": "Set jsonData",
+				"name": "Set footer",
 				"type": "SetVariable",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Set header",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"secureOutput": false,
 					"secureInput": false
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "sendJsonData",
+					"variableName": "sendFooter",
 					"value": {
-						"value": "@pipeline().parameters.jsonData",
+						"value": "@pipeline().parameters.footer",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set EmailBody",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set footer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendEmailBody",
+					"value": {
+						"value": "@pipeline().parameters.emailBody",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "send email using logic app",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set EmailBody",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "https://prod-89.eastus.logic.azure.com:443/workflows/6e7f777bfad84c9a91be2ffe5357f737/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=T_E8HfmEldFrlT_j2hYf_qhKPkZDhFc5RP2mHjLexxw",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\n\t\"subject\":\"@{pipeline().parameters.SubjectName} - Test Case Routine Report Daily\",\n\t\"to\":\"grashmikant@ashleyfurniture.com\",\n\t\"header\":\"@{variables('sendHeader')}\",\n\t\"emailBody\": \"@{variables('sendEmailBody')}\",\n\t\"jsonData\": @{variables('sendJsonData')},\n\t\"footer\": \"@{variables('sendFooter')}\"\n}",
 						"type": "Expression"
 					}
 				}
@@ -125,7 +125,8 @@
 		],
 		"parameters": {
 			"jsonData": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": []
 			},
 			"header": {
 				"type": "string"
@@ -137,7 +138,8 @@
 				"type": "string"
 			},
 			"SubjectName": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "ADF Pipeline Notification"
 			}
 		},
 		"variables": {
