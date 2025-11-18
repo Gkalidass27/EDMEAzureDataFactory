@@ -196,28 +196,34 @@
 						},
 						{
 							"name": "Email_Notification",
-							"type": "WebActivity",
+							"type": "ExecutePipeline",
 							"dependsOn": [],
 							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
 								"secureInput": false
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"method": "POST",
-								"headers": {
-									"Content-Type": "application/json"
+								"pipeline": {
+									"referenceName": "Notify_Email_LogicApp_Pipeline",
+									"type": "PipelineReference"
 								},
-								"url": {
-									"value": "@pipeline().globalParameters.GP_EmailLogicAppUrl",
-									"type": "Expression"
-								},
-								"body": {
-									"value": "@json(concat('{',\n'\"subscription\":\"', pipeline().globalParameters.ADF_SubscriptionID, '\"',\n',\"resourceGroup\":\"afi-edme-rg\"',\n',\"runId\":\"', pipeline().RunId, '\"',\n',\"name\":\"', pipeline().Pipeline, '\"',\n',\"triggerTime\":\"', pipeline().TriggerTime, '\"',\n',\"status\":\"Success\"',\n',\"message\":\"', concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores'), '\"',\n',\"executionEndTime\":\"', utcnow(), '\"',\n',\"runDuration\":\"', string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000)), '\"',\n',\"dataFactoryName\":\"', pipeline().DataFactory, '\"',\n',\"to\":\"gkalidass@ashleyfurniture.com\"',\n',\"subject\":\"STORE CDC testing\"',\n',\"bodyHtml\":\"', concat('<p>Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores</p>'), '\"',\n'}'))",
-									"type": "Expression"
+								"waitOnCompletion": true,
+								"parameters": {
+									"subject": {
+										"value": "@concat('Store CDC Report - ', pipeline().Pipeline)",
+										"type": "Expression"
+									},
+									"to": "gkalidass@ashleyfurniture.com",
+									"header": "<h2>Store CDC Summary</h2>",
+									"emailBody": {
+										"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores')",
+										"type": "Expression"
+									},
+									"footer": {
+										"value": "@concat('<p>ADF: ', pipeline().DataFactory, ' • RunId: ', pipeline().RunId, '</p>')",
+										"type": "Expression"
+									},
+									"jsonData": "[]"
 								}
 							}
 						}
