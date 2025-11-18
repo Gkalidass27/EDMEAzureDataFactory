@@ -1,0 +1,101 @@
+{
+	"name": "Notify_Email_LogicApp_Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set_Email_JSON_Schema",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "emailPayload",
+					"value": {
+						"value": "@concat('{',\n'\"subject\":\"', replace(pipeline().parameters.subject,'\"','\\\\\"'), '\"',\n',\"to\":\"', replace(pipeline().parameters.to,'\"','\\\\\"'), '\"',\nif(not(empty(pipeline().parameters.cc)), concat(',\"cc\":\"', replace(pipeline().parameters.cc,'\"','\\\\\"'), '\"'), ''),\nif(not(empty(pipeline().parameters.bcc)), concat(',\"bcc\":\"', replace(pipeline().parameters.bcc,'\"','\\\\\"'), '\"'), ''),\nif(not(empty(pipeline().parameters.from)), concat(',\"from\":\"', replace(pipeline().parameters.from,'\"','\\\\\"'), '\"'), ''),\nif(not(empty(pipeline().parameters.importance)), concat(',\"importance\":\"', replace(pipeline().parameters.importance,'\"','\\\\\"'), '\"'), ''),\n',\"header\":\"', replace(pipeline().parameters.header,'\"','\\\\\"'), '\"',\n',\"emailBody\":\"', replace(pipeline().parameters.emailBody,'\"','\\\\\"'), '\"',\n',\"footer\":\"', replace(pipeline().parameters.footer,'\"','\\\\\"'), '\"',\n',\"jsonData\":', if(or(equals(trim(string(pipeline().parameters.jsonData)),''), equals(toLower(string(pipeline().parameters.jsonData)),'null')), '[]', replace(string(pipeline().parameters.jsonData),'\\\\','')),\n'}')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Invoke_Email_LogicApp_Url",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set_Email_JSON_Schema",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"url": {
+						"value": "@pipeline().globalParameters.GP_EmailLogicAppUrl",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@json(variables('emailPayload'))",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"subject": {
+				"type": "string"
+			},
+			"to": {
+				"type": "string"
+			},
+			"cc": {
+				"type": "string"
+			},
+			"bcc": {
+				"type": "string"
+			},
+			"from": {
+				"type": "string"
+			},
+			"importance": {
+				"type": "string"
+			},
+			"header": {
+				"type": "string"
+			},
+			"emailBody": {
+				"type": "string"
+			},
+			"footer": {
+				"type": "string"
+			},
+			"jsonData": {
+				"type": "string",
+				"defaultValue": []
+			}
+		},
+		"variables": {
+			"emailPayload": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Notifications"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
