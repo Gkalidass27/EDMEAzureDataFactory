@@ -16,7 +16,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "SqlDWSource",
-						"sqlReaderQuery": "SELECT\r\n    S.RecStatus AS STORESTATUS,\r\n    S.StoreID,\r\n    S.Name AS STORISName,\r\n   -- Unit.UntUnitDesc AS FinanceUnitDesc,\r\n    S.SourceID,\r\n    S.locnType,\r\n    S.RegionID,\r\n    S.Address1,\r\n    S.City,\r\n    S.State,\r\n    S.Distribution_StoreID,\r\n    S.DateCreated,\r\n    S.DateChanged \r\nFROM EDME_DataFactory.Store S",
+						"sqlReaderQuery": "SELECT S.RecStatus AS STORESTATUS, S.StoreID, S.Name AS STORISName, S.SourceID, S.locnType, S.RegionID, S.Address1, S.City, S.State, S.Distribution_StoreID, S.DateCreated, S.DateChanged FROM EDME_DataFactory.Store S",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -110,7 +110,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT \n    ISNULL(SUM(CASE WHEN ChangeType = 'INSERT' THEN 1 ELSE 0 END), 0) as InsertCount,\n    ISNULL(SUM(CASE WHEN ChangeType = 'UPDATE' THEN 1 ELSE 0 END), 0) as UpdateCount,\n    ISNULL(COUNT(*), 0) as TotalChanges\nFROM EDW.EDW_RETAIL_CORPORATE_Store_Log \nWHERE ProcessDate = CAST(GETDATE() AS DATE)",
+						"sqlReaderQuery": "SELECT ISNULL(SUM(CASE WHEN ChangeType='INSERT' THEN 1 ELSE 0 END),0) AS InsertCount, ISNULL(SUM(CASE WHEN ChangeType='UPDATE' THEN 1 ELSE 0 END),0) AS UpdateCount, ISNULL(COUNT(*),0) AS TotalChanges FROM EDW.EDW_RETAIL_CORPORATE_Store_Log WHERE ProcessDate = CAST(GETDATE() AS DATE)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -125,11 +125,47 @@
 				}
 			},
 			{
+				"name": "Get Latest Change Details",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get Change Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT StoreID, ChangeType, ProcessDate, ChangeDetails FROM EDW.EDW_RETAIL_CORPORATE_Store_Log WHERE ProcessDate = CAST(GETDATE() AS DATE) ORDER BY ProcessDate DESC, ChangeType DESC, StoreID DESC",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_Semarchy_staging",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "EDW",
+							"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
 				"name": "Send Notification If Changes",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Get Change Count",
+						"activity": "Get Latest Change Details",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -209,7 +245,10 @@
 								},
 								"waitOnCompletion": true,
 								"parameters": {
-									"subscription": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"subscription": {
+										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+										"type": "Expression"
+									},
 									"resourceGroup": {
 										"value": "afi-edme-rg",
 										"type": "Expression"
@@ -218,21 +257,38 @@
 										"value": "@pipeline().DataFactory",
 										"type": "Expression"
 									},
-									"runId": "@pipeline().RunId",
-									"name": "@pipeline().Pipeline",
-									"status": "Success",
-									"triggerTime": "@pipeline().TriggerTime",
-									"executionEndTime": "@{utcnow()}",
-									"runDuration": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
-									"message": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores')",
-									"notificationTime": "@{utcnow()}",
-									"to": "gkalidass@ashleyfurniture.com",
-									"subject": {
-										"value": "@concat('Store CDC Report - ', pipeline().Pipeline)",
+									"runId": {
+										"value": "@pipeline().RunId",
 										"type": "Expression"
 									},
-									"Email_Logicapp_URL": {
-										"value": "@pipeline().globalParameters.GP_EmailLogicAppUrl",
+									"name": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": "Success",
+									"triggerTime": {
+										"value": "@pipeline().TriggerTime",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
+										"type": "Expression"
+									},
+									"message": {
+										"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores')",
+										"type": "Expression"
+									},
+									"notificationTime": {
+										"value": "@{utcnow()}",
+										"type": "Expression"
+									},
+									"to": "gkalidass@ashleyfurniture.com",
+									"subject": {
+										"value": "@concat('Pipeline execution alert – ', pipeline().Pipeline)",
 										"type": "Expression"
 									}
 								}
