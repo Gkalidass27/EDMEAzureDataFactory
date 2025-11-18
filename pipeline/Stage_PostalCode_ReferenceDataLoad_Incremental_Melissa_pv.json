@@ -5,7 +5,16 @@
 			{
 				"name": "US_Postal_Code",
 				"type": "Copy",
-				"dependsOn": [],
+				"state": "Inactive",
+				"onInactiveMarkAs": "Failed",
+				"dependsOn": [
+					{
+						"activity": "If Condition1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -305,6 +314,8 @@
 			{
 				"name": "Archive_Files",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code",
@@ -373,6 +384,8 @@
 			{
 				"name": "Delete_Files",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Archive_Files",
@@ -406,6 +419,8 @@
 			{
 				"name": "US_Postal_Code_Error_Files",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code",
@@ -477,6 +492,8 @@
 			{
 				"name": "Delete_US_Postal_Code_Error_Files",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code_Error_Files",
@@ -513,6 +530,8 @@
 			{
 				"name": "CANADA_Postal_Code_Error_Files",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code",
@@ -584,6 +603,8 @@
 			{
 				"name": "Delete_CANADA_Postal_Code_Error_Files",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code_Error_Files",
@@ -620,6 +641,8 @@
 			{
 				"name": "US_Postal_Code_failure_Notification",
 				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code",
@@ -713,6 +736,8 @@
 			{
 				"name": "US_Postal_Code_Fail",
 				"type": "Fail",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "US_Postal_Code_failure_Notification",
@@ -736,6 +761,8 @@
 			{
 				"name": "CANADA_Postal_Code_failure_Notification",
 				"type": "ExecutePipeline",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code",
@@ -829,6 +856,8 @@
 			{
 				"name": "CANADA_Postal_Code_Fail",
 				"type": "Fail",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "CANADA_Postal_Code_failure_Notification",
@@ -852,7 +881,16 @@
 			{
 				"name": "CANADA_Postal_Code",
 				"type": "ExecuteDataFlow",
-				"dependsOn": [],
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "If Condition1",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -880,6 +918,87 @@
 					},
 					"traceLevel": "Fine"
 				}
+			},
+			{
+				"name": "Files_Search",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Postal_Code_Succeed_Files_Search",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Files_Search",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\ncontains(activity('Files_Search').output.childItems,'canada.txt'),\ncontains(activity('Files_Search').output.childItems,'z5max.txt')\n)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "USfiles",
+								"value": "Noaction"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "CAFilesavalible",
+							"description": "",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "CAfiles",
+								"value": "CA"
+							}
+						}
+					]
+				}
 			}
 		],
 		"parameters": {
@@ -894,6 +1013,14 @@
 			"CANADA_PostCode_Overlay": {
 				"type": "string",
 				"defaultValue": "overlay.txt"
+			}
+		},
+		"variables": {
+			"CAfiles": {
+				"type": "String"
+			},
+			"USfiles": {
+				"type": "String"
 			}
 		},
 		"folder": {
