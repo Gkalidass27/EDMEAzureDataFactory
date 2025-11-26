@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy_XLSX_From_SFTP_To_Blob",
-				"type": "Copy",
+				"name": "Get_File_List",
+				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -13,42 +13,90 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"source": {
-						"type": "BinarySource",
-						"storeSettings": {
-							"type": "SftpReadSettings",
-							"recursive": true,
-							"deleteFilesAfterCompletion": false,
-							"disableChunking": false
-						},
-						"formatSettings": {
-							"type": "BinaryReadSettings"
-						}
-					},
-					"sink": {
-						"type": "BinarySink",
-						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
-						}
-					},
-					"enableStaging": false
+					"fieldList": []
 				},
 				"inputs": [
 					{
-						"referenceName": "SFTP_XLSX_File",
+						"referenceName": "SFTP_Folder",
 						"type": "DatasetReference",
 						"parameters": {
-							"FileName": "*Record Info*",
 							"FolderName": "LeaseHarbor"
 						}
 					}
-				],
-				"outputs": [
-					{
-						"referenceName": "Real_Estate_Blob",
-						"type": "DatasetReference"
-					}
 				]
+			},
+			{
+				"name": "Filter_Record_Info",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Get_File_List",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get_File_List').output.childItems",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@contains(item().name, 'Record Info')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ForEach_Copy",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Filter_Record_Info",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Filter_Record_Info').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Copy_File",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "SftpReadSettings",
+										"recursive": false
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							}
+						}
+					]
+				}
 			}
 		],
 		"folder": {
