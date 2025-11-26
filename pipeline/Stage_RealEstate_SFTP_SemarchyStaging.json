@@ -5,7 +5,14 @@
 			{
 				"name": "Cp_RealEstate_SFTP_Staging",
 				"type": "Copy",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -540,6 +547,55 @@
 							"SchemaName": "Retail",
 							"TableName": "GD_SITE_REFRESH"
 						}
+					}
+				]
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "SftpReadSettings",
+							"recursive": true,
+							"disableChunking": false
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "SFTP_XLSX_File",
+						"type": "DatasetReference",
+						"parameters": {
+							"FolderName": "LeaseHarbor",
+							"FileName": "Record Search - Data Export - Record Info _ Contact Details.xlsx"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Real_Estate_Blob",
+						"type": "DatasetReference"
 					}
 				]
 			}
