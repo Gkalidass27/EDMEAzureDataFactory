@@ -1,0 +1,168 @@
+{
+	"name": "PL_Send_Email_Generic",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set jsonData",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendJsonData",
+					"value": {
+						"value": "@pipeline().parameters.jsonData",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set header",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set jsonData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendHeader",
+					"value": {
+						"value": "@pipeline().parameters.header",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set footer",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set header",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendFooter",
+					"value": {
+						"value": "@pipeline().parameters.footer",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set EmailBody",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set footer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "sendEmailBody",
+					"value": {
+						"value": "@pipeline().parameters.emailBody",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "send email using logic app",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set EmailBody",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "https://prod-89.eastus.logic.azure.com:443/workflows/6e7f777bfad84c9a91be2ffe5357f737/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=T_E8HfmEldFrlT_j2hYf_qhKPkZDhFc5RP2mHjLexxw",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@json(concat('{', '\"subject\":\"', replace(concat(pipeline().parameters.SubjectName,' - Test Case Routine Report Daily'),'\"','\\\"'), '\"', ',\"to\":\"gkalidass@ashleyfurniture.com\"', ',\"header\":\"', replace(variables('sendHeader'),'\"','\\\"'), '\"', ',\"emailBody\":\"', replace(variables('sendEmailBody'),'\"','\\\"'), '\"', ',\"jsonData\":', if(or(equals(trim(string(variables('sendJsonData'))),''), equals(toLower(string(variables('sendJsonData'))),'null')), '[]', replace(string(variables('sendJsonData')),'\\','')), ',\"footer\":\"', replace(variables('sendFooter'),'\"','\\\"'), '\"', '}'))",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"jsonData": {
+				"type": "string",
+				"defaultValue": "\"[]\""
+			},
+			"header": {
+				"type": "string",
+				"defaultValue": "<h2>Daily Pipeline Report</h2><p>Run date: 2025-11-18</p>"
+			},
+			"footer": {
+				"type": "string",
+				"defaultValue": "<p>Data Engineering</p>"
+			},
+			"emailBody": {
+				"type": "string",
+				"defaultValue": "Store CDC: 16348 new stores, 0 updated stores"
+			},
+			"SubjectName": {
+				"type": "string",
+				"defaultValue": "ADF Pipeline Notification"
+			}
+		},
+		"variables": {
+			"sendJsonData": {
+				"type": "String"
+			},
+			"sendHeader": {
+				"type": "String"
+			},
+			"sendFooter": {
+				"type": "String"
+			},
+			"sendEmailBody": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Send Email Generic"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

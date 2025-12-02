@@ -1,5 +1,5 @@
 {
-	"name": "pl_Retail_Corporate_Store_Incremental_EDW",
+	"name": "pl_Retail_Corporate_Store_Incremental_EDW_bkp",
 	"properties": {
 		"activities": [
 			{
@@ -16,14 +16,19 @@
 				"typeProperties": {
 					"source": {
 						"type": "SqlDWSource",
-						"sqlReaderQuery": "SELECT S.RecStatus AS STORESTATUS, S.StoreID, S.Name AS STORISName, S.SourceID, S.locnType, S.RegionID, S.Address1, S.City, S.State, S.Distribution_StoreID, S.DateCreated, S.DateChanged \r\nFROM EDME_DataFactory.Store S\r\nwhere S.RecStatus in ('U','N')",
+						"sqlReaderQuery": "SELECT\r\n    S.RecStatus AS STORESTATUS,\r\n    S.StoreID,\r\n    S.Name AS STORISName,\r\n   -- Unit.UntUnitDesc AS FinanceUnitDesc,\r\n    S.SourceID,\r\n    S.locnType,\r\n    S.RegionID,\r\n    S.Address1,\r\n    S.City,\r\n    S.State,\r\n    S.Distribution_StoreID,\r\n    S.DateCreated,\r\n    S.DateChanged \r\nFROM EDME_DataFactory.Store S",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"sink": {
 						"type": "AzureSqlSink",
-						"preCopyScript": "Truncate table EDW.EDW_RETAIL_CORPORATE_Store",
-						"writeBehavior": "insert",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"StoreID"
+							]
+						},
 						"sqlWriterUseTableLock": false,
 						"disableMetricsCollection": false
 					},
@@ -105,7 +110,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT ISNULL(SUM(CASE WHEN ChangeType='INSERT' THEN 1 ELSE 0 END),0) AS InsertCount,\r\n ISNULL(SUM(CASE WHEN ChangeType='UPDATE' THEN 1 ELSE 0 END),0) AS UpdateCount,\r\n ISNULL(SUM(CASE WHEN ChangeType='DELETE' THEN 1 ELSE 0 END),0) AS DeleteCount,\r\n  ISNULL(COUNT(*),0) AS TotalChanges \r\n  FROM EDW.EDW_RETAIL_CORPORATE_Store_Log \r\n  WHERE Rundate = CAST(GETDATE() AS DATE)",
+						"sqlReaderQuery": "SELECT \n    ISNULL(SUM(CASE WHEN ChangeType = 'INSERT' THEN 1 ELSE 0 END), 0) as InsertCount,\n    ISNULL(SUM(CASE WHEN ChangeType = 'UPDATE' THEN 1 ELSE 0 END), 0) as UpdateCount,\n    ISNULL(COUNT(*), 0) as TotalChanges\nFROM EDW.EDW_RETAIL_CORPORATE_Store_Log \nWHERE ProcessDate = CAST(GETDATE() AS DATE)",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -117,42 +122,6 @@
 							"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
 						}
 					}
-				}
-			},
-			{
-				"name": "Get Latest Change Details",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Get Change Count",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT \r\n    StoreID, \r\n    ChangeType, \r\n    FORMAT(ProcessDate, 'yyyy-MM-dd HH:mm:ss') AS ProcessDate,\r\n    ChangeDetails \r\nFROM EDW.EDW_RETAIL_CORPORATE_Store_Log \r\nWHERE RunDate = CAST(GETDATE() AS DATE) \r\nORDER BY RunDate DESC, ChangeType DESC, StoreID DESC\r\n",
-						"queryTimeout": "02:00:00",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_Semarchy_staging",
-						"type": "DatasetReference",
-						"parameters": {
-							"SchemaName": "EDW",
-							"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
-						}
-					},
-					"firstRowOnly": false
 				}
 			},
 			{
@@ -160,7 +129,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Get Latest Change Details",
+						"activity": "Get Change Count",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -224,77 +193,6 @@
 									}
 								}
 							}
-						},
-						{
-							"name": "Email_Notification",
-							"type": "ExecutePipeline",
-							"dependsOn": [],
-							"policy": {
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"pipeline": {
-									"referenceName": "Notify_Email_LogicApp_Pipeline",
-									"type": "PipelineReference"
-								},
-								"waitOnCompletion": true,
-								"parameters": {
-									"subscription": {
-										"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-										"type": "Expression"
-									},
-									"resourceGroup": {
-										"value": "afi-edme-rg",
-										"type": "Expression"
-									},
-									"dataFactoryName": {
-										"value": "@pipeline().DataFactory",
-										"type": "Expression"
-									},
-									"runId": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"name": {
-										"value": "@pipeline().Pipeline",
-										"type": "Expression"
-									},
-									"status": "Success",
-									"triggerTime": {
-										"value": "@formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss')",
-										"type": "Expression"
-									},
-									"executionEndTime": {
-										"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
-										"type": "Expression"
-									},
-									"runDuration": {
-										"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
-										"type": "Expression"
-									},
-									"message": {
-										"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores,', activity('Get Change Count').output.firstRow.DeleteCount, ' Deleted stores')",
-										"type": "Expression"
-									},
-									"notificationTime": {
-										"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
-										"type": "Expression"
-									},
-									"to": {
-										"value": "@pipeline().globalParameters.DL_LIst",
-										"type": "Expression"
-									},
-									"subject": {
-										"value": "@concat('Pipeline execution alert – ', 'Stores Updates from EDW')",
-										"type": "Expression"
-									},
-									"rows": {
-										"value": "@activity('Get Latest Change Details').output.value",
-										"type": "Expression"
-									}
-								}
-							}
 						}
 					]
 				}
@@ -304,6 +202,5 @@
 			"name": "SiteMaster"
 		},
 		"annotations": []
-	},
-	"type": "Microsoft.DataFactory/factories/pipelines"
+	}
 }
