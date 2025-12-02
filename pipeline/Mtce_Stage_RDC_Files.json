@@ -1,0 +1,502 @@
+{
+	"name": "Mtce_Stage_RDC_Files",
+	"properties": {
+		"activities": [
+			{
+				"name": "CopyRDCMasterlist",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE Scratch.RDCMasterlist",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Location",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Location",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Bindy ID",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "BindyID",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Account #",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "AccountNumber",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Entity",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Entity",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Licensee / Contact",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LicenseeContact",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC Address",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCAddress",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC City",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCCity",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC State",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCState",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC Zip",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCZip",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC Ship To",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCShipTo",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC Sq. Ft.",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCSqft",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDC Dock Doors",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCDockDoor",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Modified Date",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "ModifedDate",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SiteMaster_RDCMasterlist",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Scratch_RDCMasterlist",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "CopyZipAllocationRef",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "CopyRDCMasterlist",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "ZIP",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "ZIP",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "HSZIPType",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HSZIPType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LicenseeType",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LicenseeType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LicenseeAssignmentMethod",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LicenseeAssignmentMethod",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LicenseeFinal",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LicenseeFinal",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EntityName",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "EntityName",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDCAcctShipNew",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCAcctShipNew",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDCAcctShipDriveTimeNew",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCAcctShipDriveTimeNew",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SalesNew",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "SalesNew",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Licensee SalesOld",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Licensee SalesOld",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "Sale Variance",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "Sale Variance",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LicenseeOld",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "LicenseeOld",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EntityName2",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "EntityName2",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDCAcctShipOld",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCAcctShipOld",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RDCAcctShipDriveTimeOld",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "RDCAcctShipDriveTimeOld",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SalesOld",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "SalesOld",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TradeAreaType",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "TradeAreaType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ChangeType",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "ChangeType",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SiteMaster_ZipAllocationRef",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Scratch_ZipToRDCRef",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-04-17T06:18:24Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

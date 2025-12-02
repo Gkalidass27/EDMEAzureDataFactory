@@ -1,0 +1,790 @@
+{
+	"name": "Load_Tracking",
+	"properties": {
+		"activities": [
+			{
+				"name": "LoadRecordsForSiteTrackingDeletion",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT SITE_ID\nFROM Retail.v_site_changed",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE [dbo].[ASH_REMOVE_SITE_TRACKING]",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_ASH_REMOVE_SITE_TRACKING",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GetMaxHSOPCTrackingID",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "DeleteHSOPCTracking",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT INT\n\nEXECUTE dbo.GET_MAX_TRACKING_ID @TrackingIdType = 'HS_OPC', @RETURN_VALUE_ARGUMENT=null\n\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Retail_SiteMaster",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "DeleteHSOPCTracking",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "LoadRecordsForSiteTrackingDeletion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LOADID",
+								"value": {
+									"value": "@pipeline().parameters.B_LOADID",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "SELECT \n     OPCTRACKING.HS_OPC_TRACKING_ID,\n     'HomeStoreOperationProfitCenterTracking' AS B_CLASSNAME,\n\t'HARD_DELETE' AS B_DELETETYPE,\n     CAST(NEWID() AS NVARCHAR(128)) AS B_DELETEOPERATION,\n     GETDATE() AS B_DELETEDATE,\n     'semadmin' AS B_DELETEAUTHOR\nFROM DBO.GD_HS_OPC_TRACKING AS OPCTRACKING\nINNER JOIN (SELECT * FROM DBO.ASH_REMOVE_SITE_TRACKING WHERE SITE_ID NOT LIKE '%WAREHOUSE') AS REMOVEREC\n     ON OPCTRACKING.FS_SITE_ID = REMOVEREC.SITE_ID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LOADID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "HS_OPC_TRACKING_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								},
+								"sink": {
+									"name": "HS_OPC_TRACKING_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETETYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_DELETEDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_DELETEAUTHOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_DELETEOPERATION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Retail_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_HS_OPC_Tracking",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "LoadHSOPCTracking",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SetMaxHSOPCTrackingID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LOADID",
+								"value": {
+									"value": "@pipeline().parameters.B_LOADID",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT\n\t@{variables('MaxHSOPCTrackingID')} + ROW_NUMBER() OVER (PARTITION BY 1 order by operation_id, primary_profit_center ) AS HS_OPC_TRACKING_ID,\n    'HomeStoreOperationProfitCenterTracking' as B_CLASSNAME,\n\tGETDATE() AS B_CREDATE,\n\tGETDATE() AS B_UPDDATE,\n\t'semadmin' AS B_CREATOR,\n\t operation_id AS OPERATION_ID,\n\t primary_profit_center AS PRIMARY_PROFIT_CENTER,\n\t erp_database_name AS ERP_DATABASE_NAME,\n\t erp_system_name AS ERP_SYSTEM_NAME,\n\t effective_start_date AS EFFECTIVE_START_DATE,\n\t effective_end_date AS EFFECTIVE_END_DATE,\n\t legacy_location_id AS LEGACY_LOCATION_ID,\n\t site_name AS SITE_NAME,\n\t CAST(comp_flag AS BIT) AS COMP_FLAG,\n\t CAST(enterprise_flag AS BIT) AS ENTERPRISE_FLAG,\n\t traffic_system_id AS TRAFFIC_SYSTEM_ID,\n\t lic_territory AS LIC_TERRITORY,\n\t tua_expiration_date AS TUA_EXPIRATION_DATE,\n\t notes AS NOTES,\n\t os_id AS OS_ID,\n\t os_location_id AS OS_LOCATION_ID,\n\t raw_addr_line1 AS SITE_RAW_ADDR_LINE1,\n\t raw_addr_line2 AS SITE_RAW_ADDR_LINE2,\n\t raw_city AS SITE_RAW_CITY,\n\t raw_state AS SITE_RAW_STATE,\n\t raw_state_code AS SITE_RAW_STATE_CODE,\n\t raw_postal_code AS SITE_RAW_POSTAL_CODE,\n\t raw_country AS SITE_RAW_COUNTRY,\n\t raw_country_code AS SITE_RAW_COUNTRY_CODE,\n\t raw_latitude AS SITE_RAW_LATITUDE,\n\t raw_longitude AS SITE_RAW_LONGITUDE,\n\t legal_entity_id AS F_LEGAL_ENTITY_ID,\n\t 'INITIALLOAD' AS FP_SITE_ID,\n\t site_id AS FS_SITE_ID      \nFROM Retail.v_hs_opc_tracking_incremental\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LOADID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "HS_OPC_TRACKING_ID",
+									"type": "Int64",
+									"physicalType": "bigint"
+								},
+								"sink": {
+									"name": "HS_OPC_TRACKING_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATION_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPERATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PRIMARY_PROFIT_CENTER",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "PRIMARY_PROFIT_CENTER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ERP_DATABASE_NAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "ERP_DATABASE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ERP_SYSTEM_NAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "ERP_SYSTEM_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "EFFECTIVE_END_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "EFFECTIVE_END_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "LEGACY_LOCATION_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "LEGACY_LOCATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "COMP_FLAG",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "COMP_FLAG",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "ENTERPRISE_FLAG",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "ENTERPRISE_FLAG",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "TRAFFIC_SYSTEM_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "TRAFFIC_SYSTEM_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LIC_TERRITORY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "LIC_TERRITORY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TUA_EXPIRATION_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "TUA_EXPIRATION_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "NOTES",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "NOTES",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OS_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "OS_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OS_LOCATION_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "OS_LOCATION_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_ADDR_LINE1",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_ADDR_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_ADDR_LINE2",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "SITE_RAW_ADDR_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_CITY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_STATE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_STATE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_STATE_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_POSTAL_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_COUNTRY",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_COUNTRY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_LATITUDE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_LATITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_RAW_LONGITUDE",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_RAW_LONGITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_LEGAL_ENTITY_ID",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "F_LEGAL_ENTITY_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FP_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "FS_SITE_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_HS_OPC_Tracking",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "SetMaxHSOPCTrackingID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetMaxHSOPCTrackingID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "MaxHSOPCTrackingID",
+					"value": {
+						"value": "@activity('GetMaxHSOPCTrackingID').output.firstRow.RETURN_VALUE_ARGUMENT",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"B_LOADID": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"MaxHSOPCTrackingID": {
+				"type": "Integer"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-04-17T06:18:29Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

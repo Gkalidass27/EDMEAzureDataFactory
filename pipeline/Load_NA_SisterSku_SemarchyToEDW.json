@@ -1,0 +1,1986 @@
+{
+	"name": "Load_NA_SisterSku_SemarchyToEDW",
+	"properties": {
+		"activities": [
+			{
+				"name": "NationalAssortmentToEDW",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \nPM.PRODUCT_MAIN_ID as Item, \nPM.ITEM_COMPONENT_QUANTITY as Item_Components,\nPM.ITEM_FRIENDLY_DESCRIPTION as Item_Description,\nPM.SERIES_NUMBER as Series,\nPM.SERIES_NAME as Group_Description,\nPM.STATUS as Status,\nPM.ITEM_HS_PRODUCT_LINE as Product_Line,\nPM.ITEM_RETAIL_TYPE as Grouping,\nPM.ITEM_TYPE as Item_Type,\nPM.ITEM_IMPORT_DOMESTIC as Domestic_Import,\nPM.ITEM_FUTURE_STATUS as PD_Status,\nNA.HERO_SKU as HERO_SKU,\nNA.BUSINESS_CHANNEL as Business_Channel,\nNA.STORE_AREA as Store_Area,\nNA.PRIMARY_LOOK as Primary_Look,\nNA.SECONDARY_LOOK as Secondary_Look,\nNA.GOOD_BETTER_BEST as Good_Better_Best,\nNA.CMDT_EXCLSV_PRPRTRY_SGNTR as E_P_SD_SDC,\nNA.MONTH as Month,\nNA.MARKET_INTRODUCTION as Market_Introduction,\nNA.SIZE_SHAPE as Size_Shape,\nNA.FEATURE1 as Feature1,\nNA.FEATURE2 as Feature2,\nNA.FOUNDATION as Foundation,\nNA.PROGRAM as Program,\nNA.ASSORTMENT as Assortment,\nNA.B_CREDATE as Create_Date,\nNA.B_UPDDATE as Update_Date,\nNA.B_CREATOR as Creator,\nNA.B_UPDATOR as Updator\nFROM GD_NATIONAL_ASSORTMENT NA INNER JOIN GD_PRODUCT_MAIN PM\nON NA.F_PRODUCT_MAIN_ITEM = PM.PRODUCT_MAIN_ID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_NATIONAL_ASSORTMENT",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "NationalAssortmentProduct",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Teams_Failed_Notification_SemarchyToEDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "NationalAssortmentToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('NationalAssortmentToEDW').output.executionDetails[0].start",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('NationalAssortmentToEDW').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('NationalAssortmentToEDW').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('NationalAssortmentToEDW').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SemarchyToEDW_SuccessLogging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "NationalAssortmentToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+					"storedProcedureParameters": {
+						"CopyActivity_End_Time": {
+							"value": {
+								"value": "@{utcNow()}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_Start_Time": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0].start}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_transferDuration_in_secs": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0]. detailedDurations.transferDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"CopyDuration_in_secs": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.copyDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Execution_Status": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0].status}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_Name": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.rowsCopied}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.rowsRead}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RunId": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zoneRetail/SupplyChain/NationalAssortmentProduct",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_NATIONAL_ASSORTMENT",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SisterSKUToEDW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "NationalAssortmentToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \nPG.PRODUCT_GROUP_ID as Product_Group_ID,\nPG.CATEGORY as Category,\nPG.GROUP_NAME as Group_Name,\nPG.ITEM_DESCRIPTION as Item_Description,\nSS.F_ITEM as ITEM,\nPM.ITEM_COMPONENT_QUANTITY as Item_Components,\nPM.SERIES_NAME as Group_Description,\nPM.SERIES_NUMBER as Serires_Number\nFROM GD_PRODUCT_GROUP PG INNER JOIN GD_SISTER_SKU SS\n ON PG.PRODUCT_GROUP_ID = SS.F_PRODUCT_GROUP\n INNER JOIN GD_PRODUCT_MAIN PM\n ON SS.F_ITEM = PM.PRODUCT_MAIN_ID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_SISTER_SKU",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Sister_SKU",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "ColorwheelToEDW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SisterSKUToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \nPG.PRODUCT_GROUP_ID as Product_Group_ID,\nPG.CATEGORY as Category,\nPG.GROUP_NAME as Group_Name,\nPG.ITEM_DESCRIPTION as Item_Description,\nCW.F_ITEM as ITEM,\nPM.ITEM_COMPONENT_QUANTITY as Item_Components,\nPM.SERIES_NAME as Group_Description,\nPM.SERIES_NUMBER as Serires_Number\nFROM GD_PRODUCT_GROUP PG INNER JOIN GD_COLORWHEEL CW\n ON PG.PRODUCT_GROUP_ID = CW.F_PRODUCT_GROUP\n INNER JOIN GD_PRODUCT_MAIN PM\n ON CW.F_ITEM = PM.PRODUCT_MAIN_ID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_COLORWHEEL",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Colorwheel",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Teams_Failed_Notification_SisterSKUToEDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SisterSKUToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('SisterSKUToEDW').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('SisterSKUToEDW').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('SisterSKUToEDW').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('SisterSKUToEDW').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Teams_Failed_Notification_ColorwheelToEDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ColorwheelToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('ColorwheelToEDW').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('ColorwheelToEDW').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('ColorwheelToEDW').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('ColorwheelToEDW').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SisterSKUToEDW_SuccessLogging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SisterSKUToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+					"storedProcedureParameters": {
+						"CopyActivity_End_Time": {
+							"value": {
+								"value": "@{utcNow()}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_Start_Time": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0].start}\n",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_transferDuration_in_secs": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0]. detailedDurations.transferDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"CopyDuration_in_secs": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.copyDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Execution_Status": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0].status}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_Name": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.rowsCopied}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.rowsRead}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RunId": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zoneRetail/SupplyChain/SisterSKU",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_SISTER_SKU",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "ColorwheelToEDW_SuccessLogging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ColorwheelToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+					"storedProcedureParameters": {
+						"CopyActivity_End_Time": {
+							"value": {
+								"value": "@{utcNow()}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_Start_Time": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0].start}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_transferDuration_in_secs": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0]. detailedDurations.transferDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"CopyDuration_in_secs": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.copyDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Execution_Status": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0].status}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_Name": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.rowsCopied}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.rowsRead}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RunId": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zoneRetail/SupplyChain/Colorwheel",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_COLORWHEEL",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SemarchyToEDW_ErrorLoags",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "NationalAssortmentToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').error.errorCode}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').error.message}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('NationalAssortmentToEDW').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zoneRetail/SupplyChain/NationalAssortmentProduct",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_NATIONAL_ASSORTMENT",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('NationalAssortmentToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SisterSKUToEDW_ErrorLoags",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SisterSKUToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').error.errorCode}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').error.message}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('SisterSKUToEDW').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zoneRetail/SupplyChain/SisterSKU",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_SISTER_SKU",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('SisterSKUToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "ColorwheelToEDW_ErrorLoags",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ColorwheelToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').error.errorCode}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').error.message}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('ColorwheelToEDW').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zoneRetail/SupplyChain/Colorwheel",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_COLORWHEEL",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('ColorwheelToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "WestFoundationToEDW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ColorwheelToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \n\t  c.SERIES_NUMBER \n\t  ,c.SERIES_NAME\n\t  ,c.ITEM_HS_PRODUCT_LINE AS Category\n\t  , b.FOUNDATION AS National_Foundation\n      ,a.[WEST_FOUNDATION] AS West_Foundation\n      ,a.[West_OUTLET] AS West_Outlet\n\t   , a.[B_CREDATE] AS Create_Date\n      ,a.[B_UPDDATE] AS Update_Date\n      ,a.[B_CREATOR] AS Creator\n      ,a.[B_UPDATOR] AS Updator\n  FROM [dbo].[GD_WEST_FOUNDATION] a\n  LEFT JOIN dbo.GD_NATIONAL_ASSORTMENT b\n  ON a.F_NATIONAL_ASSORTMENT = b.NATIONAL_ASSORTMENT_ID\n  LEFT JOIN dbo.GD_PRODUCT_MAIN c\n  ON b.F_PRODUCT_MAIN_ITEM = c.PRODUCT_MAIN_ID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_WEST_FOUNDATION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "WestFoundation",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Teams_Failed_Notification_WestFoundationToEDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "WestFoundationToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('WestFoundationToEDW').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('WestFoundationToEDW').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('WestFoundationToEDW').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('WestFoundationToEDW').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "WestFoundationToEDW_SuccessLogging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "WestFoundationToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+					"storedProcedureParameters": {
+						"CopyActivity_End_Time": {
+							"value": {
+								"value": "@{utcNow()}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_Start_Time": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0].start}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_transferDuration_in_secs": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0]. detailedDurations.transferDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"CopyDuration_in_secs": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.copyDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Execution_Status": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0].status}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_Name": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.rowsCopied}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.rowsRead}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RunId": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zone/Retail/SupplyChain/WestFoundation",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_WEST_FOUNDATION",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "WestFoundationToEDW_ErrorLoags",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "WestFoundationToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').error.errorCode}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').error.message}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('WestFoundationToEDW').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zone/Retail/SupplyChain/WestFoundation",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_WEST_FOUNDATION",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('WestFoundationToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "EastFoundationToEDW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "WestFoundationToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT \n\t  c.SERIES_NUMBER \n\t  ,c.SERIES_NAME\n\t  ,c.ITEM_HS_PRODUCT_LINE AS Category\n\t  , b.FOUNDATION AS National_Foundation\n      ,a.[EAST_FOUNDATION] AS East_Foundation\n      ,a.[EAST_OUTLET] AS East_Outlet\n\t   , a.[B_CREDATE] AS Create_Date\n      ,a.[B_UPDDATE] AS Update_Date\n      ,a.[B_CREATOR] AS Creator\n      ,a.[B_UPDATOR] AS Updator\n  FROM [dbo].[GD_EAST_FOUNDATION] a\n  LEFT JOIN dbo.GD_NATIONAL_ASSORTMENT b\n  ON a.F_NATIONAL_ASSORTMENT = b.NATIONAL_ASSORTMENT_ID\n  LEFT JOIN dbo.GD_PRODUCT_MAIN c\n  ON b.F_PRODUCT_MAIN_ITEM = c.PRODUCT_MAIN_ID",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GD_EAST_FOUNDATION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "EastFoundation",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Teams_Failed_Notification_EastFoundationToEDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "EastFoundationToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Notify_Teams_Channale_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"subscription": {
+							"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+							"type": "Expression"
+						},
+						"resourceGroup": "afi-edme-rg",
+						"runId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"triggerTime": {
+							"value": "@activity('EastFoundationToEDW').output.executionDetails[0].start\n",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "@activity('EastFoundationToEDW').output.executionDetails[0].status",
+							"type": "Expression"
+						},
+						"message": {
+							"value": "@replace(activity('EastFoundationToEDW').error.message,'\"','')",
+							"type": "Expression"
+						},
+						"executionEndTime": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"runDuration": {
+							"value": "@activity('EastFoundationToEDW').output.copyDuration",
+							"type": "Expression"
+						},
+						"teamWebhookUrl": {
+							"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "EastFoundationToEDWToEDW_SuccessLogging",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "EastFoundationToEDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFLogging]",
+					"storedProcedureParameters": {
+						"CopyActivity_End_Time": {
+							"value": {
+								"value": "@{utcNow()}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_Start_Time": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0].start}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"CopyActivity_transferDuration_in_secs": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0]. detailedDurations.transferDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"CopyDuration_in_secs": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.copyDuration}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Execution_Status": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0].status}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_Name": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.rowsCopied}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.rowsRead}",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"RunId": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zone/Retail/SupplyChain/EastFoundation",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_EAST_FOUNDATION",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "EastFoundationToEDWToEDW_ErrorLoags",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "EastFoundationToEDW",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Audit].[uspInsertADFErrorLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').error.errorCode}\n",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMsg": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').error.message}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorStatusCode": {
+							"value": {
+								"value": "@activity('EastFoundationToEDW').StatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FailureType": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').error.failureType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@{pipeline().Pipeline}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RunID": {
+							"value": {
+								"value": "@{pipeline().RunId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink": {
+							"value": {
+								"value": "trusted-zone/Retail/SupplyChain/EastFoundation",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Sink_Type": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0].sink.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source": {
+							"value": {
+								"value": "GD_EAST_FOUNDATION",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Source_Type": {
+							"value": {
+								"value": "@{activity('EastFoundationToEDW').output.executionDetails[0].source.type}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerId": {
+							"value": {
+								"value": "@{pipeline().TriggerId}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerName": {
+							"value": {
+								"value": "@{pipeline().TriggerName}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerTime": {
+							"value": {
+								"value": "@{pipeline().TriggerTime}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"TriggerType": {
+							"value": {
+								"value": "@{pipeline().TriggerType}",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"folder": {
+			"name": "Product_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-10-03T10:29:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
