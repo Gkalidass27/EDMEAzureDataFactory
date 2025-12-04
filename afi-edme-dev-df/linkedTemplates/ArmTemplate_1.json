@@ -68,6 +68,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'functionKey' of 'agr_multi_channel_mktg_hub_customer_dev_func'"
 		},
+		"masterDataHubStg_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'masterDataHubStg'"
+		},
 		"Postal_datadownload_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://releases.melissadata.net/Download/Data/2024.07/z5max.txt"
@@ -100,13 +104,9 @@
 			"type": "string",
 			"defaultValue": "https://agr-multi-channel-mktg-hub-customer-dev-func.azurewebsites.net"
 		},
-		"edmeCosmos_properties_typeProperties_accountEndpoint": {
+		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
-			"defaultValue": ""
-		},
-		"edmeCosmos_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": ""
+			"defaultValue": "https://afimasterdatahubstagestg.dfs.core.windows.net"
 		}
 	},
 	"variables": {
@@ -405,15 +405,18 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/edmeCosmos')]",
+			"name": "[concat(parameters('factoryName'), '/masterDataHubStg')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
-				"type": "CosmosDb",
+				"type": "AzureBlobFS",
 				"typeProperties": {
-					"accountEndpoint": "[parameters('edmeCosmos_properties_typeProperties_accountEndpoint')]",
-					"database": "[parameters('edmeCosmos_properties_typeProperties_database')]"
+					"url": "[parameters('masterDataHubStg_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('masterDataHubStg_accountKey')]"
+					}
 				}
 			},
 			"dependsOn": []
