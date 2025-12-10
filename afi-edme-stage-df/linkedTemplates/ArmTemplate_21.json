@@ -1,0 +1,2491 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "afi-edme-stage-df"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Staging_AllSourceCustomers')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StoreMasterCustom_LegalEntities_CompanyCodes')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": "StoreMasterCustom_LegalEntities_CompanyCodes",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "legal_entity_id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "type",
+						"type": "String"
+					},
+					{
+						"name": "lic_contact",
+						"type": "String"
+					},
+					{
+						"name": "company_code",
+						"type": "String"
+					},
+					{
+						"name": "lic_contact_email",
+						"type": "String"
+					},
+					{
+						"name": "raw_lic_contact_phone",
+						"type": "String"
+					},
+					{
+						"name": "raw_addr_line1",
+						"type": "String"
+					},
+					{
+						"name": "raw_addr_line2",
+						"type": "String"
+					},
+					{
+						"name": "raw_city",
+						"type": "String"
+					},
+					{
+						"name": "raw_state",
+						"type": "String"
+					},
+					{
+						"name": "raw_state_code",
+						"type": "String"
+					},
+					{
+						"name": "raw_country",
+						"type": "String"
+					},
+					{
+						"name": "raw_country_code",
+						"type": "String"
+					},
+					{
+						"name": "raw_postal_code",
+						"type": "String"
+					},
+					{
+						"name": "raw_longitude",
+						"type": "String"
+					},
+					{
+						"name": "raw_latitude",
+						"type": "String"
+					},
+					{
+						"name": "mailing_addr_line1",
+						"type": "String"
+					},
+					{
+						"name": "mailing_addr_line2",
+						"type": "String"
+					},
+					{
+						"name": "mailing_city",
+						"type": "String"
+					},
+					{
+						"name": "mailing_state",
+						"type": "String"
+					},
+					{
+						"name": "mailing_state_code",
+						"type": "String"
+					},
+					{
+						"name": "mailing_country",
+						"type": "String"
+					},
+					{
+						"name": "mailing_country_code",
+						"type": "String"
+					},
+					{
+						"name": "mailing_postal_code",
+						"type": "String"
+					},
+					{
+						"name": "os_legal_entity_id",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StoreMasterCustom_LegalEntities_Mapping')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": "StoreMasterCustom_LegalEntities_Mapping",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "EntityName",
+						"type": "String"
+					},
+					{
+						"name": "LegalEntityID",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StoreMasterCustom_Sites_JoinCodes')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"folderPath": "SiteMasterFiles",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Location",
+						"type": "String"
+					},
+					{
+						"name": "JoinCode",
+						"type": "String"
+					},
+					{
+						"name": "SiteID",
+						"type": "String"
+					},
+					{
+						"name": "Account",
+						"type": "String"
+					},
+					{
+						"name": "StoreFrontShipTo",
+						"type": "String"
+					},
+					{
+						"name": "Type",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Store_Details_Files')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dac_store_details",
+						"fileSystem": "raw-zone"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"AccountID": {
+							"type": "string"
+						},
+						"LocationID": {
+							"type": "string"
+						},
+						"LocationNumber": {
+							"type": "string"
+						},
+						"ReferenceCode": {
+							"type": "string"
+						},
+						"CreatedBy": {
+							"type": "string"
+						},
+						"ModifiedBy": {
+							"type": "string"
+						},
+						"Created": {
+							"type": "string"
+						},
+						"Modified": {
+							"type": "string"
+						},
+						"LocationData": {
+							"type": "object",
+							"properties": {
+								"KeyFields": {
+									"type": "object",
+									"properties": {
+										"CSOLocationID": {
+											"type": "string"
+										},
+										"ITGAccountId": {
+											"type": "string"
+										},
+										"ITGAccountNumber": {
+											"type": "string"
+										},
+										"ITGClientId": {
+											"type": "string"
+										},
+										"ITGClientNumber": {
+											"type": "string"
+										},
+										"AgencyCode": {
+											"type": "string"
+										},
+										"Reference Code": {
+											"type": "string"
+										},
+										"CMR": {
+											"type": "string"
+										},
+										"Open Holidays": {
+											"type": "string"
+										},
+										"Exteriorphoto": {
+											"type": "string"
+										},
+										"CustomerServiceHours": {
+											"type": "string"
+										},
+										"HideAddress": {
+											"type": "string"
+										},
+										"PinMarker": {
+											"type": "string"
+										},
+										"AutoDisplayPoint": {
+											"type": "string"
+										},
+										"ScheduleApptURL": {
+											"type": "string"
+										},
+										"GoogleBusinessDescription": {
+											"type": "string"
+										},
+										"primarylanguage": {
+											"type": "string"
+										},
+										"ChainName": {
+											"type": "string"
+										},
+										"StoreLocatorDisabled": {
+											"type": "string"
+										},
+										"AppleBusinessName": {
+											"type": "string"
+										},
+										"StoreStatus": {
+											"type": "string"
+										},
+										"Flyerlink": {
+											"type": "string"
+										},
+										"ManagerName": {
+											"type": "string"
+										},
+										"ManagerDescription": {
+											"type": "string"
+										},
+										"Promotion1Image": {
+											"type": "string"
+										},
+										"PodiumID": {
+											"type": "string"
+										},
+										"ReportGroup": {
+											"type": "string"
+										},
+										"Promotion2Image": {
+											"type": "string"
+										},
+										"Reference Code 2": {
+											"type": "string"
+										},
+										"Google Preferred Photo": {
+											"type": "string"
+										},
+										"Promotion1URL": {
+											"type": "string"
+										},
+										"Promotion2URL": {
+											"type": "string"
+										}
+									}
+								},
+								"DisplayPoint": {
+									"type": "object",
+									"properties": {
+										"Type": {
+											"type": "string"
+										},
+										"Latitude": {
+											"type": "number"
+										},
+										"Longitude": {
+											"type": "number"
+										},
+										"VerificationType": {
+											"type": "string"
+										}
+									}
+								},
+								"BusinessStatus": {
+									"type": "string"
+								},
+								"Status": {
+									"type": "string"
+								},
+								"BusinessName": {
+									"type": "object",
+									"properties": {
+										"Name": {
+											"type": "string"
+										},
+										"LongName": {
+											"type": "string"
+										},
+										"Locale": {
+											"type": "integer"
+										}
+									}
+								},
+								"BusinessDescription": {
+									"type": "object",
+									"properties": {
+										"Description": {
+											"type": "string"
+										},
+										"ShortDescription": {
+											"type": "string"
+										},
+										"LongDescription": {
+											"type": "string"
+										}
+									}
+								},
+								"PrimaryAddress": {
+									"type": "object",
+									"properties": {
+										"AddressLine1": {
+											"type": "string"
+										},
+										"Locality": {
+											"type": "string"
+										},
+										"Region": {
+											"type": "string"
+										},
+										"PostalCode": {
+											"type": "string"
+										},
+										"CountryCode": {
+											"type": "string"
+										},
+										"AddressLine2": {
+											"type": "string"
+										}
+									}
+								},
+								"PhoneNumbers": {
+									"type": "object",
+									"properties": {
+										"PrimaryPhoneNumber": {
+											"type": "string"
+										},
+										"Landline": {
+											"type": "string"
+										},
+										"TollFree": {
+											"type": "string"
+										},
+										"Fax": {
+											"type": "string"
+										}
+									}
+								},
+								"WebsiteURL": {
+									"type": "string"
+								},
+								"AlternateWebsiteURL": {
+									"type": "string"
+								},
+								"MediaURLs": {
+									"type": "object",
+									"properties": {
+										"FacebookURL": {
+											"type": "string"
+										},
+										"TwitterURL": {
+											"type": "string"
+										},
+										"InstagramURL": {
+											"type": "string"
+										},
+										"PinterestURL": {
+											"type": "string"
+										},
+										"SocialNetworkURL": {
+											"type": "string"
+										}
+									}
+								},
+								"HoursOfOperationStructured": {
+									"type": "object",
+									"properties": {
+										"Su": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"Mo": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"Tu": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"We": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"Th": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"Fr": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"Sa": {
+											"type": "object",
+											"properties": {
+												"Ranges": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"StartTime": {
+																"type": "string"
+															},
+															"EndTime": {
+																"type": "string"
+															}
+														}
+													}
+												},
+												"State": {
+													"type": "string"
+												}
+											}
+										},
+										"SpecialHours": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"Date": {
+														"type": "string"
+													},
+													"Ranges": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"StartTime": {
+																	"type": "string"
+																},
+																"EndTime": {
+																	"type": "string"
+																}
+															}
+														}
+													},
+													"State": {
+														"type": "string"
+													}
+												}
+											}
+										}
+									}
+								},
+								"BusinessCategories": {
+									"type": "object",
+									"properties": {
+										"Category1": {
+											"type": "string"
+										},
+										"Category2": {
+											"type": "string"
+										},
+										"Category3": {
+											"type": "string"
+										},
+										"Category4": {
+											"type": "string"
+										},
+										"Category5": {
+											"type": "string"
+										},
+										"Category6": {
+											"type": "string"
+										},
+										"Category7": {
+											"type": "string"
+										},
+										"Category8": {
+											"type": "string"
+										},
+										"Category9": {
+											"type": "string"
+										},
+										"Category10": {
+											"type": "string"
+										}
+									}
+								},
+								"EmailAddress": {
+									"type": "string"
+								},
+								"PhotoURLs": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"Type": {
+												"type": "string"
+											},
+											"URL": {
+												"type": "string"
+											},
+											"Name": {
+												"type": "string"
+											}
+										}
+									}
+								},
+								"KeywordsSpecialties": {
+									"type": "string"
+								},
+								"Products": {
+									"type": "string"
+								},
+								"Services": {
+									"type": "string"
+								},
+								"Brands": {
+									"type": "string"
+								},
+								"Tagline": {
+									"type": "string"
+								},
+								"AreasServed": {
+									"type": "string"
+								},
+								"Languages": {
+									"type": "string"
+								},
+								"PaymentMethods": {
+									"type": "string"
+								},
+								"YearFounded": {
+									"type": "string"
+								},
+								"NumberEmployees": {
+									"type": "string"
+								}
+							}
+						},
+						"ADFWebActivityResponseHeaders": {
+							"type": "object",
+							"properties": {
+								"Pragma": {
+									"type": "string"
+								},
+								"Access-Control-Expose-Headers": {
+									"type": "string"
+								},
+								"Cache-Control": {
+									"type": "string"
+								},
+								"Set-Cookie": {
+									"type": "string"
+								},
+								"Request-Context": {
+									"type": "string"
+								},
+								"Date": {
+									"type": "string"
+								},
+								"Content-Length": {
+									"type": "string"
+								},
+								"Content-Type": {
+									"type": "string"
+								},
+								"Expires": {
+									"type": "string"
+								}
+							}
+						},
+						"effectiveIntegrationRuntime": {
+							"type": "string"
+						},
+						"executionDuration": {
+							"type": "integer"
+						},
+						"durationInQueue": {
+							"type": "object",
+							"properties": {
+								"integrationRuntimeQueue": {
+									"type": "integer"
+								}
+							}
+						},
+						"billingReference": {
+							"type": "object",
+							"properties": {
+								"activityType": {
+									"type": "string"
+								},
+								"billableDuration": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"meterType": {
+												"type": "string"
+											},
+											"duration": {
+												"type": "number"
+											},
+											"unit": {
+												"type": "string"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Storis_Integration_Site')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Retail_SiteMaster",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_PUBID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_SOURCEID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ISACTIVE",
+						"type": "bit"
+					},
+					{
+						"name": "SITE_DESCRIPTION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_OWNERSHIP_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADDRESS_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADDRESS_ERROR_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWADDRESS_LINE1",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWADDRESS_LINE2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWCITY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWSTATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWPOSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWCOUNTRY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTREET_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTREET_NUMBER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STACITY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STAPOSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STACOUNTRY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STALATITUDE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STALONGITUDE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_SITE_OWNER",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "OPERATIONS_START_DATE",
+						"type": "date"
+					},
+					{
+						"name": "OPERATIONS_END_DATE",
+						"type": "date"
+					},
+					{
+						"name": "CUSTOMER_OPEN_DATE",
+						"type": "date"
+					},
+					{
+						"name": "CUSTOMER_CLOSE_DATE",
+						"type": "date"
+					},
+					{
+						"name": "LOCAL_CURRENCY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TOTAL_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "OPERATIONS_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "CUSTOMER_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "F_SITE_DEFAULT_HOURS",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FD_SITE_DEFAULT_HOURS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_SHIP_TO",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_MAIN_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_MAIN_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MAIN_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_FAX",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_FAX",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FAX_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CS_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_CS_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CS_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CS_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VLD_CS_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SALES_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_SALES_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SALES_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SALES_CHAT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SERVICE_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_SERVICE_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SERVICE_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SERVICE_CHAT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_WAREHOUSE_PARENT",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SD_SITE"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Storis_Integration_Site_WH')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Retail_SiteMaster",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_PUBID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_SOURCEID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ISACTIVE",
+						"type": "bit"
+					},
+					{
+						"name": "SITE_DESCRIPTION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_OWNERSHIP_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADDRESS_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADDRESS_ERROR_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWADDRESS_LINE1",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWADDRESS_LINE2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWCITY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWSTATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWPOSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAWCOUNTRY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTREET_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTREET_NUMBER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STACITY",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STASTATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STAPOSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STACOUNTRY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STALATITUDE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STALONGITUDE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_SITE_OWNER",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_SITE_OWNER",
+						"type": "nvarchar"
+					},
+					{
+						"name": "OPERATIONS_START_DATE",
+						"type": "date"
+					},
+					{
+						"name": "OPERATIONS_END_DATE",
+						"type": "date"
+					},
+					{
+						"name": "CUSTOMER_OPEN_DATE",
+						"type": "date"
+					},
+					{
+						"name": "CUSTOMER_CLOSE_DATE",
+						"type": "date"
+					},
+					{
+						"name": "LOCAL_CURRENCY_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TOTAL_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "OPERATIONS_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "CUSTOMER_SITE_AREA",
+						"type": "decimal",
+						"precision": 12,
+						"scale": 4
+					},
+					{
+						"name": "F_SITE_DEFAULT_HOURS",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FD_SITE_DEFAULT_HOURS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_SHIP_TO",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_MAIN_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_MAIN_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MAIN_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_FAX",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_FAX",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FAX_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CS_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_CS_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CS_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CS_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VLD_CS_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SALES_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_SALES_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SALES_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SALES_CHAT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SERVICE_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_SERVICE_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SERVICE_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_SERVICE_CHAT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_WAREHOUSE_PARENT",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_WAREHOUSE_PARENT",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SD_SITE"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Tbl_Postal_Code_Hist')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ENT_REF_POSTAL_CODE_ID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "varchar"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "POSTAL_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STATE_OR_PROVINCE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CITY_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CITY_ABBREVIATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_CODE",
+						"type": "varchar"
+					},
+					{
+						"name": "TIME_ZONE",
+						"type": "varchar"
+					},
+					{
+						"name": "OBSERVES_DST",
+						"type": "bit"
+					},
+					{
+						"name": "LATITUDE",
+						"type": "decimal",
+						"precision": 9,
+						"scale": 5
+					},
+					{
+						"name": "LONGITUDE",
+						"type": "decimal",
+						"precision": 9,
+						"scale": 5
+					},
+					{
+						"name": "IS_PREFERRED_CITY_NAME",
+						"type": "bit"
+					},
+					{
+						"name": "POSTAL_CODE_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MSA_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FIPS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "active_flag",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "Ref_PostalCode",
+					"table": "PostalCode_History"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Tbl_RealEstate_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "Retail",
+					"table": "Tbl_RealEstate_Staging_raw"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/USA_Zip_Code_File')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename_USA": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename_USA",
+							"type": "Expression"
+						},
+						"folderPath": "Postal_Code_Source_Files",
+						"fileSystem": "postal-code"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "City",
+						"type": "String"
+					},
+					{
+						"name": "ST",
+						"type": "String"
+					},
+					{
+						"name": "ZIP",
+						"type": "String"
+					},
+					{
+						"name": "A/C",
+						"type": "String"
+					},
+					{
+						"name": "FIPS",
+						"type": "String"
+					},
+					{
+						"name": "County",
+						"type": "String"
+					},
+					{
+						"name": "Pref?",
+						"type": "String"
+					},
+					{
+						"name": "T/Z",
+						"type": "String"
+					},
+					{
+						"name": "DST?",
+						"type": "String"
+					},
+					{
+						"name": "Lat",
+						"type": "String"
+					},
+					{
+						"name": "Long",
+						"type": "String"
+					},
+					{
+						"name": "MSA",
+						"type": "String"
+					},
+					{
+						"name": "PMSA",
+						"type": "String"
+					},
+					{
+						"name": "Abbreviation",
+						"type": "String"
+					},
+					{
+						"name": "MA",
+						"type": "String"
+					},
+					{
+						"name": "Type",
+						"type": "String"
+					},
+					{
+						"name": "CBSA",
+						"type": "String"
+					},
+					{
+						"name": "Div",
+						"type": "String"
+					},
+					{
+						"name": "Population",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/US_Zip_Code_Table')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "Ref_PostalCode",
+					"table": "ZipInfo_USz5max"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/UpdateTriggerTime')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Update_Email_Chunk')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/WestFoundation')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "WestFoundation.parquet",
+						"folderPath": "Retail/SupplyChain/WestFoundation",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/WestFoundation_Historical')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "HistoricalWestFoundation.parquet",
+						"folderPath": "Retail/SupplyChain/HistoricalWestFoundation",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cdp_customer_deduped')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "CDP_CustomerProfiling",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "clusterID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "confidence_score",
+						"type": "varchar"
+					},
+					{
+						"name": "globalID",
+						"type": "varchar"
+					},
+					{
+						"name": "RecID",
+						"type": "varchar"
+					},
+					{
+						"name": "posRawContainerRecID",
+						"type": "varchar"
+					},
+					{
+						"name": "posFirstName",
+						"type": "varchar"
+					},
+					{
+						"name": "posMiddleInitial",
+						"type": "varchar"
+					},
+					{
+						"name": "posLastName",
+						"type": "varchar"
+					},
+					{
+						"name": "posCustomerEmail1",
+						"type": "varchar"
+					},
+					{
+						"name": "posCustomerEmail2",
+						"type": "varchar"
+					},
+					{
+						"name": "posCustomerEmail3",
+						"type": "varchar"
+					},
+					{
+						"name": "posCustomerPhone1",
+						"type": "varchar"
+					},
+					{
+						"name": "posCustomerPhone2",
+						"type": "varchar"
+					},
+					{
+						"name": "posCustomerPhone3",
+						"type": "varchar"
+					},
+					{
+						"name": "n_address",
+						"type": "varchar"
+					},
+					{
+						"name": "n_addr2",
+						"type": "varchar"
+					},
+					{
+						"name": "n_city",
+						"type": "varchar"
+					},
+					{
+						"name": "n_state",
+						"type": "varchar"
+					},
+					{
+						"name": "n_zip9",
+						"type": "varchar"
+					},
+					{
+						"name": "posFaceBookID",
+						"type": "varchar"
+					},
+					{
+						"name": "posTwitterID",
+						"type": "varchar"
+					},
+					{
+						"name": "market_id",
+						"type": "varchar"
+					},
+					{
+						"name": "customer_type",
+						"type": "varchar"
+					},
+					{
+						"name": "timestamp",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "customer_since",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "dtec",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "posFirstNameSoundex",
+						"type": "varchar"
+					},
+					{
+						"name": "posLastNameSoundex",
+						"type": "varchar"
+					},
+					{
+						"name": "Alpha",
+						"type": "varchar"
+					},
+					{
+						"name": "SourceSystem",
+						"type": "varchar"
+					},
+					{
+						"name": "SourceSubSystem",
+						"type": "varchar"
+					},
+					{
+						"name": "racProfitCenter",
+						"type": "nvarchar"
+					},
+					{
+						"name": "racSalesNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "do_not_sell",
+						"type": "bit"
+					},
+					{
+						"name": "Flag",
+						"type": "varchar"
+					},
+					{
+						"name": "EntryID",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "do_not_sell_request_date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "unsubscribe",
+						"type": "bit"
+					},
+					{
+						"name": "unsubscribe_date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "birthdate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_postalcode_StateOrProvinceCode')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/edw_store')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Retail-Customer-Source-Files",
+						"fileSystem": "retail-customer"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "clusterID",
+						"type": "String"
+					},
+					{
+						"name": "globalID",
+						"type": "String"
+					},
+					{
+						"name": "confidence_score",
+						"type": "String"
+					},
+					{
+						"name": "RecID",
+						"type": "String"
+					},
+					{
+						"name": "posRawContainerRecID",
+						"type": "String"
+					},
+					{
+						"name": "market_id",
+						"type": "String"
+					},
+					{
+						"name": "posFirstName",
+						"type": "String"
+					},
+					{
+						"name": "posMiddleInitial",
+						"type": "String"
+					},
+					{
+						"name": "posLastName",
+						"type": "String"
+					},
+					{
+						"name": "posCustomerEmail1",
+						"type": "String"
+					},
+					{
+						"name": "posCustomerEmail2",
+						"type": "String"
+					},
+					{
+						"name": "posCustomerEmail3",
+						"type": "String"
+					},
+					{
+						"name": "posCustomerPhone1",
+						"type": "String"
+					},
+					{
+						"name": "posCustomerPhone2",
+						"type": "String"
+					},
+					{
+						"name": "posCustomerPhone3",
+						"type": "String"
+					},
+					{
+						"name": "n_address",
+						"type": "String"
+					},
+					{
+						"name": "n_addr2",
+						"type": "String"
+					},
+					{
+						"name": "n_city",
+						"type": "String"
+					},
+					{
+						"name": "n_state",
+						"type": "String"
+					},
+					{
+						"name": "n_zip9",
+						"type": "String"
+					},
+					{
+						"name": "posFaceBookID",
+						"type": "String"
+					},
+					{
+						"name": "posTwitterID",
+						"type": "String"
+					},
+					{
+						"name": "timestamp",
+						"type": "String"
+					},
+					{
+						"name": "customer_type",
+						"type": "String"
+					},
+					{
+						"name": "customer_since",
+						"type": "String"
+					},
+					{
+						"name": "SourceSystem",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_EXTERNAL_REF_COUNTRY')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHub_Retail",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "EXTERNAL_REF_COUNTRY_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DUPSOPERATIONID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_DUPSMERGETARGET",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_COPIEDFROM",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_CODE_A2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_CODE_A3",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_LOCAL_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "COUNTRY_UN_CODE",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SA_EXTERNAL_REF_COUNTRY"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_EXTERNAL_REF_US_STATE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHub_Retail",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "EXTERNAL_REF_US_STATE_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DUPSOPERATIONID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_DUPSMERGETARGET",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_COPIEDFROM",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STATE_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STATE_NAME",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SA_EXTERNAL_REF_US_STATE"
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
