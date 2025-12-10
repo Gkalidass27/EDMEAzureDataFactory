@@ -1,0 +1,556 @@
+{
+	"name": "z_Load_Retail_LegalEntityLoad_InitialLoad",
+	"properties": {
+		"activities": [
+			{
+				"name": "SiteLegalEntityOWNER",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SiteLegalEntity",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "Loadid",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT B_CLASSNAME,\nB_SOURCEID,\nB_PUBID,\nB_CREDATE,\nOWNER_FIRST_NAME,\nOWNER_LAST_NAME,\nRAW_OWNER_PHONE,\nRAW_CONTACT_EMAIL,\nROW_NUMBER() OVER (PARTITION BY B_SOURCEID, B_PUBID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SD_SITE_LEGAL_ENTITY_OWNER WITH (NOLOCK) \n) SL WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Loadid",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "OWNER_FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "OWNER_FIRST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OWNER_LAST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "OWNER_LAST_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_OWNER_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_OWNER_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_CONTACT_EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_CONTACT_EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SD_Site_Legal_Entity_OWNER",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "SiteLegalEntity",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT SITE_LEGAL_ENTITY_ID,\nB_PUBID,\nB_CLASSNAME,\nB_CREDATE,\nSITE_LEGAL_ENTITY_NAME,\nRAW_SITE_ADDRESS_LINE1,\nRAW_SITE_ADDRESS_LINE2,\nRAW_SITE_CITY,\nRAW_SITE_STATE_CODE,\nRAW_SITE_POSTAL_CODE,\nRAW_SITE_COUNTRY_CODE,\nSITE_LEGAL_ENTITY_TYPE,\nF_SITE_LEGAL_ENTITY,\nFD_SITE_LEGAL_ENTITY,\nROW_NUMBER() OVER (PARTITION BY SITE_LEGAL_ENTITY_ID, B_PUBID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SD_SITE_LEGAL_ENTITY WITH (NOLOCK) \n) SL WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_LEGAL_ENTITY_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								},
+								"sink": {
+									"name": "SITE_LEGAL_ENTITY_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_LEGAL_ENTITY_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_LEGAL_ENTITY_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SITE_ADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SITE_ADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SITE_ADDRESS_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SITE_ADDRESS_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SITE_CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SITE_CITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SITE_STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SITE_STATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SITE_POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SITE_POSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SITE_COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SITE_COUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_LEGAL_ENTITY_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_LEGAL_ENTITY_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_SITE_LEGAL_ENTITY",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								},
+								"sink": {
+									"name": "F_SITE_LEGAL_ENTITY",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "FD_SITE_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FD_SITE_LEGAL_ENTITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SD_Site_Legal_Entity",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'LegalEntityLoad'\r\n,@P_LOAD_DESCRIPTION = 'LegalEntityLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "SetNewLoadId",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SubmitLoad",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "SiteLegalEntityOWNER",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "LegalEntityLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"variables": {
+			"LoadID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-12-08T10:02:16Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

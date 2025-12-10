@@ -1,0 +1,121 @@
+{
+	"name": "00_Load_SiteMaster_Incremental",
+	"properties": {
+		"activities": [
+			{
+				"name": "Stage_EDW",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage_SiteMaster_Mappings",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_SiteMaster_EDW",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Load_SiteMaster_Incremental",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage_EDW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_SiteMaster_Incremental",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Stage_Smartsheet",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_SiteMaster_Smartsheet",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Stage_SiteMaster_Mappings",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage_Storemaster_Smartsheet",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_SiteMaster_Mappings",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Stage_Storemaster_Smartsheet",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Stage_Smartsheet",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Stage_Storemaster_Smartsheet",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-12-08T10:02:23Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

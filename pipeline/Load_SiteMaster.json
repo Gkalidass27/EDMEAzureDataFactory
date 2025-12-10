@@ -1,0 +1,632 @@
+{
+	"name": "Load_SiteMaster",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Preserve_WebUI_CompanyCode",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\r\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SetNewLoadId",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Preserve_WebUI_CompanyCode",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT DISTINCT \n          LEGAL_ENTITY_ID,\n          LIC_CONTACT, \n          COMPANY_CODE,\n\t\t  GetDate() as LOAD_DATE\nFROM DBO.GD_LEGAL_ENTITY WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE [EDW].[RSM_LicContact_CompanyCode]",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LEGAL_ENTITY_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "LEGAL_ENTITY_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "LIC_CONTACT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LIC_CONTACT",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "COMPANY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "COMPANY_CODE",
+									"type": "String",
+									"physicalType": "varchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LOAD_DATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "LOAD_DATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Retail_SiteMaster_GD_LEGAL_ENTITY",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "EDW_RSM_LicContact_CompanyCode",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Load_Site",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SiteAdditionalInfoIncremental",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_Site",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"B_LOADID": {
+							"value": "@variables('LoadID')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SubmitLoad",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Load_Tracking",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "RetailSiteDataLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Load_LegalEntity",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_Site",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_LegalEntity",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"B_LOADID": {
+							"value": "@variables('LoadID')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Load_Tracking",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Load_LegalEntity",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load_Tracking",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"B_LOADID": {
+							"value": "@variables('LoadID')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SiteAdditionalInfoIncremental",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "B_LoadID",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": "SELECT\n'SiteAdditionalInformation' AS B_CLASSNAME,\nGETDATE() AS B_CREDATE,\nGETDATE() AS B_UPDDATE,\n'semadmin' AS B_CREATOR,\n'INITIALLOAD' AS B_PUBID,\nid AS SITE_ADDITIONAL_INFO_ID,\nopr_monday_start_time AS OPR_MONDAY_START_TIME,\nopr_monday_end_time AS OPR_MONDAY_END_TIME,\nopr_tuesday_start_time AS OPR_TUESDAY_START_TIME,\nopr_tuesday_end_time AS OPR_TUESDAY_END_TIME,\nopr_wednesday_start_time AS OPR_WEDNESDAY_START_TIME,\nopr_wednesday_end_time AS OPR_WEDNESDAY_END_TIME,\nopr_thursday_start_time AS OPR_THURSDAY_START_TIME,\nopr_thursday_end_time AS OPR_THURSDAY_END_TIME,\nopr_friday_start_time AS OPR_FRIDAY_START_TIME,\nopr_friday_end_time AS OPR_FRIDAY_END_TIME,\nopr_saturday_start_time AS OPR_SATURDAY_START_TIME,\nopr_saturday_end_time AS OPR_SATURDAY_END_TIME,\nopr_sunday_start_time AS OPR_SUNDAY_START_TIME,\nopr_sunday_end_time AS OPR_SUNDAY_END_TIME\nFROM Retail.v_site_additional_info_incremental WITH(NOLOCK)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "B_LoadID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_ADDITIONAL_INFO_ID",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "SITE_ADDITIONAL_INFO_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime"
+								},
+								"sink": {
+									"name": "B_UPDDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "B_CREATOR",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_MONDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_MONDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_MONDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_MONDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_TUESDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_TUESDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_TUESDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_TUESDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_WEDNESDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_WEDNESDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_WEDNESDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_WEDNESDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_THURSDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_THURSDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_THURSDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_THURSDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_FRIDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_FRIDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_FRIDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_FRIDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_SATURDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_SATURDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_SATURDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_SATURDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_SUNDAY_START_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_SUNDAY_START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPR_SUNDAY_END_TIME",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "OPR_SUNDAY_END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "Semarchy_Staging",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SITE_ADDITIONAL_INFO",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"LoadID": {
+				"type": "String"
+			},
+			"MaxHSOPCTrackingID": {
+				"type": "Integer"
+			},
+			"B_LOADID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-12-08T10:02:20Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,1845 @@
+{
+	"name": "z_Load_Retail_SiteMasterLoad_DAC_initialLoad",
+	"properties": {
+		"description": "Upsert_DACJSONLoadSiteMain",
+		"activities": [
+			{
+				"name": "IncrementalSiteMainView",
+				"description": "select all data from DACJSONLoadSiteMain view",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT \nB_CLASSNAME,\nB_PUBID,\nB_SOURCEID,\nB_CREDATE,\nSITE_NAME,\nSITE_TYPE,\nISACTIVE,\nSITE_DESCRIPTION,\nSITE_OWNERSHIP_TYPE,\nADDRESS_STATUS_CODE,\nADDRESS_ERROR_CODE,\nRAWADDRESS_LINE1,\nRAWADDRESS_LINE2,\nRAWCITY,\nRAWSTATE_CODE,\nRAWPOSTAL_CODE,\nRAWCOUNTRY_CODE,\nSTASTREET_NAME,\nSTASTREET_NUMBER,\nSTACITY,\nSTASTATE_CODE,\nSTAPOSTAL_CODE,\nSTACOUNTRY_CODE,\nSTALATITUDE,\nSTALONGITUDE,\nOPERATIONS_START_DATE,\nOPERATIONS_END_DATE,\nCUSTOMER_OPEN_DATE,\nCUSTOMER_CLOSE_DATE,\nLOCAL_CURRENCY_CODE,\nLOCAL_UNIT_OF_MEASURE_ARE,\nTOTAL_SITE_AREA,\nOPERATIONS_SITE_AREA,\nCUSTOMER_SITE_AREA,\nSITE_SHIP_TO,\nRAW_MAIN_PHONE,\nSTD_MAIN_PHONE,\nMAIN_PHONE_STATUS_CODE,\nRAW_FAX,\nSTD_FAX,\nFAX_STATUS_CODE,\nRAW_CS_PHONE,\nSTD_CS_PHONE,\nCS_PHONE_STATUS_CODE,\nRAW_CS_EMAIL,\nVLD_CS_EMAIL,\nRAW_SALES_PHONE,\nSTD_SALES_PHONE,\nSALES_PHONE_STATUS_CODE,\nRAW_SALES_CHAT,\nRAW_SERVICE_PHONE,\nSTD_SERVICE_PHONE,\nSERVICE_PHONE_STATUS_CODE,\nRAW_SERVICE_CHAT,\nFP_WAREHOUSE_PARENT,\nFS_WAREHOUSE_PARENT,\nLICENSED_TERRITORY,\nDISTRICT_MANAGER,\nSTORE_MODEL,\nTUA_EXPIRATION_DATE,\nF_SITE_LEGAL_ENTITY,\nSTORE_PROSPECT_ID,\nNUMBER_OF_DOCK_DOORS,\nPRIMARY_PROFIT_CENTER,\nRETAIL_SYSTEMS_NUMBER,\nGOOGLE_ID,\nLEGACY_STORE_NUMBER,\nLEGACY_ERP_DATABASE_NAME,\nROW_NUMBER() OVER (PARTITION BY B_SOURCEID, B_PUBID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SD_SITE_MAIN WITH (NOLOCK) \n) SL     WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_PUBID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_SOURCEID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ISACTIVE",
+									"type": "Boolean",
+									"physicalType": "bit"
+								},
+								"sink": {
+									"name": "ISACTIVE",
+									"type": "Boolean",
+									"physicalType": "bit"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_DESCRIPTION",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_OWNERSHIP_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_OWNERSHIP_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ADDRESS_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "ADDRESS_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "ADDRESS_ERROR_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "ADDRESS_ERROR_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATIONS_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "OPERATIONS_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATIONS_END_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "OPERATIONS_END_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "CUSTOMER_OPEN_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "CUSTOMER_OPEN_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "CUSTOMER_CLOSE_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "CUSTOMER_CLOSE_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "LOCAL_CURRENCY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LOCAL_CURRENCY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LOCAL_UNIT_OF_MEASURE_ARE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TOTAL_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								},
+								"sink": {
+									"name": "TOTAL_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								}
+							},
+							{
+								"source": {
+									"name": "OPERATIONS_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								},
+								"sink": {
+									"name": "OPERATIONS_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								}
+							},
+							{
+								"source": {
+									"name": "CUSTOMER_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								},
+								"sink": {
+									"name": "CUSTOMER_SITE_AREA",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 4,
+									"precision": 12
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_SHIP_TO",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_SHIP_TO",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_MAIN_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_MAIN_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STD_MAIN_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STD_MAIN_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "MAIN_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "MAIN_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_FAX",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_FAX",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STD_FAX",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STD_FAX",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FAX_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FAX_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_CS_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_CS_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STD_CS_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STD_CS_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CS_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CS_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_CS_EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_CS_EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "VLD_CS_EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "VLD_CS_EMAIL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SALES_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SALES_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STD_SALES_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STD_SALES_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SALES_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SALES_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SALES_CHAT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SALES_CHAT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SERVICE_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SERVICE_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STD_SERVICE_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STD_SERVICE_PHONE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SERVICE_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SERVICE_PHONE_STATUS_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAW_SERVICE_CHAT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAW_SERVICE_CHAT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "LICENSED_TERRITORY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LICENSED_TERRITORY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "DISTRICT_MANAGER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "DISTRICT_MANAGER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STORE_MODEL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STORE_MODEL",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "TUA_EXPIRATION_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "TUA_EXPIRATION_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "STORE_PROSPECT_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STORE_PROSPECT_ID",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "NUMBER_OF_DOCK_DOORS",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "NUMBER_OF_DOCK_DOORS",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "PRIMARY_PROFIT_CENTER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PRIMARY_PROFIT_CENTER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RETAIL_SYSTEMS_NUMBER",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "RETAIL_SYSTEMS_NUMBER",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "GOOGLE_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								},
+								"sink": {
+									"name": "GOOGLE_ID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "LEGACY_STORE_NUMBER",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								},
+								"sink": {
+									"name": "LEGACY_STORE_NUMBER",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 10
+								}
+							},
+							{
+								"source": {
+									"name": "LEGACY_ERP_DATABASE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "LEGACY_ERP_DATABASE_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAWADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWADDRESS_LINE1",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAWADDRESS_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWADDRESS_LINE2",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAWCITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWCITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAWSTATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWSTATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAWPOSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWPOSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "RAWCOUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "RAWCOUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STASTREET_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STASTREET_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STASTREET_NUMBER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STASTREET_NUMBER",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STACITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STACITY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STASTATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STASTATE_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STAPOSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STAPOSTAL_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STACOUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STACOUNTRY_CODE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STALATITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STALATITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "STALONGITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "STALONGITUDE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "F_SITE_LEGAL_ENTITY",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								},
+								"sink": {
+									"name": "F_SITE_LEGAL_ENTITY",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "FP_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FP_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_WAREHOUSE_PARENT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SD_SITE_MAIN",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GetNewLoadId",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'SiteMasterLoad'\r\n,@P_LOAD_DESCRIPTION = 'SiteMasterLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Semarchy_Repo",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "SetNewLoadId",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetNewLoadId",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LoadID",
+					"value": {
+						"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "IncrementalSiteContentView",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteMainView",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT B_CLASSNAME,\nB_CREDATE,\nCONTENT_CATEGORY,\nCONTENT_TYPE,\nCONTENT_SHORT_TEXT,\nCONTENT_LONG_TEXT,\nCONTENT_LANGUAGE,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nSITE_CONTENT_ID,\nROW_NUMBER() OVER (PARTITION BY SITE_CONTENT_ID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SA_SITE_CONTENT WITH (NOLOCK) \n) SL WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBatchTimeout": "00:30:00",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"FS_SITE_MAIN",
+								"CONTENT_TYPE"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_CONTENT_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_CONTENT_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_CATEGORY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CONTENT_CATEGORY",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CONTENT_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_SHORT_TEXT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CONTENT_SHORT_TEXT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_LONG_TEXT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CONTENT_LONG_TEXT",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CONTENT_LANGUAGE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CONTENT_LANGUAGE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_SITE_CONTENT",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "IncrementalSiteDefaultHoursView",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteContentView",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT B_CLASSNAME,\nB_CREDATE,\nSITE_HOURS_TYPE,\nDAY_OF_WEEK,\nSTART_TIME,\nEND_TIME,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nSITE_DEFAULT_HOURS_ID,\nROW_NUMBER() OVER (PARTITION BY SITE_DEFAULT_HOURS_ID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SA_SITE_DEFAULT_HOURS WITH (NOLOCK) \n) SL WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBatchTimeout": "00:30:00",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"FS_SITE_MAIN",
+								"SITE_HOURS_TYPE",
+								"DAY_OF_WEEK"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 2,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_DEFAULT_HOURS_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_DEFAULT_HOURS_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_HOURS_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_HOURS_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "DAY_OF_WEEK",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "DAY_OF_WEEK",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_SITE_DEFAULT_HOURS",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "SubmitLoad",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteProgramView",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SUBMIT_LOAD]",
+					"storedProcedureParameters": {
+						"P_INTEGRATION_JOB_NAME": {
+							"value": {
+								"value": "SiteMasterLoad",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"P_LOAD_ID": {
+							"value": {
+								"value": "@variables('LoadID')",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"P_USERNAME": {
+							"value": {
+								"value": "semadmin",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"return_value_argument": {
+							"value": null,
+							"type": "Decimal"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_repo",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "IncrementalSiteCustomeHoursView",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteDefaultHoursView",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT B_CLASSNAME,\nB_CREDATE,\nSITE_HOURS_TYPE,\nCUSTOM_HOURS_REASON,\nSITE_DATE,\nSTART_TIME,\nEND_TIME,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nSITE_CUSTOM_HOURS_ID,\nROW_NUMBER() OVER (PARTITION BY SITE_CUSTOM_HOURS_ID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SA_SITE_CUSTOM_HOURS WITH (NOLOCK) \n) SL WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_CUSTOM_HOURS_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_CUSTOM_HOURS_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_HOURS_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "SITE_HOURS_TYPE",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "CUSTOM_HOURS_REASON",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "CUSTOM_HOURS_REASON",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "SITE_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "START_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "END_TIME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_Custome_Hours",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "IncrementalSiteProgramView",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "IncrementalSiteCustomeHoursView",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"additionalColumns": [
+							{
+								"name": "LoadId",
+								"value": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						],
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM (\nSELECT B_CLASSNAME,\nB_CREDATE,\nPROGRAM_NAME,\nPROGRAM_START_DATE,\nPROGRAM_END_DATE,\nFP_SITE_MAIN,\nFS_SITE_MAIN,\nSITE_PROGRAM_ID,\nROW_NUMBER() OVER (PARTITION BY SITE_PROGRAM_ID ORDER BY B_UPDDATE DESC) RowOneWins\n    FROM SA_SITE_PROGRAM WITH (NOLOCK) \n) SL WHERE SL.RowOneWins = 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "LoadId",
+									"type": "String"
+								},
+								"sink": {
+									"name": "B_LOADID",
+									"type": "Decimal",
+									"physicalType": "decimal",
+									"scale": 0,
+									"precision": 38
+								}
+							},
+							{
+								"source": {
+									"name": "SITE_PROGRAM_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								},
+								"sink": {
+									"name": "SITE_PROGRAM_ID",
+									"type": "Guid",
+									"physicalType": "uniqueidentifier"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "B_CLASSNAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								},
+								"sink": {
+									"name": "B_CREDATE",
+									"type": "DateTime",
+									"physicalType": "datetime2"
+								}
+							},
+							{
+								"source": {
+									"name": "PROGRAM_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "PROGRAM_NAME",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "PROGRAM_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "PROGRAM_START_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "PROGRAM_END_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "PROGRAM_END_DATE",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FP_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								},
+								"sink": {
+									"name": "FS_SITE_MAIN",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "MasterDataHub_SiteMaster",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Retail_SiteMaster_SA_Site_Program",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"LoadID": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "SiteMaster"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-12-08T10:02:16Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
