@@ -7,11 +7,6 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
-		"masterDataHub_Retail_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'masterDataHub_Retail'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=masterDataHub_Retail"
-		},
 		"sandbox_zone_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'sandbox_zone'"
@@ -43,19 +38,6 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
-		{
-			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"connectionString": "[parameters('masterDataHub_Retail_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
 		{
 			"name": "[concat(parameters('factoryName'), '/sandbox_zone')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -784,6 +766,41 @@
 				"typeProperties": {
 					"schema": "Ref_PostalCode",
 					"table": "MelissaCA_Overlay"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Dedeped')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"CDP_TableName": {
+						"type": "string"
+					},
+					"Table_Schema": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Table_Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().CDP_TableName",
+						"type": "Expression"
+					}
 				}
 			},
 			"dependsOn": [
