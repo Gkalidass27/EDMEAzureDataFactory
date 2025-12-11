@@ -13,6 +13,2818 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_CommunicationPreferenceLoad_InitialLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Get_Email_Chunk",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Get_Phone_Chunk",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'CommunicationPreferenceLoad'\n,@P_LOAD_DESCRIPTION = 'CommunicationPreferenceLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "SubmitLoadID",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Check_Phone_Chunk",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+							"storedProcedureParameters": {
+								"P_INTEGRATION_JOB_NAME": {
+									"value": {
+										"value": "CommunicationPreferenceLoad",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"return_value_argument": {
+									"value": null,
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Get_Email_Chunk",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel ='email'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Email_Chunk",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Get_Phone_Chunk",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel = 'SMS'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Get_Phone_Chunk",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_Email_Chunk",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@contains(activity('Get_Email_Chunk').output,'firstRow')",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "No_Data_Available_For_Email",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "SD_COMMUNICTN_PREFERNC_EMAIL",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT EmailAddress AS RAW_EMAIL_ADDRESS,\nCAST(OptedIn as bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nEmailCommunicationId AS EMAIL_COMMUNICATION_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefEmail] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Email_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Email_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Email_Chunk').output.firstRow.Organization}' and channel = 'email'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "Byte[]",
+														"physicalType": "varbinary"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "OPTED_IN",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "OPTED_IN",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "ORGANIZATION",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "ORGANIZATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "PURPOSE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "PURPOSE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CHANNEL",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "CHANNEL",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_EMAIL_ADDRESS",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "EMAIL_COMMUNICATION_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "EMAIL_COMMUNICATION_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "InitialLoad_CommPref",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_COMMUNICTN_PREFERNC_EMAIL",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SD_COMMUNICTN_PREFERNC_EMAIL_SuccessLogging",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+										"storedProcedureParameters": {
+											"CopyActivity_End_Time": {
+												"value": {
+													"value": "@{utcNow()}",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"CopyActivity_Start_Time": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].start}\n",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"CopyActivity_transferDuration_in_secs": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0]. detailedDurations.transferDuration}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"CopyDuration_in_secs": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.copyDuration}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"Execution_Status": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].status}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Pipeline_Name": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsCopied": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.rowsCopied}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"RowsRead": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.rowsRead}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"RunId": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "dbo.SD_COMMUNICTN_PREFERNC_EMAIL",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "[[Masterdata_CDP].[InitialLoadCommPrefEmail]",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "SD_COMMUNICTN_PREFERNC_EMAIL_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.errorCode}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "dbo.SD_COMMUNICTN_PREFERNC_EMAIL",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "[[Masterdata_CDP].[InitialLoadCommPrefEmail]",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_EMAIL",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": {
+												"value": "afi-edme-rg",
+												"type": "Expression"
+											},
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').ExecutionStartTime",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').Status",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.message,'\"','')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').ExecutionEndTime",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').Duration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "@pipeline().globalParameters.GP_WebhookUrl",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Failed_Email",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_EMAIL",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": {
+											"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.message,'\"','')",
+											"type": "Expression"
+										},
+										"errorCode": {
+											"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.errorCode}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Update_Email_Chunk",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Email_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Email_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Email_Chunk').output.firstRow.Organization}' and channel = 'email';\nselect 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Update_Email_Chunk",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Check_Phone_Chunk",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Check_Email_Chunk",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@contains(activity('Get_Phone_Chunk').output,'firstRow')",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "No_Data_Available_For_Phone",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "SD_COMMUNICTN_PREFERNC_PHONE",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_PUBID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_SOURCEID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "OPTED_IN",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "OPTED_IN",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "ORGANIZATION",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "ORGANIZATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "PURPOSE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "PURPOSE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CHANNEL",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "CHANNEL",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "RAW_PHONE_NUMBER",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "PHONE_COMM_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "PHONE_COMM_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "SRC_UPDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "InitialLoad_CommPref",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SD_COMMUNICTN_PREFERNC_PHONE",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SD_COMMUNICTN_PREFERNC_PHONE_SuccessLogging",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+										"storedProcedureParameters": {
+											"CopyActivity_End_Time": {
+												"value": {
+													"value": "@{utcNow()}",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"CopyActivity_Start_Time": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].start}",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"CopyActivity_transferDuration_in_secs": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0]. detailedDurations.transferDuration}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"CopyDuration_in_secs": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.copyDuration}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"Execution_Status": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].status}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Pipeline_Name": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsCopied": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.rowsCopied}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"RowsRead": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.rowsRead}",
+													"type": "Expression"
+												},
+												"type": "Int32"
+											},
+											"RunId": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "dbo.SD_COMMUNICTN_PREFERNC_PHONE",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "[[Masterdata_CDP].[InitialLoadCommPrefPhone]",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "SD_COMMUNICTN_PREFERNC_PHONE_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.errorCode}\n",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "dbo.SD_COMMUNICTN_PREFERNC_PHONE",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "[[Masterdata_CDP].[InitialLoadCommPrefPhone]",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_PHONE",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": {
+												"value": "afi-edme-rg",
+												"type": "Expression"
+											},
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').ExecutionStartTime",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').Status",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_PHONE').error.message,'\"','')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').ExecutionEndTime",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').Duration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "@pipeline().globalParameters.GP_WebhookUrl",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Failed_Phone",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_PHONE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": {
+											"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_PHONE').error.message,'\"','')",
+											"type": "Expression"
+										},
+										"errorCode": {
+											"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.errorCode}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Update_Phone_Chunk",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS';\nselect 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Phone_Chunk",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Communication_Preference_Flow"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:20Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_Crosswalk')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Retail_Customer_CrossWalk_MD_OUT",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": {
+									"value": "TRUNCATE TABLE [dbo].[CrossWalk_MD_OUT]",
+									"type": "Expression"
+								},
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"dataIntegrationUnits": 2,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_BATCHID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										},
+										"sink": {
+											"name": "B_BATCHID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_UPDATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_MATCHGRP",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										},
+										"sink": {
+											"name": "B_MATCHGRP",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_CONFIRMATIONSTATUS",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_CONFIRMATIONSTATUS",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RETAIL_CUSTOMER_ID",
+											"type": "Guid",
+											"physicalType": "uniqueidentifier"
+										},
+										"sink": {
+											"name": "RETAIL_CUSTOMER_ID",
+											"type": "Guid",
+											"physicalType": "uniqueidentifier"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CONFIRMEDSDPK",
+											"type": "Guid",
+											"physicalType": "uniqueidentifier"
+										},
+										"sink": {
+											"name": "B_CONFIRMEDSDPK",
+											"type": "Guid",
+											"physicalType": "uniqueidentifier"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_FIRST_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAW_FIRST_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_LAST_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAW_LAST_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_MIDDLE_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "RAW_MIDDLE_NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SRC_UPDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "SRC_UPDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_PUBID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_PUBID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_SOURCEID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_SOURCEID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "masterdata_CDP_CrossWalk_MD_OUT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "retailCustomer_dbo_CrossWalk_MD_OUT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Retail_Customer_CrossWalk_DU_OUT",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_MD_OUT",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": {
+									"value": "TRUNCATE TABLE [dbo].[CrossWalk_DU_OUT]",
+									"type": "Expression"
+								},
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"dataIntegrationUnits": 2,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_PUBID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_PUBID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_SOURCEID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_SOURCEID2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_MATCHRULE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_MATCHRULE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_MATCHSCORE",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										},
+										"sink": {
+											"name": "B_MATCHSCORE",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										},
+										"sink": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "B_UPDATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "masterData_CDP_CrossWalk_DU_OUT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "RetailCustomer_CrossWalk_DU_OUT",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Retail_Customer_Crosswalk_MD_failure_Notification",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_MD_OUT",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_Retail_Customer_Failure_Notification",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"ErrorCode": {
+									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.errorCode}",
+									"type": "Expression"
+								},
+								"ErrorMsg": {
+									"value": "@replace(activity('Retail_Customer_CrossWalk_MD_OUT').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"ErrorStatusCode": {
+									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').StatusCode",
+									"type": "Expression"
+								},
+								"FailureType": {
+									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.failureType}",
+									"type": "Expression"
+								},
+								"PipelineName": {
+									"value": "@{pipeline().Pipeline}",
+									"type": "Expression"
+								},
+								"RunID": {
+									"value": "@{pipeline().Pipeline}",
+									"type": "Expression"
+								},
+								"Sink": {
+									"value": "Scratch.CustomerInfo",
+									"type": "Expression"
+								},
+								"Sink_Type": {
+									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].sink.type}",
+									"type": "Expression"
+								},
+								"Source": "Source is Crosswalk MD Table Data",
+								"Source_Type": {
+									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].source.type}",
+									"type": "Expression"
+								},
+								"TriggerId": {
+									"value": "@{pipeline().TriggerId}",
+									"type": "Expression"
+								},
+								"TriggerName": {
+									"value": "@{pipeline().TriggerName}",
+									"type": "Expression"
+								},
+								"TriggerTime": {
+									"value": "@{pipeline().TriggerTime}",
+									"type": "Expression"
+								},
+								"TriggerType": {
+									"value": "@{pipeline().TriggerType}",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').Status",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').Duration",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').ExecutionEndTime",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Retail_Customer_Crosswalk_MD_fail",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_Crosswalk_MD_failure_Notification",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": {
+								"value": "@replace(activity('Retail_Customer_CrossWalk_MD_OUT').error.message,'\"','')",
+								"type": "Expression"
+							},
+							"errorCode": {
+								"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.errorCode}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Retail_Customer_Crosswalk_DU_failure_Notification",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_DU_OUT",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Stage_Retail_Customer_Failure_Notification",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"ErrorCode": {
+									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.errorCode}",
+									"type": "Expression"
+								},
+								"ErrorMsg": {
+									"value": "@replace(activity('Retail_Customer_CrossWalk_DU_OUT').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"ErrorStatusCode": {
+									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').StatusCode",
+									"type": "Expression"
+								},
+								"FailureType": {
+									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.failureType}",
+									"type": "Expression"
+								},
+								"PipelineName": {
+									"value": "@{pipeline().Pipeline}",
+									"type": "Expression"
+								},
+								"RunID": {
+									"value": "@{pipeline().Pipeline}",
+									"type": "Expression"
+								},
+								"Sink": {
+									"value": "Scratch.CustomerInfo",
+									"type": "Expression"
+								},
+								"Sink_Type": {
+									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].sink.type}",
+									"type": "Expression"
+								},
+								"Source": "Source is Crosswalk DU Table Data",
+								"Source_Type": {
+									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].source.type}",
+									"type": "Expression"
+								},
+								"TriggerId": {
+									"value": "@{pipeline().TriggerId}",
+									"type": "Expression"
+								},
+								"TriggerName": {
+									"value": "@{pipeline().TriggerName}",
+									"type": "Expression"
+								},
+								"TriggerTime": {
+									"value": "@{pipeline().TriggerTime}",
+									"type": "Expression"
+								},
+								"TriggerType": {
+									"value": "@{pipeline().TriggerType}",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').Status",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').Duration",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').ExecutionEndTime",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Retail_Customer_Crosswalk_DU_fail",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_Crosswalk_DU_failure_Notification",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": {
+								"value": "@replace(activity('Retail_Customer_CrossWalk_DU_OUT').error.message,'\"','')",
+								"type": "Expression"
+							},
+							"errorCode": {
+								"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.errorCode}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Retail_Customer_CrossWalk_MD_OUT_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_MD_OUT",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcNow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "dbo.CrossWalk_MD_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "Masterdata_CDP.CrossWalk_MD_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Retail_Customer_CrossWalk_MD_OUT_ErrorLogs",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_MD_OUT",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "dbo.CrossWalk_MD_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "Masterdata_CDP.CrossWalk_MD_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Retail_Customer_CrossWalk_DU_OUT_SuccessLogging",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_DU_OUT",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
+							"storedProcedureParameters": {
+								"CopyActivity_End_Time": {
+									"value": {
+										"value": "@{utcNow()}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_Start_Time": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].start}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"CopyActivity_transferDuration_in_secs": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0]. detailedDurations.transferDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"CopyDuration_in_secs": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.copyDuration}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Execution_Status": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].status}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Pipeline_Name": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RowsCopied": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.rowsCopied}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RowsRead": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.rowsRead}",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"RunId": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "dbo.CrossWalk_DU_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "Masterdata_CDP.CrossWalk_DU_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Retail_Customer_CrossWalk_DU_OUT_ErrorLogS",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Retail_Customer_CrossWalk_DU_OUT",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@{pipeline().RunId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": {
+										"value": "dbo.CrossWalk_DU_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source": {
+									"value": {
+										"value": "Masterdata_CDP.CrossWalk_DU_OUT",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": {
+										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:01:40Z"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_RetailCustomerLoad_Incremental')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -4656,7 +7468,7 @@
 					"name": "Retail_Customer_Flow"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:16Z"
 			},
 			"dependsOn": []
 		},
@@ -5790,7 +8602,7 @@
 					"name": "Retail_Customer_Flow"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:00Z"
+				"lastPublishTime": "2025-12-08T10:02:16Z"
 			},
 			"dependsOn": []
 		},
@@ -6227,7 +9039,7 @@
 					"name": "Retail_Customer_Flow"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:57Z"
+				"lastPublishTime": "2025-12-08T10:01:39Z"
 			},
 			"dependsOn": []
 		},
@@ -6481,7 +9293,7 @@
 					"elapsedTimeMetric": {}
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:58Z"
+				"lastPublishTime": "2025-12-08T10:02:18Z"
 			},
 			"dependsOn": []
 		},
@@ -6699,7 +9511,7 @@
 					"elapsedTimeMetric": {}
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:16Z"
 			},
 			"dependsOn": []
 		},
@@ -11718,7 +14530,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2023-06-13T11:38:06Z"
+				"lastPublishTime": "2025-12-08T10:02:20Z"
 			},
 			"dependsOn": []
 		},
@@ -15359,7 +18171,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2023-06-13T11:38:06Z"
+				"lastPublishTime": "2025-12-08T10:02:04Z"
 			},
 			"dependsOn": []
 		},
@@ -16471,7 +19283,7 @@
 					"elapsedTimeMetric": {}
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:07Z"
 			},
 			"dependsOn": []
 		},
@@ -17053,7 +19865,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2024-04-17T06:18:26Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -21371,7 +24183,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:59Z"
+				"lastPublishTime": "2025-12-08T10:02:20Z"
 			},
 			"dependsOn": []
 		},
@@ -22458,7 +25270,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:14Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -23532,7 +26344,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:58Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -26790,7 +29602,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2024-11-04T16:37:45Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -32175,7 +34987,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-03-19T09:19:29Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -36732,7 +39544,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:21Z"
 			},
 			"dependsOn": []
 		},
@@ -42144,7 +44956,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:14Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -45402,7 +48214,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -48330,7 +51142,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		}

@@ -7,10 +7,6 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
-		"Ls_CSV_FlatFile_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'Ls_CSV_FlatFile'"
-		},
 		"Prod_afimasterdatahubstg_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'Prod_afimasterdatahubstg'"
@@ -23,7 +19,7 @@
 		"Retail_ProductMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Retail_ProductMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=Retail_ProductMaster"
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Retail_ProductMaster"
 		},
 		"Retail_SiteMaster_connectionString": {
 			"type": "secureString",
@@ -33,7 +29,7 @@
 		"Sink_ReferenceMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Sink_ReferenceMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=@{linkedService().Database_Name}"
 		},
 		"Smartsheet1_apiToken": {
 			"type": "secureString",
@@ -54,7 +50,7 @@
 		"Wholesale_sitemaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Wholesale_sitemaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=Wholesale_sitemaster"
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Wholesale_sitemaster"
 		},
 		"agr_cdp_func_functionKey": {
 			"type": "secureString",
@@ -73,13 +69,14 @@
 			"metadata": "Secure string for 'connectionString' of 'masterDataHub_Retail'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=masterDataHub_Retail"
 		},
-		"Postal_datadownload_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://releases.melissadata.net/Download/Data/2024.07/z5max.txt"
+		"sandbox_zone_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'sandbox_zone'"
 		},
-		"Postalcode_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://releases.melissadata.net"
+		"semarchy_repo_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_repo'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_repo"
 		},
 		"Prod_afimasterdatahubstg_properties_typeProperties_url": {
 			"type": "string",
@@ -105,6 +102,14 @@
 			"type": "string",
 			"defaultValue": "https://agr-multi-channel-mktg-hub-customer-dev-func.azurewebsites.net"
 		},
+		"edmeCosmos_properties_typeProperties_accountEndpoint": {
+			"type": "string",
+			"defaultValue": ""
+		},
+		"edmeCosmos_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": ""
+		},
 		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net"
@@ -114,49 +119,6 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
-		{
-			"name": "[concat(parameters('factoryName'), '/Ls_CSV_FlatFile')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobStorage",
-				"typeProperties": {
-					"connectionString": "[parameters('Ls_CSV_FlatFile_connectionString')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Postal_datadownload')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "RestService",
-				"typeProperties": {
-					"url": "[parameters('Postal_datadownload_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Postalcode')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "HttpServer",
-				"typeProperties": {
-					"url": "[parameters('Postalcode_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Prod_afimasterdatahubstg')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -271,7 +233,7 @@
 						"type": "SecureString",
 						"value": "[parameters('Smartsheet1_apiToken')]"
 					},
-					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEFFOEIwMTA0LTMwN0UtNDA2OC1CNzRCLTA3NzNCNkI3NkJCNl8yZmY0ZDljNS1mNzA1LTQ5NjctYTI2Yi02NDBkNGNhOWI3NzUiDQp9"
+					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEFFOEIwMTA0LTMwN0UtNDA2OC1CNzRCLTA3NzNCNkI3NkJCNl8wMGJjYjQ2Mi0zOTE4LTQzNDgtOWRmYi0yNzE5MDRmOTUzMTkiDQp9"
 				}
 			},
 			"dependsOn": []
@@ -288,7 +250,7 @@
 						"type": "SecureString",
 						"value": "[parameters('SmartsheetLinkedinService_apiToken')]"
 					},
-					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEFFOEIwMTA0LTMwN0UtNDA2OC1CNzRCLTA3NzNCNkI3NkJCNl85NWMwM2U3OS0wMDFhLTQxOGMtODU1Ny0wZjRmZjg4NWViMzEiDQp9"
+					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEFFOEIwMTA0LTMwN0UtNDA2OC1CNzRCLTA3NzNCNkI3NkJCNl9iOTY2M2ZmYi1mZjA1LTQ2Y2EtYjc5My0xMTc3Y2E0Yjk5MzEiDQp9"
 				}
 			},
 			"dependsOn": []
@@ -320,7 +282,7 @@
 						"type": "SecureString",
 						"value": "[parameters('Smartsheet_Storemasterlist_apiToken')]"
 					},
-					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEFFOEIwMTA0LTMwN0UtNDA2OC1CNzRCLTA3NzNCNkI3NkJCNl8zMDIzMzM2OC01ODM0LTRjODMtODNkMi1hNmVmYmNiYzA3YzUiDQp9"
+					"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEFFOEIwMTA0LTMwN0UtNDA2OC1CNzRCLTA3NzNCNkI3NkJCNl8yYjNmMmQyOS0zMDEzLTRhYjctYmNlOS1lYTZiZTU5NTI5YTciDQp9"
 				}
 			},
 			"dependsOn": []
@@ -389,6 +351,20 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/edmeCosmos')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "CosmosDb",
+				"typeProperties": {
+					"accountEndpoint": "[parameters('edmeCosmos_properties_typeProperties_accountEndpoint')]",
+					"database": "[parameters('edmeCosmos_properties_typeProperties_database')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/masterDataHubStg')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -414,6 +390,32 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('masterDataHub_Retail_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sandbox_zone')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('sandbox_zone_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/semarchy_repo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('semarchy_repo_connectionString')]"
 				}
 			},
 			"dependsOn": []

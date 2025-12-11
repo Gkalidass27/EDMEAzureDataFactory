@@ -13,6 +13,625 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/Load_EnterpriseRef_TIME_ZONE_EFF_DT_InitialLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Time_Zone_EFF_DT_Sink_Max_Date",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Set_LoadID_Variable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Time_Zone_EFF_DT_Table_Name} WITH(NOLOCK)",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Master_Table_Max_Date_Sink",
+								"type": "DatasetReference",
+								"parameters": {
+									"Database_Name": {
+										"value": "@pipeline().parameters.Database_Name",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					},
+					{
+						"name": "Time_Zone_EFF_DT_Source_Count",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Time_Zone_EFF_DT_Sink_Max_Date",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT COUNT(1) as data FROM GD_ENT_REF_TIME_ZONE_EFF_DT WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Time_Zone_EFF_DT_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Lookup_GD_Master_Table",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_Country_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Time_Zone_EFF_DT_Source_Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(activity('Time_Zone_EFF_DT_Source_Count').output.firstRow.data,0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Time_Zone_EFF_DT_Data_Not_Found_Logs_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "404",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "No Data Available For TIME_ZONE_EFF_DT",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "404",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "No Data Available",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": null,
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"Source": {
+												"value": null,
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": null,
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Cancel_LoadId_Stored_Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Time_Zone_EFF_DT_Data_Not_Found_Logs_Stored_Procedure",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+										"storedProcedureParameters": {
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadId')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Time_Zone_EFF_DT_Copy_Data",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadId')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT \n'semadmin' AS B_CREATOR,\n'@{pipeline().parameters.Time_Zone_EFF_DT_Class_Name}' as B_CLASSNAME,\nENT_REF_TIME_ZN_EFF_DT_ID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nTIME_ZONE_EFFECTIVE_YEAR,\nDST_START_DT,\nDST_END_DT,\nF_ENTERPRISE_REF_TIME_ZONE\nFROM GD_ENT_REF_TIME_ZONE_EFF_DT WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('Time_Zone_EFF_DT_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "upsert",
+											"upsertSettings": {
+												"useTempDB": true,
+												"keys": [
+													"EXTERNAL_REF_TIME_ZONE_EF"
+												]
+											},
+											"sqlWriterUseTableLock": false,
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "ENT_REF_TIME_ZN_EFF_DT_ID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													},
+													"sink": {
+														"name": "EXTERNAL_REF_TIME_ZONE_EF",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "TIME_ZONE_EFFECTIVE_YEAR",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 5
+													},
+													"sink": {
+														"name": "TIME_ZONE_EFFECTIVE_YEAR",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 5
+													}
+												},
+												{
+													"source": {
+														"name": "DST_START_DT",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "DST_START_DT",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "DST_END_DT",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "DST_END_DT",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "F_ENTERPRISE_REF_TIME_ZONE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													},
+													"sink": {
+														"name": "F_EXTERNAL_REF_TIME_ZONE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "GD_Enterprise_REF_TABLE",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SA_EXTERNAL_REF_TIME_ZONE_EF",
+											"type": "DatasetReference",
+											"parameters": {
+												"Database_Name": {
+													"value": "@pipeline().parameters.Database_Name",
+													"type": "Expression"
+												},
+												"Time_Zone_EFF_DT_Table_Name": {
+													"value": "@pipeline().parameters.Sink_Time_Zone_EFF_DT_Table_Name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Time_Zone_EFF_DT_Copy_Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "@pipeline().parameters.Semarchy_Job_Name",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadId')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Set_LoadID_Variable",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadId",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"Database_Name": {
+						"type": "string"
+					},
+					"Sink_Time_Zone_EFF_DT_Table_Name": {
+						"type": "string"
+					},
+					"Semarchy_Job_Name": {
+						"type": "string"
+					},
+					"Time_Zone_EFF_DT_Class_Name": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"LoadId": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "EnterPriceRef_Pipelines"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:13Z"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Load_EnterpriseRef_TIME_ZONE_InitialLoad')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -639,7 +1258,7 @@
 					"name": "EnterPriceRef_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -1222,7 +1841,7 @@
 					"name": "EnterPriceRef_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:12Z"
 			},
 			"dependsOn": []
 		},
@@ -1568,7 +2187,7 @@
 					"name": "Retail_Customer_Flow/RCM_RFD_Flow"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:27Z"
+				"lastPublishTime": "2025-12-08T10:01:39Z"
 			},
 			"dependsOn": []
 		},
@@ -3569,7 +4188,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:20Z"
 			},
 			"dependsOn": []
 		},
@@ -4610,7 +5229,7 @@
 					"name": "SiteMaster"
 				},
 				"annotations": [],
-				"lastPublishTime": "2024-04-17T06:18:31Z"
+				"lastPublishTime": "2025-12-08T10:02:12Z"
 			},
 			"dependsOn": []
 		},
@@ -6611,7 +7230,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2023-10-03T10:29:13Z"
+				"lastPublishTime": "2025-12-08T10:02:21Z"
 			},
 			"dependsOn": []
 		},
@@ -8612,7 +9231,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:20Z"
 			},
 			"dependsOn": []
 		},
@@ -9984,7 +10603,2440 @@
 					"name": "Postal_Code"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:14Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_PostalCode_EnterpriseRefPostalCodeLoad_Incremental_Melissa_Individual')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get_Count",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECt case when COUNT(1)>1 then '1' else '0' end  AS [count] FROM [Ref_PostalCode].[vw_PostalCode_IUD_Melissa_CA]",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Stage_PostalCode_Query",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check_PostalCode_Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get_Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('Get_Count').output.firstRow.count ,'0'))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "GetNewLoadId_US",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Enterprise_ReferenceMaster'\n,@P_PROGRAM_NAME = 'EnterpriseRefPostalCodeLoad'\n,@P_LOAD_DESCRIPTION = 'EnterpriseRefPostalCodeLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Semarchy_Repo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Set_LoadID_Variable_US",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "GetNewLoadId_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "LoadID",
+										"value": {
+											"value": "@{activity('GetNewLoadId_US').output.firstRow.RETURN_VALUE_ARGUMENT}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Load_PostalCode_US",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set_LoadID_Variable_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD_Melissa_US]",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false,
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID",
+														"type": "String"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE_MASTER_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "ENT_REF_POSTAL_CODE_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEOPERATION",
+														"type": "Guid",
+														"physicalType": "uniqueidentifier"
+													},
+													"sink": {
+														"name": "B_DELETEOPERATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "ZONE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Stage_PostalCode_Query_melissa_poc",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SA_POSTAL_CODE_MASTER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID_US",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode_HIST_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "EnterpriseRefPostalCodeLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "PostalCode_ErrorLoags_US",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode_US",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_PostalCode_US').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_PostalCode_US').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_PostalCode_US').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_PostalCode_US').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SA_ENT_REF_POSTAL_CODE",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_PostalCode_US').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "[[Ref_PostalCode].[PostalCode]",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_PostalCode_US').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Fail_Load_PostalCode_US",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "Teams_Failed_Notification_PostalCode_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": {
+											"value": "@replace(activity('Load_PostalCode_US').error.message,'\"','')",
+											"type": "Expression"
+										},
+										"errorCode": {
+											"value": "@{activity('Load_PostalCode_US').error.errorCode}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Teams_Failed_Notification_PostalCode_US",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode_US",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": "afi-edme-rg",
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@activity('Load_PostalCode_US').output.executionDetails[0].start",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@activity('Load_PostalCode_US').output.executionDetails[0].status",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@replace(activity('Load_PostalCode_US').error.message,'\"','')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@{utcnow()}",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@activity('Load_PostalCode_US').output.copyDuration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Remove_From_USPostalCode_Stage_Table_US",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM [Ref_PostalCode].[ZipInfo_USz5max];\nSELECT 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Stage_PostalCode_Query",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Remove_From_CanadainPostalCode_Stage_Table_US",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM [Ref_PostalCode].[MelissaCA_PCensusNWE];\nSELECT 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Stage_PostalCode_Query",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Load_PostalCode_HIST_US",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode_US",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD_Melissa_US]",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "upsert",
+											"upsertSettings": {
+												"useTempDB": true,
+												"keys": [
+													"ENT_REF_POSTAL_CODE_ID"
+												]
+											},
+											"sqlWriterUseTableLock": false,
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "POSTAL_CODE_MASTER_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "ENT_REF_POSTAL_CODE_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEOPERATION",
+														"type": "Guid",
+														"physicalType": "uniqueidentifier"
+													},
+													"sink": {
+														"name": "B_DELETEOPERATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "ZONE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "active_flag",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "active_flag",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Stage_PostalCode_Query_melissa_poc",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DSPOSTALCODEHIST_melissa_POC",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "GetNewLoadId",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Enterprise_ReferenceMaster'\n,@P_PROGRAM_NAME = 'EnterpriseRefPostalCodeLoad'\n,@P_LOAD_DESCRIPTION = 'EnterpriseRefPostalCodeLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Semarchy_Repo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Set_LoadID_Variable",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "GetNewLoadId",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "LoadID",
+										"value": {
+											"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Load_PostalCode",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set_LoadID_Variable",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD_Melissa]",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false,
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "B_LOADID",
+														"type": "String"
+													},
+													"sink": {
+														"name": "B_LOADID",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 0,
+														"precision": 38
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE_MASTER_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "ENT_REF_POSTAL_CODE_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEOPERATION",
+														"type": "Guid",
+														"physicalType": "uniqueidentifier"
+													},
+													"sink": {
+														"name": "B_DELETEOPERATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "ZONE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Stage_PostalCode_Query_melissa_poc",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "SA_POSTAL_CODE_MASTER",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "SubmitLoadID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode_HIST",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+										"storedProcedureParameters": {
+											"P_INTEGRATION_JOB_NAME": {
+												"value": {
+													"value": "EnterpriseRefPostalCodeLoad",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"P_LOAD_ID": {
+												"value": {
+													"value": "@variables('LoadID')",
+													"type": "Expression"
+												},
+												"type": "Decimal"
+											},
+											"P_USERNAME": {
+												"value": {
+													"value": "semadmin",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"return_value_argument": {
+												"value": null,
+												"type": "Decimal"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_repo",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "PostalCode_ErrorLoags",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+										"storedProcedureParameters": {
+											"ErrorCode": {
+												"value": {
+													"value": "@{activity('Load_PostalCode').error.errorCode}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMsg": {
+												"value": {
+													"value": "@{activity('Load_PostalCode').error.message}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorStatusCode": {
+												"value": {
+													"value": "@activity('Load_PostalCode').StatusCode",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"FailureType": {
+												"value": {
+													"value": "@{activity('Load_PostalCode').error.failureType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@{pipeline().Pipeline}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RunID": {
+												"value": {
+													"value": "@{pipeline().RunId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink": {
+												"value": {
+													"value": "SA_ENT_REF_POSTAL_CODE",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Sink_Type": {
+												"value": {
+													"value": "@{activity('Load_PostalCode').output.executionDetails[0].sink.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source": {
+												"value": {
+													"value": "[[Ref_PostalCode].[PostalCode]",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Source_Type": {
+												"value": {
+													"value": "@{activity('Load_PostalCode').output.executionDetails[0].source.type}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerId": {
+												"value": {
+													"value": "@{pipeline().TriggerId}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerName": {
+												"value": {
+													"value": "@{pipeline().TriggerName}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerTime": {
+												"value": {
+													"value": "@{pipeline().TriggerTime}",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"TriggerType": {
+												"value": {
+													"value": "@{pipeline().TriggerType}",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "semarchy_staging",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Fail_Load_PostalCode",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "Teams_Failed_Notification_PostalCode",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": {
+											"value": "@replace(activity('Load_PostalCode').error.message,'\"','')",
+											"type": "Expression"
+										},
+										"errorCode": {
+											"value": "@{activity('Load_PostalCode').error.errorCode}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Teams_Failed_Notification_PostalCode",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": "afi-edme-rg",
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@activity('Load_PostalCode').output.executionDetails[0].start",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@activity('Load_PostalCode').output.executionDetails[0].status",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@replace(activity('Load_PostalCode').error.message,'\"','')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@{utcnow()}",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@activity('Load_PostalCode').output.copyDuration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Remove_From_USPostalCode_Stage_Table",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM [Ref_PostalCode].[ZipInfo_USz5max];\nSELECT 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Stage_PostalCode_Query",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Remove_From_CanadainPostalCode_Stage_Table",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "SubmitLoadID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DELETE FROM [Ref_PostalCode].[MelissaCA_PCensusNWE];\nSELECT 1 as success;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "Stage_PostalCode_Query",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Load_PostalCode_HIST",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Load_PostalCode",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"additionalColumns": [
+												{
+													"name": "B_LOADID",
+													"value": {
+														"value": "@variables('LoadID')",
+														"type": "Expression"
+													}
+												}
+											],
+											"sqlReaderQuery": {
+												"value": "SELECT \nPOSTAL_CODE_MASTER_ID,\nB_CLASSNAME,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nPOSTAL_CODE,\nSTATE_OR_PROVINCE_CODE,\nCITY_NAME,\nIS_PREFERRED_CITY_NAME,\nCITY_ABBREVIATION,\nCOUNTRY_CODE,\nMSA_CODE,\nTIME_ZONE,\nOBSERVES_DST,\nLATITUDE,\nLONGITUDE,\nPOSTAL_CODE_TYPE,\nFIPS_CODE,\nZONE_NAME,\nB_DELETETYPE,\nB_DELETEDATE,\nB_DELETEAUTHOR,\nB_DELETEOPERATION,\nactive_flag\nFROM\n[Ref_PostalCode].[vw_PostalCode_IUD_Melissa]",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "upsert",
+											"upsertSettings": {
+												"useTempDB": true,
+												"keys": [
+													"ENT_REF_POSTAL_CODE_ID"
+												]
+											},
+											"sqlWriterUseTableLock": false,
+											"disableMetricsCollection": false
+										},
+										"enableStaging": false,
+										"dataIntegrationUnits": 2,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "POSTAL_CODE_MASTER_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "ENT_REF_POSTAL_CODE_ID",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_CLASSNAME",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETETYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime"
+													},
+													"sink": {
+														"name": "B_DELETEDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "B_DELETEAUTHOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_DELETEOPERATION",
+														"type": "Guid",
+														"physicalType": "uniqueidentifier"
+													},
+													"sink": {
+														"name": "B_DELETEOPERATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_CREDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													},
+													"sink": {
+														"name": "B_UPDDATE",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_CREATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "B_UPDATOR",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "STATE_OR_PROVINCE_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "CITY_ABBREVIATION",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "COUNTRY_CODE",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "TIME_ZONE",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "OBSERVES_DST",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LATITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													},
+													"sink": {
+														"name": "LONGITUDE",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 5,
+														"precision": 9
+													}
+												},
+												{
+													"source": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													},
+													"sink": {
+														"name": "IS_PREFERRED_CITY_NAME",
+														"type": "Boolean",
+														"physicalType": "bit"
+													}
+												},
+												{
+													"source": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "POSTAL_CODE_TYPE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "MSA_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "FIPS_CODE",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "ZONE_NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													},
+													"sink": {
+														"name": "NAME",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												},
+												{
+													"source": {
+														"name": "active_flag",
+														"type": "String",
+														"physicalType": "varchar"
+													},
+													"sink": {
+														"name": "active_flag",
+														"type": "String",
+														"physicalType": "nvarchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Stage_PostalCode_Query_melissa_poc",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DSPOSTALCODEHIST_melissa_POC",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "Cancel_PostalCode_LoadId_Stored_Procedure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Check_PostalCode_Count",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
+							"storedProcedureParameters": {
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Postal_Code"
+				},
+				"annotations": []
 			},
 			"dependsOn": []
 		},
@@ -10909,7 +13961,7 @@
 					"name": "Postal_Code"
 				},
 				"annotations": [],
-				"lastPublishTime": "2023-06-13T11:38:05Z"
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -11834,7 +14886,7 @@
 					"name": "Postal_Code"
 				},
 				"annotations": [],
-				"lastPublishTime": "2023-08-03T01:53:56Z"
+				"lastPublishTime": "2025-12-08T10:01:38Z"
 			},
 			"dependsOn": []
 		},
@@ -17681,7 +20733,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:05Z"
 			},
 			"dependsOn": []
 		},
@@ -24681,7 +27733,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:18Z"
 			},
 			"dependsOn": []
 		},
@@ -29823,7 +32875,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:14Z"
+				"lastPublishTime": "2025-12-08T10:02:20Z"
 			},
 			"dependsOn": []
 		},
@@ -35712,7 +38764,7 @@
 					"name": "Product_Pipelines"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
+				"lastPublishTime": "2025-12-08T10:02:07Z"
 			},
 			"dependsOn": []
 		},
@@ -37509,7 +40561,8 @@
 				"folder": {
 					"name": "SiteMaster"
 				},
-				"annotations": []
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -37903,7 +40956,8 @@
 				"folder": {
 					"name": "SiteMaster"
 				},
-				"annotations": []
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		},
@@ -38497,7 +41551,7 @@
 					"name": "Postal_Code"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:27Z"
+				"lastPublishTime": "2025-12-08T10:01:38Z"
 			},
 			"dependsOn": []
 		},
@@ -40165,2819 +43219,7 @@
 					"name": "Communication_Preference_Flow"
 				},
 				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:14Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_CommunicationPreferenceLoad_InitialLoad')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "GetNewLoadId",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Get_Email_Chunk",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							},
-							{
-								"activity": "Get_Phone_Chunk",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_CustomerMaster'\n,@P_PROGRAM_NAME = 'CommunicationPreferenceLoad'\n,@P_LOAD_DESCRIPTION = 'CommunicationPreferenceLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Semarchy_Repo",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Set_LoadID_Variable",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "GetNewLoadId",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "LoadID",
-							"value": {
-								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "SubmitLoadID",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Check_Phone_Chunk",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
-							"storedProcedureParameters": {
-								"P_INTEGRATION_JOB_NAME": {
-									"value": {
-										"value": "CommunicationPreferenceLoad",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"P_LOAD_ID": {
-									"value": {
-										"value": "@variables('LoadID')",
-										"type": "Expression"
-									},
-									"type": "Decimal"
-								},
-								"P_USERNAME": {
-									"value": {
-										"value": "semadmin",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"return_value_argument": {
-									"value": null,
-									"type": "Decimal"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_repo",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Get_Email_Chunk",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel ='email'",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Email_Chunk",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Get_Phone_Chunk",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "select top 1 Id,ChunkNumber,TableName,Organization\nfrom Masterdata_CDP.PreferenceInitialLoadChunks with(nolock) \nwhere isloaded = 0 and ProcessedDate is NULL and channel = 'SMS'",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Get_Phone_Chunk",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Check_Email_Chunk",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Set_LoadID_Variable",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@contains(activity('Get_Email_Chunk').output,'firstRow')",
-								"type": "Expression"
-							},
-							"ifFalseActivities": [
-								{
-									"name": "No_Data_Available_For_Email",
-									"type": "Wait",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"waitTimeInSeconds": 1
-									}
-								}
-							],
-							"ifTrueActivities": [
-								{
-									"name": "SD_COMMUNICTN_PREFERNC_EMAIL",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"additionalColumns": [
-												{
-													"name": "B_LOADID",
-													"value": {
-														"value": "@variables('LoadID')",
-														"type": "Expression"
-													}
-												}
-											],
-											"sqlReaderQuery": {
-												"value": "SELECT EmailAddress AS RAW_EMAIL_ADDRESS,\nCAST(OptedIn as bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nEmailCommunicationId AS EMAIL_COMMUNICATION_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefEmail] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Email_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Email_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Email_Chunk').output.firstRow.Organization}' and channel = 'email'",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"sink": {
-											"type": "AzureSqlSink",
-											"writeBehavior": "insert",
-											"sqlWriterUseTableLock": false
-										},
-										"enableStaging": false,
-										"dataIntegrationUnits": 2,
-										"translator": {
-											"type": "TabularTranslator",
-											"mappings": [
-												{
-													"source": {
-														"name": "B_LOADID"
-													},
-													"sink": {
-														"name": "B_LOADID",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													}
-												},
-												{
-													"source": {
-														"name": "B_PUBID",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_PUBID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_SOURCEID",
-														"type": "Byte[]",
-														"physicalType": "varbinary"
-													},
-													"sink": {
-														"name": "B_SOURCEID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CLASSNAME",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_CLASSNAME",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CREDATE",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "B_CREDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "B_UPDDATE",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "B_UPDDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CREATOR",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_CREATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_UPDATOR",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_UPDATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "OPTED_IN",
-														"type": "Boolean",
-														"physicalType": "bit"
-													},
-													"sink": {
-														"name": "OPTED_IN",
-														"type": "Boolean",
-														"physicalType": "bit"
-													}
-												},
-												{
-													"source": {
-														"name": "ORGANIZATION",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "ORGANIZATION",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "PURPOSE",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "PURPOSE",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "CHANNEL",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "CHANNEL",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "RAW_EMAIL_ADDRESS",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "RAW_EMAIL_ADDRESS",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "EMAIL_COMMUNICATION_ID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "EMAIL_COMMUNICATION_ID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "SRC_UPDATE",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "SRC_UPDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												}
-											],
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "InitialLoad_CommPref",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "SD_COMMUNICTN_PREFERNC_EMAIL",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									]
-								},
-								{
-									"name": "SD_COMMUNICTN_PREFERNC_EMAIL_SuccessLogging",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
-										"storedProcedureParameters": {
-											"CopyActivity_End_Time": {
-												"value": {
-													"value": "@{utcNow()}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"CopyActivity_Start_Time": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].start}\n",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"CopyActivity_transferDuration_in_secs": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0]. detailedDurations.transferDuration}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"CopyDuration_in_secs": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.copyDuration}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"Execution_Status": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].status}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Pipeline_Name": {
-												"value": {
-													"value": "@{pipeline().Pipeline}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RowsCopied": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.rowsCopied}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"RowsRead": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.rowsRead}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"RunId": {
-												"value": {
-													"value": "@{pipeline().RunId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "dbo.SD_COMMUNICTN_PREFERNC_EMAIL",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].sink.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefEmail]",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].source.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "SD_COMMUNICTN_PREFERNC_EMAIL_ErrorLoags",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-										"storedProcedureParameters": {
-											"ErrorCode": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.errorCode}\n",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorMsg": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.message}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorStatusCode": {
-												"value": {
-													"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').StatusCode",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"FailureType": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.failureType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"PipelineName": {
-												"value": {
-													"value": "@{pipeline().Pipeline}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RunID": {
-												"value": {
-													"value": "@{pipeline().RunId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "dbo.SD_COMMUNICTN_PREFERNC_EMAIL",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].sink.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefEmail]",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').output.executionDetails[0].source.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_EMAIL",
-									"type": "ExecutePipeline",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Teams_Channale_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": {
-												"value": "afi-edme-rg",
-												"type": "Expression"
-											},
-											"runId": {
-												"value": "@pipeline().RunId",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().Pipeline",
-												"type": "Expression"
-											},
-											"triggerTime": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').ExecutionStartTime",
-												"type": "Expression"
-											},
-											"status": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').Status",
-												"type": "Expression"
-											},
-											"message": {
-												"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.message,'\"','')",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').ExecutionEndTime",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_EMAIL').Duration",
-												"type": "Expression"
-											},
-											"teamWebhookUrl": {
-												"value": "@pipeline().globalParameters.GP_WebhookUrl",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "Failed_Email",
-									"type": "Fail",
-									"dependsOn": [
-										{
-											"activity": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_EMAIL",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"message": {
-											"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.message,'\"','')",
-											"type": "Expression"
-										},
-										"errorCode": {
-											"value": "@{activity('SD_COMMUNICTN_PREFERNC_EMAIL').error.errorCode}",
-											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "Update_Email_Chunk",
-									"type": "Lookup",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_EMAIL",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"sqlReaderQuery": {
-												"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Email_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Email_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Email_Chunk').output.firstRow.Organization}' and channel = 'email';\nselect 1 as success;",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"dataset": {
-											"referenceName": "Update_Email_Chunk",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "Check_Phone_Chunk",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Check_Email_Chunk",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@contains(activity('Get_Phone_Chunk').output,'firstRow')",
-								"type": "Expression"
-							},
-							"ifFalseActivities": [
-								{
-									"name": "No_Data_Available_For_Phone",
-									"type": "Wait",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"waitTimeInSeconds": 1
-									}
-								}
-							],
-							"ifTrueActivities": [
-								{
-									"name": "SD_COMMUNICTN_PREFERNC_PHONE",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"additionalColumns": [
-												{
-													"name": "B_LOADID",
-													"value": {
-														"value": "@variables('LoadID')",
-														"type": "Expression"
-													}
-												}
-											],
-											"sqlReaderQuery": {
-												"value": "SELECT PhoneNumber AS RAW_PHONE_NUMBER,\nCAST(OptedIn AS Bit) AS OPTED_IN,\nOrganization AS ORGANIZATION,\nPurpose AS PURPOSE,\nChannel AS CHANNEL,\nB_SourceID AS B_SOURCEID,\nPhoneCommunicationId AS PHONE_COMM_ID,\nSRC_UPDATE,\nB_PUBID,\nB_CLASSNAME,\nB_CREATOR,\nB_UPDATOR,\nB_UPDATE AS B_UPDDATE,\nB_CREDATE FROM [Masterdata_CDP].[InitialLoadCommPrefPhone] WITH(NOLOCK) WHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS'",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"sink": {
-											"type": "AzureSqlSink",
-											"writeBehavior": "insert",
-											"sqlWriterUseTableLock": false
-										},
-										"enableStaging": false,
-										"dataIntegrationUnits": 2,
-										"translator": {
-											"type": "TabularTranslator",
-											"mappings": [
-												{
-													"source": {
-														"name": "B_LOADID"
-													},
-													"sink": {
-														"name": "B_LOADID",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													}
-												},
-												{
-													"source": {
-														"name": "B_PUBID",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_PUBID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_SOURCEID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "B_SOURCEID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CLASSNAME",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_CLASSNAME",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CREDATE",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "B_CREDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "B_UPDDATE",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "B_UPDDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CREATOR",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_CREATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_UPDATOR",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_UPDATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "OPTED_IN",
-														"type": "Boolean",
-														"physicalType": "bit"
-													},
-													"sink": {
-														"name": "OPTED_IN",
-														"type": "Boolean",
-														"physicalType": "bit"
-													}
-												},
-												{
-													"source": {
-														"name": "ORGANIZATION",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "ORGANIZATION",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "PURPOSE",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "PURPOSE",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "CHANNEL",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "CHANNEL",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "RAW_PHONE_NUMBER",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "RAW_PHONE_NUMBER",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "PHONE_COMM_ID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "PHONE_COMM_ID",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "SRC_UPDATE",
-														"type": "DateTime",
-														"physicalType": "datetime"
-													},
-													"sink": {
-														"name": "SRC_UPDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												}
-											],
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "InitialLoad_CommPref",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "SD_COMMUNICTN_PREFERNC_PHONE",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									]
-								},
-								{
-									"name": "SD_COMMUNICTN_PREFERNC_PHONE_SuccessLogging",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
-										"storedProcedureParameters": {
-											"CopyActivity_End_Time": {
-												"value": {
-													"value": "@{utcNow()}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"CopyActivity_Start_Time": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].start}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"CopyActivity_transferDuration_in_secs": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0]. detailedDurations.transferDuration}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"CopyDuration_in_secs": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.copyDuration}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"Execution_Status": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].status}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Pipeline_Name": {
-												"value": {
-													"value": "@{pipeline().Pipeline}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RowsCopied": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.rowsCopied}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"RowsRead": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.rowsRead}",
-													"type": "Expression"
-												},
-												"type": "Int32"
-											},
-											"RunId": {
-												"value": {
-													"value": "@{pipeline().RunId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "dbo.SD_COMMUNICTN_PREFERNC_PHONE",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].sink.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefPhone]",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].source.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "DateTime"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "SD_COMMUNICTN_PREFERNC_PHONE_ErrorLoags",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-										"storedProcedureParameters": {
-											"ErrorCode": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.errorCode}\n",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorMsg": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.message}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorStatusCode": {
-												"value": {
-													"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').StatusCode",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"FailureType": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.failureType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"PipelineName": {
-												"value": {
-													"value": "@{pipeline().Pipeline}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RunID": {
-												"value": {
-													"value": "@{pipeline().RunId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": {
-													"value": "dbo.SD_COMMUNICTN_PREFERNC_PHONE",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].sink.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source": {
-												"value": {
-													"value": "[[Masterdata_CDP].[InitialLoadCommPrefPhone]",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": {
-													"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').output.executionDetails[0].source.type}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_PHONE",
-									"type": "ExecutePipeline",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
-											"dependencyConditions": [
-												"Failed"
-											]
-										}
-									],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Teams_Channale_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": {
-												"value": "afi-edme-rg",
-												"type": "Expression"
-											},
-											"runId": {
-												"value": "@pipeline().RunId",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().Pipeline",
-												"type": "Expression"
-											},
-											"triggerTime": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').ExecutionStartTime",
-												"type": "Expression"
-											},
-											"status": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').Status",
-												"type": "Expression"
-											},
-											"message": {
-												"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_PHONE').error.message,'\"','')",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').ExecutionEndTime",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "@activity('SD_COMMUNICTN_PREFERNC_PHONE').Duration",
-												"type": "Expression"
-											},
-											"teamWebhookUrl": {
-												"value": "@pipeline().globalParameters.GP_WebhookUrl",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "Failed_Phone",
-									"type": "Fail",
-									"dependsOn": [
-										{
-											"activity": "Teams_Failed_Notification_SD_COMMUNICTN_PREFERNC_PHONE",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"message": {
-											"value": "@replace(activity('SD_COMMUNICTN_PREFERNC_PHONE').error.message,'\"','')",
-											"type": "Expression"
-										},
-										"errorCode": {
-											"value": "@{activity('SD_COMMUNICTN_PREFERNC_PHONE').error.errorCode}",
-											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "Update_Phone_Chunk",
-									"type": "Lookup",
-									"dependsOn": [
-										{
-											"activity": "SD_COMMUNICTN_PREFERNC_PHONE",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"sqlReaderQuery": {
-												"value": "Update a set ProcessedDate = getdate() , isloaded = 1 \nfrom Masterdata_CDP.PreferenceInitialLoadChunks a with(nolock)\nWHERE ChunkNumber = @{activity('Get_Phone_Chunk').output.firstRow.ChunkNumber} and TableName = '@{activity('Get_Phone_Chunk').output.firstRow.TableName}' and Organization = '@{activity('Get_Phone_Chunk').output.firstRow.Organization}' and channel = 'SMS';\nselect 1 as success;",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"dataset": {
-											"referenceName": "Phone_Chunk",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									}
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"LoadID": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Communication_Preference_Flow"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:21:13Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Load_RetailCustomer_Crosswalk')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Retail_Customer_CrossWalk_MD_OUT",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": {
-									"value": "TRUNCATE TABLE [dbo].[CrossWalk_MD_OUT]",
-									"type": "Expression"
-								},
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"dataIntegrationUnits": 2,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_SOURCEID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_SOURCEID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_BATCHID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										},
-										"sink": {
-											"name": "B_BATCHID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_CREATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_UPDATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_MATCHGRP",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										},
-										"sink": {
-											"name": "B_MATCHGRP",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										}
-									},
-									{
-										"source": {
-											"name": "B_CONFIRMATIONSTATUS",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_CONFIRMATIONSTATUS",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RETAIL_CUSTOMER_ID",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										},
-										"sink": {
-											"name": "RETAIL_CUSTOMER_ID",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CONFIRMEDSDPK",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										},
-										"sink": {
-											"name": "B_CONFIRMEDSDPK",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_FIRST_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_FIRST_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_LAST_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_LAST_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RAW_MIDDLE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "RAW_MIDDLE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SRC_UPDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "SRC_UPDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_PUBID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_PUBID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_SOURCEID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_SOURCEID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "masterdata_CDP_CrossWalk_MD_OUT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "retailCustomer_dbo_CrossWalk_MD_OUT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Retail_Customer_CrossWalk_DU_OUT",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_MD_OUT",
-								"dependencyConditions": [
-									"Completed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": {
-									"value": "TRUNCATE TABLE [dbo].[CrossWalk_DU_OUT]",
-									"type": "Expression"
-								},
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"dataIntegrationUnits": 2,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_SOURCEID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_SOURCEID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_PUBID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_PUBID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_SOURCEID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_SOURCEID2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_MATCHRULE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_MATCHRULE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_MATCHSCORE",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										},
-										"sink": {
-											"name": "B_MATCHSCORE",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_CREATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_UPDATOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "masterData_CDP_CrossWalk_DU_OUT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "RetailCustomer_CrossWalk_DU_OUT",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Retail_Customer_Crosswalk_MD_failure_Notification",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_MD_OUT",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Stage_Retail_Customer_Failure_Notification",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"ErrorCode": {
-									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.errorCode}",
-									"type": "Expression"
-								},
-								"ErrorMsg": {
-									"value": "@replace(activity('Retail_Customer_CrossWalk_MD_OUT').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"ErrorStatusCode": {
-									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').StatusCode",
-									"type": "Expression"
-								},
-								"FailureType": {
-									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.failureType}",
-									"type": "Expression"
-								},
-								"PipelineName": {
-									"value": "@{pipeline().Pipeline}",
-									"type": "Expression"
-								},
-								"RunID": {
-									"value": "@{pipeline().Pipeline}",
-									"type": "Expression"
-								},
-								"Sink": {
-									"value": "Scratch.CustomerInfo",
-									"type": "Expression"
-								},
-								"Sink_Type": {
-									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].sink.type}",
-									"type": "Expression"
-								},
-								"Source": "Source is Crosswalk MD Table Data",
-								"Source_Type": {
-									"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].source.type}",
-									"type": "Expression"
-								},
-								"TriggerId": {
-									"value": "@{pipeline().TriggerId}",
-									"type": "Expression"
-								},
-								"TriggerName": {
-									"value": "@{pipeline().TriggerName}",
-									"type": "Expression"
-								},
-								"TriggerTime": {
-									"value": "@{pipeline().TriggerTime}",
-									"type": "Expression"
-								},
-								"TriggerType": {
-									"value": "@{pipeline().TriggerType}",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').Status",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').Duration",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').ExecutionEndTime",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Retail_Customer_Crosswalk_MD_fail",
-						"type": "Fail",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_Crosswalk_MD_failure_Notification",
-								"dependencyConditions": [
-									"Completed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"message": {
-								"value": "@replace(activity('Retail_Customer_CrossWalk_MD_OUT').error.message,'\"','')",
-								"type": "Expression"
-							},
-							"errorCode": {
-								"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.errorCode}",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Retail_Customer_Crosswalk_DU_failure_Notification",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_DU_OUT",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Stage_Retail_Customer_Failure_Notification",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"ErrorCode": {
-									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.errorCode}",
-									"type": "Expression"
-								},
-								"ErrorMsg": {
-									"value": "@replace(activity('Retail_Customer_CrossWalk_DU_OUT').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"ErrorStatusCode": {
-									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').StatusCode",
-									"type": "Expression"
-								},
-								"FailureType": {
-									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.failureType}",
-									"type": "Expression"
-								},
-								"PipelineName": {
-									"value": "@{pipeline().Pipeline}",
-									"type": "Expression"
-								},
-								"RunID": {
-									"value": "@{pipeline().Pipeline}",
-									"type": "Expression"
-								},
-								"Sink": {
-									"value": "Scratch.CustomerInfo",
-									"type": "Expression"
-								},
-								"Sink_Type": {
-									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].sink.type}",
-									"type": "Expression"
-								},
-								"Source": "Source is Crosswalk DU Table Data",
-								"Source_Type": {
-									"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].source.type}",
-									"type": "Expression"
-								},
-								"TriggerId": {
-									"value": "@{pipeline().TriggerId}",
-									"type": "Expression"
-								},
-								"TriggerName": {
-									"value": "@{pipeline().TriggerName}",
-									"type": "Expression"
-								},
-								"TriggerTime": {
-									"value": "@{pipeline().TriggerTime}",
-									"type": "Expression"
-								},
-								"TriggerType": {
-									"value": "@{pipeline().TriggerType}",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').Status",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').Duration",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').ExecutionEndTime",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Retail_Customer_Crosswalk_DU_fail",
-						"type": "Fail",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_Crosswalk_DU_failure_Notification",
-								"dependencyConditions": [
-									"Completed"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"message": {
-								"value": "@replace(activity('Retail_Customer_CrossWalk_DU_OUT').error.message,'\"','')",
-								"type": "Expression"
-							},
-							"errorCode": {
-								"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.errorCode}",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Retail_Customer_CrossWalk_MD_OUT_SuccessLogging",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_MD_OUT",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
-							"storedProcedureParameters": {
-								"CopyActivity_End_Time": {
-									"value": {
-										"value": "@{utcNow()}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"CopyActivity_Start_Time": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].start}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"CopyActivity_transferDuration_in_secs": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0]. detailedDurations.transferDuration}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"CopyDuration_in_secs": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.copyDuration}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"Execution_Status": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].status}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Pipeline_Name": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RowsCopied": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.rowsCopied}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"RowsRead": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.rowsRead}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"RunId": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "dbo.CrossWalk_MD_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "Masterdata_CDP.CrossWalk_MD_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Retail_Customer_CrossWalk_MD_OUT_ErrorLogs",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_MD_OUT",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.message}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('Retail_Customer_CrossWalk_MD_OUT').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "dbo.CrossWalk_MD_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "Masterdata_CDP.CrossWalk_MD_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_MD_OUT').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Retail_Customer_CrossWalk_DU_OUT_SuccessLogging",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_DU_OUT",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFLogging]",
-							"storedProcedureParameters": {
-								"CopyActivity_End_Time": {
-									"value": {
-										"value": "@{utcNow()}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"CopyActivity_Start_Time": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].start}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"CopyActivity_transferDuration_in_secs": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0]. detailedDurations.transferDuration}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"CopyDuration_in_secs": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.copyDuration}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"Execution_Status": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].status}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Pipeline_Name": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RowsCopied": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.rowsCopied}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"RowsRead": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.rowsRead}",
-										"type": "Expression"
-									},
-									"type": "Int32"
-								},
-								"RunId": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "dbo.CrossWalk_DU_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "Masterdata_CDP.CrossWalk_DU_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Retail_Customer_CrossWalk_DU_OUT_ErrorLogS",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Retail_Customer_CrossWalk_DU_OUT",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.message}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('Retail_Customer_CrossWalk_DU_OUT').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "dbo.CrossWalk_DU_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "Masterdata_CDP.CrossWalk_DU_OUT",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('Retail_Customer_CrossWalk_DU_OUT').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Retail_Customer_Flow"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-10-27T09:20:59Z"
+				"lastPublishTime": "2025-12-08T10:02:20Z"
 			},
 			"dependsOn": []
 		}
