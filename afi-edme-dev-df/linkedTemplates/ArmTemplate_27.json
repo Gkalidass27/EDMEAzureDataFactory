@@ -13,3860 +13,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_Mappings_Automate_bkp')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "StoreMasterCustom_LegalEntities_Mapping",
-						"type": "Copy",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "CP_companycode_GD_STG",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"additionalColumns": [
-									{
-										"name": "createddate",
-										"value": {
-											"value": "@utcNow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": true,
-									"keys": [
-										"EntityName"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "EntityName",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "EntityName",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LegalEntityID",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "LegalEntityID",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "createddate",
-											"type": "String"
-										},
-										"sink": {
-											"name": "createddate",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "StoreMasterCustom_LegalEntities_Mapping",
-								"type": "DatasetReference",
-								"parameters": {
-									"FileName": {
-										"value": "@pipeline().parameters.LegalEntitiesMapping_FileName",
-										"type": "Expression"
-									}
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "EDW_StoreMasterCustom_LegalEntities_Mapping",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "StoreMasterCustom_LegalEntities_CompanyCodes",
-						"type": "Copy",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "StoreMasterCustom_LegalEntities_Mapping",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"additionalColumns": [
-									{
-										"name": "Createddate",
-										"value": {
-											"value": "@utcNow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": true,
-									"keys": [
-										"LegalEntityID",
-										"EntityName",
-										"LicContact"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "legal_entity_id",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "LegalEntityID",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "EntityName",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "lic_contact",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "LicContact",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "company_code",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "CompanyCode",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Createddate",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Createddate",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "StoreMasterCustom_LegalEntities_CompanyCodes",
-								"type": "DatasetReference",
-								"parameters": {
-									"FileName": {
-										"value": "@pipeline().parameters.LegalEntitiesCompanyCodes_FileName",
-										"type": "Expression"
-									}
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "EDW_StoreMasterCustom_LegalEntities_CompanyCodes",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "StoreMasterCustom_JoinCodes",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "StoreMasterCustom_LegalEntities_CompanyCodes",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"additionalColumns": [
-									{
-										"name": "createddate",
-										"value": {
-											"value": "utcnow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": "\n",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": true,
-									"keys": [
-										"Location",
-										"SiteID"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "Location",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Location",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "JoinCode",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "JoinCode",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SiteID",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "SiteID",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "AccountNumber",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Account",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "StoreFrontShipTo",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "StoreFrontShipTo",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Type",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "Type",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "createddate",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Createddate",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "StoreMasterCustom_Sites_JoinCodes",
-								"type": "DatasetReference",
-								"parameters": {
-									"FileName": {
-										"value": "@pipeline().parameters.Sites_JoinCodes_FileName",
-										"type": "Expression"
-									}
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Retail_StoreMasterCustom_Sites_JoinCodes",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "CP_companycode_GD_STG",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Sp_LegalEntityID_Assign_RDC",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "select legal_entity_id,Name,LIC_contact,company_code,\r\ngetdate() as created_date from  dbo.gd_legal_entity\r\n",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": false,
-									"keys": [
-										"LegalEntityID",
-										"EntityName"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "legal_entity_id",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										},
-										"sink": {
-											"name": "LegalEntityID",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "Name",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "EntityName",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LIC_contact",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "LicContact",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "company_code",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "CompanyCode",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "created_date",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										},
-										"sink": {
-											"name": "Createddate",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Retail_Sitemaster_Tables",
-								"type": "DatasetReference",
-								"parameters": {
-									"Schemaname": "dbo",
-									"Tablename": "gd_legal_entity"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Semarchy_staging",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Retail",
-									"TableName": "StoreMasterCustom_LegalEntities_CompanyCodes"
-								}
-							}
-						]
-					},
-					{
-						"name": "cp_LegalEntityID_GD_Staging",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "select legal_entity_id as LegalEntityID,Name as Entityname,\nCONVERT(VARCHAR(30), b_credate, 126) as createddate from  dbo.gd_legal_entity",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": false,
-									"keys": [
-										"LegalEntityID",
-										"EntityName"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "Entityname",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "EntityName",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LegalEntityID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										},
-										"sink": {
-											"name": "LegalEntityID",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "createddate",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "createddate",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Retail_Sitemaster_Tables",
-								"type": "DatasetReference",
-								"parameters": {
-									"Schemaname": "dbo",
-									"Tablename": "gd_legal_entity"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Semarchy_staging",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Retail",
-									"TableName": "StoreMasterCustom_LegalEntities_Mapping"
-								}
-							}
-						]
-					},
-					{
-						"name": "Sp_LegalEntityID_Assign_Stores",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "cp_LegalEntityID_GD_Staging",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Retail].[Assign_new_legal_entity_id]"
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Sp_LegalEntityID_Assign_RDC",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Sp_LegalEntityID_Assign_Stores",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Retail].[Assign_WH_new_legal_entity_id]"
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"LegalEntitiesMapping_FileName": {
-						"type": "String",
-						"defaultValue": "StoreMasterCustom_LegalEntities_Mapping.csv"
-					},
-					"LegalEntitiesCompanyCodes_FileName": {
-						"type": "string",
-						"defaultValue": "LegalEntitiesCompanyCodes.csv"
-					},
-					"Sites_JoinCodes_FileName": {
-						"type": "string",
-						"defaultValue": "StoreMasterCustom_Sites_JoinCodes.csv"
-					}
-				},
-				"folder": {
-					"name": "SiteMaster/Archive"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:02:13Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Stage_W_SiteMaster_EDW_SemarchyStaging_Tbl')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "CP_EDW_Staging_WHSMST",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "To copy WHSMST from EDW to Semarchy stg"
-							}
-						],
-						"typeProperties": {
-							"source": {
-								"type": "SqlDWSource",
-								"additionalColumns": [
-									{
-										"name": "load_date",
-										"value": {
-											"value": "@utcNow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": "Delete from wholesale.whsmst",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "WHID",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "WHID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "DESC",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "DESC",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "TYPE",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "TYPE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SELL",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "SELL",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "PRPL",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "PRPL",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "PLCD",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "PLCD",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LSPD",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 7
-										},
-										"sink": {
-											"name": "LSPD",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "LDEP",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "LDEP",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "RPDS",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "RPDS",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "FCDS",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 4
-										},
-										"sink": {
-											"name": "FCDS",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "BCDS",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 4
-										},
-										"sink": {
-											"name": "BCDS",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ECCUCD",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "ECCUCD",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ECSTCD",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "ECSTCD",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "IIRO",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "IIRO",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SCPI",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "SCPI",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "GSCD",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "GSCD",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "WHLC",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "WHLC",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "CWHS",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "CWHS",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "UUCAWH",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "UUCAWH",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ETPO",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "ETPO",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "CNTY",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "CNTY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "STCD",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "STCD",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "TXCNT",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "TXCNT",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "TXCIY",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "TXCIY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "WZIP",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "WZIP",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "STID",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "STID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "BFFL",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 1
-										},
-										"sink": {
-											"name": "BFFL",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "AA0B",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "AA0B",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "UUIAWH",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "UUIAWH",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "CALP",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "CALP",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "CALR",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "CALR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ALST",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "ALST",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "APSW",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "APSW",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "load_date",
-											"type": "String"
-										},
-										"sink": {
-											"name": "load_date",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_EDW_WHSMST",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_SemStaging_WHSMST",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "CP_EDW_Staging_PortMaster",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "CP_EDW_Staging_WHSMST",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "To copy Portmater from EDW to Semarchy stg"
-							}
-						],
-						"typeProperties": {
-							"source": {
-								"type": "SqlDWSource",
-								"additionalColumns": [
-									{
-										"name": "Load_date",
-										"value": {
-											"value": "@utcnow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": "Delete from wholesale.PortMaster",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "pteID",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "pteID",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "pteAESPortCode",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "pteAESPortCode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "ptePortDescription",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "ptePortDescription",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteCityOfPort",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "pteCityOfPort",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteStateOfPort",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "pteStateOfPort",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteCountryOfPort",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "pteCountryOfPort",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteFobPortCode",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "pteFobPortCode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteFOBPortActiveRecordFlag",
-											"type": "Boolean",
-											"physicalType": "bit"
-										},
-										"sink": {
-											"name": "pteFOBPortActiveRecordFlag",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteEndPortCode",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "pteEndPortCode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteEndPortActiveRecordFlag",
-											"type": "Boolean",
-											"physicalType": "bit"
-										},
-										"sink": {
-											"name": "pteEndPortActiveRecordFlag",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteLastModifiedUser",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "pteLastModifiedUser",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteShortPortDescription",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "pteShortPortDescription",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "acrec",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "acrec",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "usra",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "usra",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "dtea",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										},
-										"sink": {
-											"name": "dtea",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "usrc",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "usrc",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "dtec",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										},
-										"sink": {
-											"name": "dtec",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteCanadaActiveRecordFlag",
-											"type": "Boolean",
-											"physicalType": "bit"
-										},
-										"sink": {
-											"name": "pteCanadaActiveRecordFlag",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteCanadaBorderServiceAgency",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "pteCanadaBorderServiceAgency",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteZipCode",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "pteZipCode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteGeoLatitude",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 4,
-											"precision": 13
-										},
-										"sink": {
-											"name": "pteGeoLatitude",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteGeoLongitude",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 4,
-											"precision": 11
-										},
-										"sink": {
-											"name": "pteGeoLongitude",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "pteGeoAccuracy",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "pteGeoAccuracy",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Load_date",
-											"type": "String"
-										},
-										"sink": {
-											"name": "load_date",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_EDW_portmater",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_SemStaging_Portmaster",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Teams_Failed_Notification_WH_Port",
-						"type": "ExecutePipeline",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "AddressMaster",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('AddressMaster').output.executionDetails[0].start\n",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('AddressMaster').output.executionDetails[0].status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('AddressMaster').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@{utcnow()}",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('AddressMaster').output.copyDuration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "AshleyWarehouseMaster",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "CP_EDW_Staging_PortMaster",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "SqlDWSource",
-								"additionalColumns": [
-									{
-										"name": "Load_date",
-										"value": {
-											"value": "@utcnow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "wmaWarehouse",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaWarehouse",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaLocationId",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 10
-										},
-										"sink": {
-											"name": "wmaLocationId",
-											"type": "Decimal",
-											"physicalType": "decimal"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaIntransitWarehouse",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaIntransitWarehouse",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaSiteId",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaSiteId",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaMROSiteId",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaMROSiteId",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaWarehouseType",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaWarehouseType",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaWarehouseOrderGroup",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "wmaWarehouseOrderGroup",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaWarehouseSourceId",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "wmaWarehouseSourceId",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaRouteType",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaRouteType",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaDefaultPortId",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "wmaDefaultPortId",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaControlled",
-											"type": "Boolean",
-											"physicalType": "bit"
-										},
-										"sink": {
-											"name": "wmaControlled",
-											"type": "Boolean",
-											"physicalType": "bit"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaPrinterName",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "wmaPrinterName",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaZebraPrinter",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "wmaZebraPrinter",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaSendBolsToManu",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaSendBolsToManu",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaOrderReleaseMin",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "wmaOrderReleaseMin",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaOrderReleaseMinType",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaOrderReleaseMinType",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaDefaultShipId",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "wmaDefaultShipId",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaSortOrder",
-											"type": "Byte",
-											"physicalType": "tinyint"
-										},
-										"sink": {
-											"name": "wmaSortOrder",
-											"type": "Byte",
-											"physicalType": "tinyint"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaAsOverhead",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "wmaAsOverhead",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaAsFreight",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "wmaAsFreight",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaContainerDirectWhse",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaContainerDirectWhse",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "acrec",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "acrec",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "usra",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "usra",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "dtea",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "dtea",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "usrc",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "usrc",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "dtec",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "dtec",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaWhereMade",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "wmaWhereMade",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaManufacturingSite",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "wmaManufacturingSite",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "wmaSellableWarehouse",
-											"type": "Boolean",
-											"physicalType": "bit"
-										},
-										"sink": {
-											"name": "wmaSellableWarehouse",
-											"type": "Boolean",
-											"physicalType": "bit"
-										}
-									},
-									{
-										"source": {
-											"name": "Load_date",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Load_date",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_AshleyWarehouseMaster",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Sem_Staging_wholesale",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Wholesale",
-									"TableName": "AshleyWarehouseMaster"
-								}
-							}
-						]
-					},
-					{
-						"name": "Locations",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "AshleyWarehouseMaster",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "SqlDWSource",
-								"additionalColumns": [
-									{
-										"name": "Load_date",
-										"value": {
-											"value": "@utcnow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Locations",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Sem_Staging_wholesale",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Wholesale",
-									"TableName": "Locations"
-								}
-							}
-						]
-					},
-					{
-						"name": "AddressMaster",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Locations",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "SqlDWSource",
-								"additionalColumns": [
-									{
-										"name": "Load_date",
-										"value": {
-											"value": "@utcnow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"tableOption": "autoCreate",
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "paaAddressID",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "paaAddressID",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "paaAddress1",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaAddress1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaAddress2",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaAddress2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaAddress3",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaAddress3",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaAddress4",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaAddress4",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaAddress5",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaAddress5",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaCity",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaCity",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaState",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "paaState",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaCountry",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "paaCountry",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaGeocodeLatitude",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 4,
-											"precision": 8
-										},
-										"sink": {
-											"name": "paaGeocodeLatitude",
-											"type": "Decimal",
-											"physicalType": "decimal"
-										}
-									},
-									{
-										"source": {
-											"name": "paaGeocodeLongitude",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 4,
-											"precision": 8
-										},
-										"sink": {
-											"name": "paaGeocodeLongitude",
-											"type": "Decimal",
-											"physicalType": "decimal"
-										}
-									},
-									{
-										"source": {
-											"name": "paaZipCode",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaZipCode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaCountyCode",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "paaCountyCode",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaCustomsIDNumber",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaCustomsIDNumber",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaGeocodeAccuracy",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "paaGeocodeAccuracy",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "paaTranscomCityCode",
-											"type": "Int32",
-											"physicalType": "int"
-										},
-										"sink": {
-											"name": "paaTranscomCityCode",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "paaDirections",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaDirections",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaCrossStreet",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaCrossStreet",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaGeocodeVerificationDate",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "paaGeocodeVerificationDate",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "paaTimeZone",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "paaTimeZone",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaGeocodeType",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "paaGeocodeType",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaMsa_Fips",
-											"type": "String",
-											"physicalType": "char"
-										},
-										"sink": {
-											"name": "paaMsa_Fips",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaShortAddress1",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaShortAddress1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaShortAddress2",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaShortAddress2",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaShortAddress3",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaShortAddress3",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaShortAddress4",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaShortAddress4",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "paaShortCity",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "paaShortCity",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "usra",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "usra",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "dtea",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "dtea",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "usrc",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "usrc",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "dtec",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										},
-										"sink": {
-											"name": "dtec",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "Load_date",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Load_date",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_ASHLEY_EDW_EDME",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Edme_datafactory",
-									"TableName": "AddressMaster"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Sem_Staging_wholesale",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "Wholesale",
-									"TableName": "AddressMaster"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Wholesale/W_SiteMaster"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:02:16Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/State_Or_Province_Code_Validation')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "LUP_STATEORPROVINCECODE",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Concate_Postal_code",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "select Count(*) as STATE_OR_PROVINCE_CODE from [Ref_PostalCode].[PostalCode]   WHERE COUNTRY_CODE = 'CA' AND STATE_OR_PROVINCE_CODE = '--'",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "ds_postalcode_StateOrProvinceCode",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "CHK_PROVINCE_CODE",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "LUP_STATEORPROVINCECODE",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@greater(activity('LUP_STATEORPROVINCECODE').output.firstRow.STATE_OR_PROVINCE_CODE, 0)",
-								"type": "Expression"
-							},
-							"ifFalseActivities": [
-								{
-									"name": "NoActionRequired",
-									"description": "NoActionRequired",
-									"type": "SetVariable",
-									"dependsOn": [],
-									"policy": {
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"variableName": "NoActionRequired",
-										"value": {
-											"value": "NoActionRequired",
-											"type": "Expression"
-										}
-									}
-								}
-							],
-							"ifTrueActivities": [
-								{
-									"name": "Notification_State_Or_Provencecode",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Teams_Channale_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": {
-												"value": "afi-edme-rg",
-												"type": "Expression"
-											},
-											"runId": {
-												"value": "@pipeline().RunId",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().Pipeline",
-												"type": "Expression"
-											},
-											"triggerTime": {
-												"value": "'STATE_OR_PROVINCE_CODE having --'",
-												"type": "Expression"
-											},
-											"status": {
-												"value": "'LUP_STATEORPROVINCECODE'",
-												"type": "Expression"
-											},
-											"message": {
-												"value": "@{concat('The following PostalCodes not assigned the STATE_OR_PROVINCE_CODE: ', variables('Concate_Postal'))}",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@{utcnow()}",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "''",
-												"type": "Expression"
-											},
-											"teamWebhookUrl": {
-												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-												"type": "Expression"
-											}
-										}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "LUP_STATEORPROVINCECODE_Value",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "Select Postal_code from [Ref_PostalCode].[PostalCode]   WHERE COUNTRY_CODE = 'CA' AND \nSTATE_OR_PROVINCE_CODE = '--'\n\nselect 1 as ret",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "ds_postalcode_StateOrProvinceCode",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "Postal_Code_Append",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "LUP_STATEORPROVINCECODE_Value",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@array(activity('LUP_STATEORPROVINCECODE_Value').output.value)",
-								"type": "Expression"
-							},
-							"isSequential": true,
-							"activities": [
-								{
-									"name": "Append_Postalcodes",
-									"description": "Append_Postalcodes",
-									"type": "AppendVariable",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"variableName": "Append_PC",
-										"value": {
-											"value": "@item().Postal_code",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "Concate_Postal_code",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Postal_Code_Append",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "Concate_Postal",
-							"value": {
-								"value": "@{join(variables('Append_PC'), ', ')}",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"NoActionRequired": {
-						"type": "String"
-					},
-					"notificaon": {
-						"type": "String"
-					},
-					"Concate_Postal": {
-						"type": "String"
-					},
-					"Append_PC": {
-						"type": "Array"
-					},
-					"StateOrProvinceCode": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Postal_Code"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:01:41Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Storis_Integration_ST_HSOPC_DEL')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "GetNewLoadId",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Semarchy_Repo",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"firstRowOnly": true
-						}
-					},
-					{
-						"name": "SetNewLoadId",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "GetNewLoadId",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "LoadID",
-							"value": {
-								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "HsOpcTracker_storis_integration_DEL",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "SetNewLoadId",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"additionalColumns": [
-									{
-										"name": "B_LoadId",
-										"value": {
-											"value": "@variables('LoadID')",
-											"type": "Expression"
-										}
-									},
-									{
-										"name": "B_UPDDATE",
-										"value": {
-											"value": "@utcnow()",
-											"type": "Expression"
-										}
-									},
-									{
-										"name": "B_CREDATE",
-										"value": {
-											"value": "@utcNow()",
-											"type": "Expression"
-										}
-									}
-								],
-								"sqlReaderQuery": {
-									"value": "SELECT  \nAddress1 as SITE_RAW_ADDR_LINE1\n,State as SITE_RAW_STATE\n,City as SITE_RAW_CITY\n,PostalCodeID as SITE_RAW_POSTAL_CODE\n,StoreID as PRIMARY_PROFIT_CENTER\n,Operation_ID\n,SITE_NAME\n,B_PUBID\n,B_SourceID\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,B_SourceID as FS_SITE_ID  \n,B_PubID as FP_SITE_ID\n,'HomeStoreOperationProfitCenterTracking' as B_CLASSNAME\nFROM RsmSiteSubscriber.Opc_Tracker_Incremental_activity_V\nWhere Activity_Type in('Delete')",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "B_LoadId",
-											"type": "String"
-										},
-										"sink": {
-											"name": "B_LOADID",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 0,
-											"precision": 38
-										}
-									},
-									{
-										"source": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_SourceID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_SOURCEID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_CLASSNAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETETYPE",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_DELETETYPE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETEDATE",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										},
-										"sink": {
-											"name": "B_DELETEDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETEAUTHOR",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_DELETEAUTHOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETEOPERATION",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										},
-										"sink": {
-											"name": "B_DELETEOPERATION",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_CREDATE",
-											"type": "String"
-										},
-										"sink": {
-											"name": "B_CREDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "B_UPDDATE",
-											"type": "String"
-										},
-										"sink": {
-											"name": "B_UPDDATE",
-											"type": "DateTime",
-											"physicalType": "datetime2"
-										}
-									},
-									{
-										"source": {
-											"name": "Operation_ID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "OPERATION_ID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "PRIMARY_PROFIT_CENTER",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "PRIMARY_PROFIT_CENTER",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SITE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "SITE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SITE_RAW_ADDR_LINE1",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "SITE_RAW_ADDR_LINE1",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SITE_RAW_CITY",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "SITE_RAW_CITY",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SITE_RAW_STATE",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "SITE_RAW_STATE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SITE_RAW_POSTAL_CODE",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "SITE_RAW_POSTAL_CODE",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "FP_SITE_ID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "FP_SITE_ID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "FS_SITE_ID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "FS_SITE_ID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Semarchy_Staging_ST_SI_HSOPC_INC_DEL",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "Retail_SiteMaster_SD_HS_OP_PC_Tracker_DAC",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "SPCallStoreDetailsErrorMsg_SD_HS_OPC_TRACKING",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "HsOpcTracker_storis_integration_DEL",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-							"storedProcedureParameters": {
-								"ErrorCode": {
-									"value": {
-										"value": "@{activity('HsOpcTracker_storis_integration_DEL').error.errorCode}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorMsg": {
-									"value": {
-										"value": "@{activity('HsOpcTracker_storis_integration_DEL').error.message}\n",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"ErrorStatusCode": {
-									"value": {
-										"value": "@activity('HsOpcTracker_storis_integration_DEL').StatusCode",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FailureType": {
-									"value": {
-										"value": "@{activity('HsOpcTracker_storis_integration_DEL').error.failureType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@{pipeline().Pipeline}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"RunID": {
-									"value": {
-										"value": "@{pipeline().RunId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink": {
-									"value": {
-										"value": "SA_SITE_DEFAULT_HOURS",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Sink_Type": {
-									"value": {
-										"value": "@{activity('HsOpcTracker_storis_integration_DEL').output.executionDetails[0].sink.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source": {
-									"value": {
-										"value": "Retail.DACIncrementalSiteMain",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Source_Type": {
-									"value": {
-										"value": "@{activity('HsOpcTracker_storis_integration_DEL').output.executionDetails[0].source.type}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerId": {
-									"value": {
-										"value": "@{pipeline().TriggerId}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerName": {
-									"value": {
-										"value": "@{pipeline().TriggerName}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerTime": {
-									"value": {
-										"value": "@{pipeline().TriggerTime}",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"TriggerType": {
-									"value": {
-										"value": "@{pipeline().TriggerType}",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_SD_HS_OPC_TRACKING",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "HsOpcTracker_storis_integration_DEL",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('HsOpcTracker_storis_integration_DEL').output.executionDetails[0].start",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('HsOpcTracker_storis_integration_DEL').output.executionDetails[0].status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "@replace(activity('HsOpcTracker_storis_integration_DEL').error.message,'\"','')",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@{utcnow()}",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('HsOpcTracker_storis_integration_DEL').output.copyDuration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Cancel_SD_HS_OPC_TRACKING_LoadId_Stored_Procedure_",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "HsOpcTracker_storis_integration_DEL",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
-							"storedProcedureParameters": {
-								"P_LOAD_ID": {
-									"value": {
-										"value": "@variables('LoadID')",
-										"type": "Expression"
-									},
-									"type": "Decimal"
-								},
-								"P_USERNAME": {
-									"value": {
-										"value": "semadmin",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_repo",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "HsOpcTracker_storis_integration_His",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "HsOpcTracker_storis_integration_DEL",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"additionalColumns": [
-									{
-										"name": "B_LoadID",
-										"value": {
-											"value": "@variables('LoadID')",
-											"type": "Expression"
-										}
-									}
-								],
-								"sqlReaderQuery": {
-									"value": "SELECT\n Address1\n,State\n,City\n,PostalCodeID\n,StoreID\n,Operation_ID\n,B_PUBID\n,B_SourceID\n,SITE_NAME\n,B_DELETETYPE\n,B_DELETEDATE\n,B_DELETEAUTHOR\n,B_DELETEOPERATION\n,Activity_Type\n,IsActiveType\nFROM RsmSiteSubscriber.Opc_Tracker_Incremental_activity_V\nWhere Activity_Type in('Delete')\n",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "upsert",
-								"upsertSettings": {
-									"useTempDB": true,
-									"keys": [
-										"StoreID"
-									]
-								},
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "Address1",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "Address1",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "State",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "State",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "City",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "City",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "PostalCodeID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "PostalCodeID",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "StoreID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "StoreID",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Operation_ID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "Operation_ID",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_PUBID",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_SourceID",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "B_Sourceid",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "SITE_NAME",
-											"type": "String",
-											"physicalType": "nvarchar"
-										},
-										"sink": {
-											"name": "SITE_NAME",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETETYPE",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_DELETETYPE",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETEDATE",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										},
-										"sink": {
-											"name": "B_DELETEDATE",
-											"type": "DateTime",
-											"physicalType": "datetime"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETEAUTHOR",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "B_DELETEAUTHOR",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_DELETEOPERATION",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										},
-										"sink": {
-											"name": "B_DELETEOPERATION",
-											"type": "Guid",
-											"physicalType": "uniqueidentifier"
-										}
-									},
-									{
-										"source": {
-											"name": "Activity_Type",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "Activity_Type",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "IsActiveType",
-											"type": "String",
-											"physicalType": "varchar"
-										},
-										"sink": {
-											"name": "IsActiveType",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "B_LoadID",
-											"type": "String"
-										},
-										"sink": {
-											"name": "B_LoadID",
-											"type": "String",
-											"physicalType": "varchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "Semarchy_Staging_ST_SI_HSOPC_INC_DEL_His",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Semarchy_staging",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "RsmSiteSubscriber",
-									"TableName": "Opc_Tracker_Incremental_His"
-								}
-							}
-						]
-					},
-					{
-						"name": "SubmitLoad",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "HsOpcTracker_storis_integration_His",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
-							"storedProcedureParameters": {
-								"P_INTEGRATION_JOB_NAME": {
-									"value": {
-										"value": "SiteDACLoad",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"P_LOAD_ID": {
-									"value": {
-										"value": "@variables('LoadID')",
-										"type": "Expression"
-									},
-									"type": "Decimal"
-								},
-								"P_USERNAME": {
-									"value": {
-										"value": "semadmin",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"return_value_argument": {
-									"value": null,
-									"type": "Decimal"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_repo",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"LoadID": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "SiteMaster"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:02:13Z"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Storis_Integration_ST_Site_DEL')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -14287,6 +10433,827 @@
 						"     )) ~> RDCMasterlist"
 					]
 				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_Stage_SiteMaster_Store_Smartsheet')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "This Dataflow loads RDC info to Semarchy staging",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "Smartsheet_Storemasterlist",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SRCStoremasterlist"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_StoreMasterlist",
+								"type": "DatasetReference"
+							},
+							"name": "sink",
+							"rejectedDataLinkedService": {
+								"referenceName": "masterDataHubStg",
+								"type": "LinkedServiceReference"
+							}
+						}
+					],
+					"transformations": [
+						{
+							"name": "select"
+						},
+						{
+							"name": "derivedColumn"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Status as string,",
+						"          LocationKey as string,",
+						"          {Prospect ID} as string,",
+						"          {Google ID} as string,",
+						"          {Bindy ID} as string,",
+						"          StoreID as string,",
+						"          ProfitCenter as string,",
+						"          Location as string,",
+						"          Country as string,",
+						"          {Account #} as string,",
+						"          {Store Front Ship-To} as string,",
+						"          Entity as string,",
+						"          {Licensee / Contact} as string,",
+						"          {Soft Open Date} as string,",
+						"          {Acquisition Date} as string,",
+						"          {Closure Date} as string,",
+						"          ShopperTrakLocID as string,",
+						"          {Store Address} as string,",
+						"          City as string,",
+						"          {State / Province} as string,",
+						"          ZIP as string,",
+						"          {DMA ID} as string,",
+						"          {DMA Region} as string,",
+						"          {Showroom Sq. Ft.} as string,",
+						"          {Store Type} as string,",
+						"          {Store Model} as string,",
+						"          {Store Version} as string,",
+						"          Market as string,",
+						"          Region as string,",
+						"          {Building Ownership} as string,",
+						"          {Country Category} as string,",
+						"          {Domestic Category} as string,",
+						"          Classification as string,",
+						"          {Store Phone} as string,",
+						"          {District Manager} as string,",
+						"          {Secondary Support} as string,",
+						"          {BD Director} as string,",
+						"          {Licensee Marketing Manager} as string,",
+						"          {Licensee Sales Field Manager} as string,",
+						"          {Licensee Email} as string,",
+						"          {Licensee Phone #} as string,",
+						"          IMS as string,",
+						"          {Corporation Address} as string,",
+						"          {Corp City} as string,",
+						"          {Corp State} as string,",
+						"          {Corp Zip} as string,",
+						"          {RDC Address} as string,",
+						"          {RDC City} as string,",
+						"          {RDC State} as string,",
+						"          {RDC Zip} as string,",
+						"          {RDC Ship To} as string,",
+						"          {RDC Sq. Ft.} as string,",
+						"          {RDC Dock Doors} as string,",
+						"          {TUA Expiration Date} as string,",
+						"          {Licensed Territory} as string,",
+						"          Latitude as string,",
+						"          Longitude as string,",
+						"          Notes as string,",
+						"          {Store Email} as string,",
+						"          {Unit #} as string,",
+						"          {OneSource ID} as string,",
+						"          {HS Database Name} as string,",
+						"          SVP as string,",
+						"          VP as string,",
+						"          {Sr. RD} as string,",
+						"          RD as string,",
+						"          {Store Manager} as string,",
+						"          {Store Mgr. Phone} as string,",
+						"          {Sales Manager (1)} as string,",
+						"          {Sales Manager (2)} as string,",
+						"          {Sales Manager (3)} as string,",
+						"          {Sales Manager (4)} as string,",
+						"          {Office Manager} as string,",
+						"          {Director of Ops} as string,",
+						"          {Regional Ops Mgr} as string,",
+						"          {Ops Mgr} as string,",
+						"          {Comp Status} as string,",
+						"          {Kit #} as string,",
+						"          {Traffic Divisor} as string,",
+						"          ERP as string,",
+						"          {DTC Technology} as string,",
+						"          {DTC Brand} as string,",
+						"          {Forum ID} as string,",
+						"          {Account Type} as string,",
+						"          {Facade Current Image} as string,",
+						"          {Website Facade Current} as string,",
+						"          {Store Manager Image} as string,",
+						"          {Enterprise Facade Image} as string,",
+						"          {Lease Terms} as string,",
+						"          {Modified Date} as string,",
+						"          {DAC ID} as string,",
+						"          {Status Reports} as string,",
+						"          {Model Counts} as string,",
+						"          {Credit Analyst} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     store: 'smartsheet',",
+						"     format: 'rest',",
+						"     entityId: '4179009966761860',",
+						"     entityType: 'sheets') ~> SRCStoremasterlist",
+						"SRCStoremasterlist select(mapColumn(",
+						"          Status,",
+						"          LocationKey,",
+						"          ProspectID = {Prospect ID},",
+						"          GoogleID = {Google ID},",
+						"          BindyID = {Bindy ID},",
+						"          StoreID,",
+						"          ProfitCenter,",
+						"          Location,",
+						"          Country,",
+						"          Account = {Account #},",
+						"          StoreFrontShipTo = {Store Front Ship-To},",
+						"          Entity,",
+						"          LicenseeContact = {Licensee / Contact},",
+						"          SoftOpenDate = {Soft Open Date},",
+						"          AcquisitionDate = {Acquisition Date},",
+						"          ClosureDate = {Closure Date},",
+						"          ShopperTrakLocID,",
+						"          StoreAddress = {Store Address},",
+						"          City,",
+						"          StateProvince = {State / Province},",
+						"          ZIP,",
+						"          DMAID = {DMA ID},",
+						"          DMARegion = {DMA Region},",
+						"          ShowroomSqFt = {Showroom Sq. Ft.},",
+						"          StoreType = {Store Type},",
+						"          StoreModel = {Store Model},",
+						"          StoreVersion = {Store Version},",
+						"          Market,",
+						"          Region,",
+						"          BuildingOwnership = {Building Ownership},",
+						"          CountryCategory = {Country Category},",
+						"          DomesticCategory = {Domestic Category},",
+						"          Classification,",
+						"          StorePhone = {Store Phone},",
+						"          DistrictManager = {District Manager},",
+						"          BDDirector = {BD Director},",
+						"          LicenseeMarketingManager = {Licensee Marketing Manager},",
+						"          LicenseeEmail = {Licensee Email},",
+						"          LicenseePhone = {Licensee Phone #},",
+						"          IMS,",
+						"          CorporationAddress = {Corporation Address},",
+						"          CorpCity = {Corp City},",
+						"          CorpState = {Corp State},",
+						"          CorpZip = {Corp Zip},",
+						"          RDCAddress = {RDC Address},",
+						"          RDCCity = {RDC City},",
+						"          RDCState = {RDC State},",
+						"          RDCZip = {RDC Zip},",
+						"          RDCShipTo = {RDC Ship To},",
+						"          RDCSqFt = {RDC Sq. Ft.},",
+						"          RDCDockDoors = {RDC Dock Doors},",
+						"          TUAExpirationDate = {TUA Expiration Date},",
+						"          LicensedTerritory = {Licensed Territory},",
+						"          Latitude,",
+						"          Longitude,",
+						"          Notes,",
+						"          StoreEmail = {Store Email},",
+						"          Unit = {Unit #},",
+						"          OneSourceID = {OneSource ID},",
+						"          HSDatabaseName = {HS Database Name},",
+						"          SVP,",
+						"          VP,",
+						"          SrRD = {Sr. RD},",
+						"          RD,",
+						"          StoreManager = {Store Manager},",
+						"          StoreMgrPhone = {Store Mgr. Phone},",
+						"          SalesManager1 = {Sales Manager (1)},",
+						"          SalesManager2 = {Sales Manager (2)},",
+						"          SalesManager3 = {Sales Manager (3)},",
+						"          SalesManager4 = {Sales Manager (4)},",
+						"          OfficeManager = {Office Manager},",
+						"          DirectorOfOps = {Director of Ops},",
+						"          RegionalOpsMgr = {Regional Ops Mgr},",
+						"          OpsMgr = {Ops Mgr},",
+						"          CompStatus = {Comp Status},",
+						"          Kit = {Kit #},",
+						"          TrafficDivisor = {Traffic Divisor},",
+						"          ERP,",
+						"          DTCTechnology = {DTC Technology},",
+						"          DTCBrand = {DTC Brand},",
+						"          ForumID = {Forum ID},",
+						"          AccountType = {Account Type},",
+						"          FacadeCurrentImage = {Facade Current Image},",
+						"          WebsiteFacadeCurrent = {Website Facade Current},",
+						"          StoreManagerImage = {Store Manager Image},",
+						"          EnterpriseFacadeImage = {Enterprise Facade Image},",
+						"          LicenseeSalesFieldManager = {Licensee Sales Field Manager},",
+						"          DACID = {DAC ID},",
+						"          LeaseTerms = {Lease Terms},",
+						"          ModifiedDate = {Modified Date},",
+						"          StatusReports = {Status Reports},",
+						"          ModelCounts = {Model Counts}",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> select",
+						"select derive(Comments = 'STORESMARTSHEET') ~> derivedColumn",
+						"derivedColumn sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Status as string,",
+						"          LocationKey as string,",
+						"          ProspectID as string,",
+						"          GoogleID as string,",
+						"          BindyID as string,",
+						"          StoreID as string,",
+						"          ProfitCenter as string,",
+						"          Location as string,",
+						"          Country as string,",
+						"          Account as string,",
+						"          StoreFrontShipTo as string,",
+						"          Entity as string,",
+						"          LicenseeContact as string,",
+						"          SoftOpenDate as date,",
+						"          AcquisitionDate as date,",
+						"          ClosureDate as date,",
+						"          ShopperTrakLocID as string,",
+						"          StoreAddress as string,",
+						"          City as string,",
+						"          StateProvince as string,",
+						"          ZIP as string,",
+						"          DMAID as string,",
+						"          DMARegion as string,",
+						"          ShowroomSqFt as string,",
+						"          StoreType as string,",
+						"          StoreModel as string,",
+						"          StoreVersion as string,",
+						"          Market as string,",
+						"          Region as string,",
+						"          BuildingOwnership as string,",
+						"          CountryCategory as string,",
+						"          DomesticCategory as string,",
+						"          Classification as string,",
+						"          StorePhone as string,",
+						"          DistrictManager as string,",
+						"          BDDirector as string,",
+						"          LicenseeEmail as string,",
+						"          LicenseePhone as string,",
+						"          CorporationAddress as string,",
+						"          CorpCity as string,",
+						"          CorpState as string,",
+						"          CorpZip as string,",
+						"          RDCAddress as string,",
+						"          RDCCity as string,",
+						"          RDCState as string,",
+						"          RDCZip as string,",
+						"          RDCShipTo as string,",
+						"          RDCSqFt as string,",
+						"          RDCDockDoors as string,",
+						"          TUAExpirationDate as date,",
+						"          LicensedTerritory as string,",
+						"          Latitude as string,",
+						"          Longitude as string,",
+						"          Notes as string,",
+						"          StoreEmail as string,",
+						"          Unit as string,",
+						"          OneSourceID as string,",
+						"          HSDatabaseName as string,",
+						"          SVP as string,",
+						"          VP as string,",
+						"          SrRD as string,",
+						"          RD as string,",
+						"          StoreManager as string,",
+						"          StoreMgrPhone as string,",
+						"          SalesManager1 as string,",
+						"          SalesManager2 as string,",
+						"          SalesManager3 as string,",
+						"          SalesManager4 as string,",
+						"          OfficeManager as string,",
+						"          DirectorOfOps as string,",
+						"          RegionalOpsMgr as string,",
+						"          OpsMgr as string,",
+						"          CompStatus as string,",
+						"          Kit as string,",
+						"          TrafficDivisor as string,",
+						"          ERP as string,",
+						"          DTCTechnology as string,",
+						"          DTCBrand as string,",
+						"          ForumID as string,",
+						"          AccountType as string,",
+						"          FacadeCurrentImage as string,",
+						"          WebsiteFacadeCurrent as string,",
+						"          StoreManagerImage as string,",
+						"          EnterpriseFacadeImage as string,",
+						"          LicenseeSalesDistrict as string,",
+						"          LicenseeSalesRegion as string,",
+						"          ModifiedDate as date,",
+						"          LicenseeMarketingManager as string,",
+						"          IMS as string,",
+						"          LeaseTerms as string,",
+						"          StatusReports as string,",
+						"          ModelCounts as string,",
+						"          Comments as string,",
+						"          DAC_ID as string,",
+						"          createddate as timestamp,",
+						"          LicenseeSalesFieldManager as string,",
+						"          DACID as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     preSQLs:['Delete from Smartsheet.StoreMasterCustom'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     saveOrder: 1,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     outputRejectedData: true,",
+						"     outputAssertFailedRows: true,",
+						"     assertFailure_fileSystem: 'Error',",
+						"     assertFailure_folderPath: 'Store',",
+						"     mapColumn(",
+						"          Status,",
+						"          LocationKey,",
+						"          ProspectID,",
+						"          GoogleID,",
+						"          BindyID,",
+						"          StoreID,",
+						"          ProfitCenter,",
+						"          Location,",
+						"          Country,",
+						"          Account,",
+						"          StoreFrontShipTo,",
+						"          Entity,",
+						"          LicenseeContact,",
+						"          SoftOpenDate,",
+						"          AcquisitionDate,",
+						"          ClosureDate,",
+						"          ShopperTrakLocID,",
+						"          StoreAddress,",
+						"          City,",
+						"          StateProvince,",
+						"          ZIP,",
+						"          DMAID,",
+						"          DMARegion,",
+						"          ShowroomSqFt,",
+						"          StoreType,",
+						"          StoreModel,",
+						"          StoreVersion,",
+						"          Market,",
+						"          Region,",
+						"          BuildingOwnership,",
+						"          CountryCategory,",
+						"          DomesticCategory,",
+						"          Classification,",
+						"          StorePhone,",
+						"          DistrictManager,",
+						"          BDDirector,",
+						"          LicenseeEmail,",
+						"          LicenseePhone,",
+						"          CorporationAddress,",
+						"          CorpCity,",
+						"          CorpState,",
+						"          CorpZip,",
+						"          RDCAddress,",
+						"          RDCCity,",
+						"          RDCState,",
+						"          RDCZip,",
+						"          RDCShipTo,",
+						"          RDCSqFt,",
+						"          RDCDockDoors,",
+						"          TUAExpirationDate,",
+						"          LicensedTerritory,",
+						"          Latitude,",
+						"          Longitude,",
+						"          Notes,",
+						"          StoreEmail,",
+						"          Unit,",
+						"          OneSourceID,",
+						"          HSDatabaseName,",
+						"          SVP,",
+						"          VP,",
+						"          SrRD,",
+						"          RD,",
+						"          StoreManager,",
+						"          StoreMgrPhone,",
+						"          SalesManager1,",
+						"          SalesManager2,",
+						"          SalesManager3,",
+						"          SalesManager4,",
+						"          OfficeManager,",
+						"          DirectorOfOps,",
+						"          RegionalOpsMgr,",
+						"          OpsMgr,",
+						"          CompStatus,",
+						"          Kit,",
+						"          TrafficDivisor,",
+						"          ERP,",
+						"          DTCTechnology,",
+						"          DTCBrand,",
+						"          ForumID,",
+						"          AccountType,",
+						"          FacadeCurrentImage,",
+						"          WebsiteFacadeCurrent,",
+						"          StoreManagerImage,",
+						"          EnterpriseFacadeImage,",
+						"          ModifiedDate,",
+						"          LicenseeMarketingManager,",
+						"          IMS,",
+						"          LeaseTerms,",
+						"          StatusReports,",
+						"          ModelCounts,",
+						"          Comments,",
+						"          LicenseeSalesFieldManager,",
+						"          DACID",
+						"     )) ~> sink"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Melissa_Fixedwidth_Source')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Canada_Postal_Code_File_melissa",
+								"type": "DatasetReference"
+							},
+							"name": "PostalCodeFixedWidthData"
+						},
+						{
+							"dataset": {
+								"referenceName": "Canada_Postal_Code_File_melissa_overlay",
+								"type": "DatasetReference"
+							},
+							"name": "OverlayFixedWidthData",
+							"description": "Import data from Canada_Postal_Code_File_melissa overley"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "CANADA_Postal_Code_Table_Melissa",
+								"type": "DatasetReference"
+							},
+							"name": "SinkPostalCode"
+						},
+						{
+							"dataset": {
+								"referenceName": "CANADA_Postal_Code_Table_Melissa_overlay",
+								"type": "DatasetReference"
+							},
+							"name": "SinkOverlay"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DCPostalCode"
+						},
+						{
+							"name": "SelectPostalCode"
+						},
+						{
+							"name": "DCOverlay"
+						},
+						{
+							"name": "SelectOverlay"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          {_col0_} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false) ~> PostalCodeFixedWidthData",
+						"source(output(",
+						"          {_col0_} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     limit: 100,",
+						"     ignoreNoFilesFound: false) ~> OverlayFixedWidthData",
+						"PostalCodeFixedWidthData derive(PostalCode = substring({_col0_},1,6),",
+						"          City = substring({_col0_}, 7, 30),",
+						"          Province = substring({_col0_}, 37,2),",
+						"          Latitude = substring({_col0_}, 39, 9),",
+						"          Longitude = substring({_col0_}, 48, 11),",
+						"          TimeZone = substring({_col0_}, 59, 2),",
+						"          DST = substring({_col0_}, 61, 1),",
+						"          AreaCode = substring({_col0_}, 62, 3),",
+						"          Overlay = substring({_col0_}, 65, 1)) ~> DCPostalCode",
+						"DCPostalCode select(skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> SelectPostalCode",
+						"OverlayFixedWidthData derive(Parent = substring({_col0_},1,3),",
+						"          Overlay = substring({_col0_},4,3),",
+						"          Group = substring({_col0_},5,1)) ~> DCOverlay",
+						"DCOverlay select(mapColumn(",
+						"          Parent,",
+						"          Overlay,",
+						"          Group",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> SelectOverlay",
+						"SelectPostalCode sink(allowSchemaDrift: true,",
+						"     validateSchema: true,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     errorHandlingOption: 'stopOnFirstError') ~> SinkPostalCode",
+						"SelectOverlay sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     preCommands: [],",
+						"     postCommands: []) ~> SinkOverlay"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Archive_RealEstate_File_To_SFTP')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy Excel to Archive with Timestamp",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "SftpReadSettings",
+									"recursive": false,
+									"deleteFilesAfterCompletion": true,
+									"disableChunking": false
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "SftpWriteSettings",
+									"operationTimeout": "01:00:00",
+									"useTempFileRename": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "SFTP_XLSX_File",
+								"type": "DatasetReference",
+								"parameters": {
+									"FolderName": "LeaseHarbor",
+									"FileName": "Record Search - Data Export - Record Info _ Contact Details.xlsx"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Realestate_SFTP_Archive_path",
+								"type": "DatasetReference",
+								"parameters": {
+									"SFTP_HostName": {
+										"value": "@pipeline().globalParameters.SFTP_HostName",
+										"type": "Expression"
+									},
+									"SFTP_PortNumber": {
+										"value": "@pipeline().globalParameters.SFTP_PortNumber",
+										"type": "Expression"
+									},
+									"SFTP_Uname": {
+										"value": "@pipeline().globalParameters.SFTP_Uname",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:19Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SFTP_XLSX_File')]",
+				"[concat(variables('factoryId'), '/datasets/Realestate_SFTP_Archive_path')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_GetEntity_RCM_RFD_RetailCustomerLoad_Incremental')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FetchEntityName",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@array(variables('Entity'))",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Get_Entity_Count",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"sqlReaderQuery": {
+												"value": "DECLARE @RecordsToDelete INT; \nEXECUTE [dbo].[usp_ASH_REMOVE_LOAD] \n@Entity = @{item()}, \n@RecordsToDelete = @RecordsToDelete OUTPUT; \nSELECT @RecordsToDelete AS RecordsToDeleteADDRESS;",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "usp_ASH_REMOVE_LOAD",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									}
+								},
+								{
+									"name": "Load_Entity_RCM_RFD_RetailCustomerLoad_Incremental",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get_Entity_Count",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Load_Entity_RCM_RFD_RetailCustomerLoad_Incremental",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"EntityCount": {
+												"value": "@string(activity('Get_Entity_Count').output.firstRow.RecordsToDeleteADDRESS)",
+												"type": "Expression"
+											},
+											"EntityName": {
+												"value": "@{item()}",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Teams_Failed_Notification_Get_Entity_Count",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get_Entity_Count",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": "afi-edme-rg",
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"triggerTime": "0",
+											"status": {
+												"value": "Failed",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "usp_DeleteRFDLocalStage Execution Failed",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@{utcnow()}",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@activity('Get_Entity_Count').output.executionDuration",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "https://masterashley.webhook.office.com/webhookb2/c31879ef-6dfb-470f-b788-de8363ae3c17@5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d/IncomingWebhook/147e6de5d4454f53bc64a6a9bae90283/276c88be-8000-43f8-b798-97215f5a2fda",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"Entity": {
+						"type": "Array",
+						"defaultValue": [
+							"AddressLocation",
+							"EmailAddress",
+							"PhoneNumber",
+							"RetailCustomer"
+						]
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow/RCM_RFD_Flow"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:01:41Z"
 			},
 			"dependsOn": []
 		}

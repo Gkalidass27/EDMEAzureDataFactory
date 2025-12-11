@@ -17,14 +17,6 @@
 			"metadata": "Secure string for 'connectionString' of 'CDP_CustomerProfiling'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=;Initial Catalog="
 		},
-		"EnterpriseMarketingFabricWarehouse_servicePrincipalCredential": {
-			"type": "secureString",
-			"metadata": "Secure string for 'servicePrincipalCredential' of 'EnterpriseMarketingFabricWarehouse'"
-		},
-		"EnterpriseMarketingLakehouse_servicePrincipalCredential": {
-			"type": "secureString",
-			"metadata": "Secure string for 'servicePrincipalCredential' of 'EnterpriseMarketingLakehouse'"
-		},
 		"Enterprise_ReferenceMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
@@ -74,26 +66,6 @@
 			"type": "string",
 			"defaultValue": "https://ashleystagelake.dfs.core.windows.net"
 		},
-		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_endpoint": {
-			"type": "string",
-			"defaultValue": "7woj2wroypauvkpn72b56t46ju-efttw5hffxkuvggerajw5qwnzu.datawarehouse.fabric.microsoft.com"
-		},
-		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_tenant": {
-			"type": "string",
-			"defaultValue": "5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d"
-		},
-		"EnterpriseMarketingFabricWarehouse_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
-		},
-		"EnterpriseMarketingLakehouse_properties_typeProperties_tenant": {
-			"type": "string",
-			"defaultValue": "5a9d9cfd-c32e-4ac1-a9ed-fe83df4f9e4d"
-		},
-		"EnterpriseMarketingLakehouse_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "cfa383f8-e53b-46d6-813b-f778b83910c3"
-		},
 		"LS_AzureFunction_properties_typeProperties_functionAppUrl": {
 			"type": "string",
 			"defaultValue": "https://afi-rsm-subscriber-dev-func.azurewebsites.net"
@@ -109,6 +81,14 @@
 		"Prod_afimasterdatahubstg_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net/"
+		},
+		"RawZone_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ashleydevlake.dfs.core.windows.net/"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://releases.melissadata.net/releases/data/z5max.txt"
 		}
 	},
 	"variables": {
@@ -630,53 +610,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/EnterpriseMarketingFabricWarehouse')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "warehouse connector for enterprise marketing on microsoft fabric",
-				"annotations": [],
-				"type": "Warehouse",
-				"typeProperties": {
-					"endpoint": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_endpoint')]",
-					"artifactId": "3db94680-4ad7-4d5c-b01a-f4ea9080ee66",
-					"workspaceId": "743b6721-2de5-4ad5-98c4-88136ec2cdcd",
-					"tenant": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_tenant')]",
-					"servicePrincipalCredentialType": "ServicePrincipalKey",
-					"servicePrincipalId": "[parameters('EnterpriseMarketingFabricWarehouse_properties_typeProperties_servicePrincipalId')]",
-					"authenticationType": "ServicePrincipal",
-					"servicePrincipalCredential": {
-						"type": "SecureString",
-						"value": "[parameters('EnterpriseMarketingFabricWarehouse_servicePrincipalCredential')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EnterpriseMarketingLakehouse')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "lakehouse connector to fabric for zeta event data",
-				"annotations": [],
-				"type": "Lakehouse",
-				"typeProperties": {
-					"workspaceId": "743b6721-2de5-4ad5-98c4-88136ec2cdcd",
-					"artifactId": "f770fbad-de57-4a3c-a7e6-ae709d5c0e6c",
-					"authenticationType": "ServicePrincipal",
-					"tenant": "[parameters('EnterpriseMarketingLakehouse_properties_typeProperties_tenant')]",
-					"servicePrincipalId": "[parameters('EnterpriseMarketingLakehouse_properties_typeProperties_servicePrincipalId')]",
-					"servicePrincipalCredentialType": "ServicePrincipalKey",
-					"servicePrincipalCredential": {
-						"type": "SecureString",
-						"value": "[parameters('EnterpriseMarketingLakehouse_servicePrincipalCredential')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Enterprise_ReferenceMaster')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -797,6 +730,34 @@
 						"type": "SecureString",
 						"value": "[parameters('Prod_afimasterdatahubstg_accountKey')]"
 					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RawZone')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('RawZone_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestService1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('RestService1_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
 				}
 			},
 			"dependsOn": []
