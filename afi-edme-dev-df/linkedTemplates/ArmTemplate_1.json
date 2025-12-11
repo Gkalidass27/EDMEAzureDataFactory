@@ -7,10 +7,6 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
-		"Prod_afimasterdatahubstg_accountKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'accountKey' of 'Prod_afimasterdatahubstg'"
-		},
 		"Retail_CustomerMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Retail_CustomerMaster'",
@@ -78,9 +74,10 @@
 			"metadata": "Secure string for 'connectionString' of 'semarchy_repo'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_repo"
 		},
-		"Prod_afimasterdatahubstg_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net/"
+		"semarchy_staging_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'semarchy_staging'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_staging"
 		},
 		"RawZone_properties_typeProperties_url": {
 			"type": "string",
@@ -119,23 +116,6 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
-		{
-			"name": "[concat(parameters('factoryName'), '/Prod_afimasterdatahubstg')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureBlobFS",
-				"typeProperties": {
-					"url": "[parameters('Prod_afimasterdatahubstg_properties_typeProperties_url')]",
-					"accountKey": {
-						"type": "SecureString",
-						"value": "[parameters('Prod_afimasterdatahubstg_accountKey')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
 		{
 			"name": "[concat(parameters('factoryName'), '/RawZone')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -416,6 +396,20 @@
 				"type": "AzureSqlDatabase",
 				"typeProperties": {
 					"connectionString": "[parameters('semarchy_repo_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/semarchy_staging')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "semarchy_staging",
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('semarchy_staging_connectionString')]"
 				}
 			},
 			"dependsOn": []

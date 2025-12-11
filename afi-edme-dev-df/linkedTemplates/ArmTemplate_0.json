@@ -12,10 +12,6 @@
 			"metadata": "Secure string for 'connectionString' of 'Ashley_EDW'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=ashley-edw-dev.database.windows.net;Initial Catalog=ASHLEY_EDW_DEV"
 		},
-		"AzureSqlDatabase1_password": {
-			"type": "secureString",
-			"metadata": "Secure string for 'password' of 'AzureSqlDatabase1'"
-		},
 		"CDP_CustomerProfiling_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'CDP_CustomerProfiling'",
@@ -50,6 +46,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Ls_CSV_FlatFile'"
 		},
+		"Prod_afimasterdatahubstg_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'Prod_afimasterdatahubstg'"
+		},
 		"AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://afide-edmekv.vault.azure.net/"
@@ -57,18 +57,6 @@
 		"AzureKeyVault_Secrets_Postalcode_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://afide-edmekv.vault.azure.net/"
-		},
-		"AzureSqlDatabase1_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "afi-edme-semarchy-dev-sql.database.windows.net"
-		},
-		"AzureSqlDatabase1_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "Enterprise_ReferenceMaster"
-		},
-		"AzureSqlDatabase1_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "NaKaruppusamy@Ashleyfurniture.com"
 		},
 		"DSTrackingTest_properties_typeProperties_accountEndpoint": {
 			"type": "string",
@@ -117,6 +105,10 @@
 		"Postalcode_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://releases.melissadata.net"
+		},
+		"Prod_afimasterdatahubstg_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net/"
 		}
 	},
 	"variables": {
@@ -583,28 +575,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureSqlDatabase",
-				"typeProperties": {
-					"server": "[parameters('AzureSqlDatabase1_properties_typeProperties_server')]",
-					"database": "[parameters('AzureSqlDatabase1_properties_typeProperties_database')]",
-					"encrypt": "mandatory",
-					"trustServerCertificate": false,
-					"authenticationType": "SQL",
-					"userName": "[parameters('AzureSqlDatabase1_properties_typeProperties_userName')]",
-					"password": {
-						"type": "SecureString",
-						"value": "[parameters('AzureSqlDatabase1_password')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/CDP_CustomerProfiling')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -810,6 +780,23 @@
 					"url": "[parameters('Postalcode_properties_typeProperties_url')]",
 					"enableServerCertificateValidation": true,
 					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Prod_afimasterdatahubstg')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('Prod_afimasterdatahubstg_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('Prod_afimasterdatahubstg_accountKey')]"
+					}
 				}
 			},
 			"dependsOn": []
