@@ -1,0 +1,678 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "afi-edme-dev-df"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Deduped_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "String"
+					},
+					"Container_Name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().Container_Name",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Canada_Postal_Code_File')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename_canada": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename_canada",
+							"type": "Expression"
+						},
+						"folderPath": "Postal_Code_Source_Files",
+						"fileSystem": "postal-code"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Canada_Postal_Code_File_melissa')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename_canada": {
+						"type": "string",
+						"defaultValue": "canada_sample.txt"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename_canada",
+							"type": "Expression"
+						},
+						"folderPath": "Postal_Code_Source_Files",
+						"fileSystem": "postal-code"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Canada_Postal_Code_File_melissa_overlay')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename_canada": {
+						"type": "string",
+						"defaultValue": "overlay_sample.txt"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename_canada",
+							"type": "Expression"
+						},
+						"folderPath": "Postal_Code_Source_Files",
+						"fileSystem": "postal-code"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Colorwheel')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Colorwheel.parquet",
+						"folderPath": "Retail/SupplyChain/Colorwheel",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Colorwheel_Historical')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "HistoricalColorwheel.parquet",
+						"folderPath": "Retail/SupplyChain/HistoricalColorwheel",
+						"fileSystem": "trusted-zone"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Contaierrate')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "EDW_Ashleylake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "MonthEndContainerStandards1.csv",
+						"folderPath": "Retail/SupplyChain/MonthEndContainerStandards",
+						"fileSystem": "raw-zone"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Containerrate_Parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "containerrate.parquet",
+						"fileSystem": "test"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Containerrate_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Containerrate.csv",
+						"fileSystem": "test"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Archive_Files')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Retail-Customer-Source-Files",
+						"fileSystem": "retail-customer"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "clusterID\tglobalID\tconfidence_score\tRecID\tposRawContainerRecID\tmarket_id\tposFirstName\tposMiddleInitial\tposLastName\tposCustomerEmail1\tposCustomerEmail2\tposCustomerEmail3\tposCustomerPhone1\tposCustomerPhone2\tposCustomerPhone3\tn_address\tn_addr2\tn_city\tn_state\tn_zip9\tposFaceBookID\tposTwitterID\ttimestamp\tcustomer_type\tcustomer_since\tSourceSystem\tSourceSubSystem",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Archive_Files_afc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Retail-Customer-Source-Files/afc",
+						"fileSystem": "retail-customer"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "clusterID\tglobalID\tconfidence_score\tRecID\tposRawContainerRecID\tmarket_id\tposFirstName\tposMiddleInitial\tposLastName\tposCustomerEmail1\tposCustomerEmail2\tposCustomerEmail3\tposCustomerPhone1\tposCustomerPhone2\tposCustomerPhone3\tn_address\tn_addr2\tn_city\tn_state\tn_zip9\tposFaceBookID\tposTwitterID\ttimestamp\tcustomer_type\tcustomer_since\tSourceSystem\tSourceSubSystem",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Exact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Address_Exact_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Exact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Email_Exact_Blob')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHubStg",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"ContainerName": {
+						"type": "String"
+					},
+					"FileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().ContainerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Fake_Phone_Exact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "String"
+					},
+					"TableName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

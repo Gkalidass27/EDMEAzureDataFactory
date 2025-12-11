@@ -1,0 +1,1275 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "afi-edme-stage-df"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_DAC_Tables')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetAllJsonFiles",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DAC_Location_List_Read",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "JsonReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEachJsonFile",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "SP_Truncate_DAC_Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetAllJsonFiles').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "LookupJsonFile",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"dataset": {
+											"referenceName": "Dac_Stage_Location_List_Load",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								},
+								{
+									"name": "Store_DAC_Store_Details",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "LookupJsonFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Stage_SiteMaster_DAC_Payload",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"item_param": {
+												"value": "@activity('LookupJsonFile').output.firstRow.Data",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "SP_Load_Stores_Details",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "ForEachJsonFile",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[Load_Stores_Data]"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SP_Truncate_DAC_Tables",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[DAC].[Truncate_DAC_Tables]"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "SPCallStoreLocationDetailsErrorMsg",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GetAllJsonFiles",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
+							"storedProcedureParameters": {
+								"ErrorCode": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.errorCode}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorMsg": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.message}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"ErrorStatusCode": {
+									"value": {
+										"value": "@activity('GetAllJsonFiles').StatusCode",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FailureType": {
+									"value": {
+										"value": "@{activity('GetAllJsonFiles').error.failureType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"RunID": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Sink": {
+									"value": null,
+									"type": "String"
+								},
+								"Sink_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"Source": {
+									"value": null,
+									"type": "String"
+								},
+								"Source_Type": {
+									"value": null,
+									"type": "String"
+								},
+								"TriggerId": {
+									"value": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerName": {
+									"value": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerTime": {
+									"value": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"TriggerType": {
+									"value": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"location_id_var": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:20Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_RDC')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Load RDC masterlist data from smartsheet to Semarchy staging",
+				"activities": [
+					{
+						"name": "DF_Smartsheet_SemStg",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_Stage_SiteMaster_RDC_Smartsheet",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SRCSMARTSHEET": {},
+									"RDCMasterlist": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:01:41Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_SiteMaster_Smartsheet')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Load RDC masterlist data from smartsheet to Semarchy staging",
+				"activities": [
+					{
+						"name": "DF_Smartsheet_SemStg",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_Stage_SiteMaster_RDC_Smartsheet",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SRCSMARTSHEET": {},
+									"RDCMasterlist": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:01:41Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_Site_EDW_Staging_ZipAllocation')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "AshleyNetEDW_PostalCode",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "Truncate table [EDW].[ZipAllocation]",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "ZipCode",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ZipCode",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Customer#",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "CustomerNumber",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Acct_ShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Acct_ShipTo",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Name",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Name",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "TradeArea",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "TradeArea",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "startDate",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "StartDate",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ChangedBy",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ChangedBy",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ChangedDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "ChangedDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "Address",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Address",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "City",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "City",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "State",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "State",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Country",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "Country",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "BusinessType",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "BusinessType",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "Status",
+											"type": "String",
+											"physicalType": "char"
+										},
+										"sink": {
+											"name": "Status",
+											"type": "String",
+											"physicalType": "char"
+										}
+									},
+									{
+										"source": {
+											"name": "PriceDiscGroup_GroupId",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "PriceDiscGroup_GroupId",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "EnableWebSale",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "EnableWebSale",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EDW_ashley_zipallocation",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Semarchy_Staging_AshlyNet",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Execute_INC_zipallocation",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "AshleyNetEDW_PostalCode",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_SiteMaster_Incremental__ZipAllocation",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:19Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stage_Storemaster_Smartsheet')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_Stage_SiteMaster_Store_Smartsheet",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_Stage_SiteMaster_Store_Smartsheet",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SRCStoremasterlist": {},
+									"sink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:21Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CustomerInitialChunkLoad')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Customer Chunk Load",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_RetailCustomer_RetailCustomerLoad_InitialLoad",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 3,
+						"startTime": "2023-02-03T10:00:00",
+						"timeZone": "Eastern Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EDWPIMDailyRemoveLoad')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_ProductMasterLoad_Retail_Delete_PIM_EDW",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-10-03T05:49:00",
+						"timeZone": "Eastern Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								6
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_ProductMaster_PIM_RPM')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_ProductMaster_Retail_PIM_RPM",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2024-12-17T05:14:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								9
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PostalCodeAPI_US')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Stage_PostalCodeAutomation_US",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-02-25T06:10:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								9
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RCM_STOREID_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_RetailCustomer_StoreLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-08-21T13:28:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								30
+							],
+							"hours": [
+								13
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RPM_Delete_SKU_PIM')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Stage_PIM_Delete_SKU",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-06-11T09:42:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								16
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ReProcessErrorFilesRetailCustomerLoadIncremental')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ReProcess RetailCustomer Error Files from the error folder",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "ReProcess_ErrorFiles_Stage_Retail_Customer_RetailCustomerLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 2,
+						"startTime": "2023-03-15T00:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RemoveRetailCustomerLoadArchiveFiles')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Remove last 20 days old Retail Customer Archive CSV file from archive folder",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Remove_RetailCustomerLoad_Archive_Files",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2023-03-14T06:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Retail_Corp_Store_EDW_Updates')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_Retail_Corporate_Store_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-10-16T16:00:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SiteMaster_INC_Delete')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_SiteMaster_Incremental_Delete",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-03-19T09:42:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								13
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Site_RSA_UKG')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_SiteMaster_Incremental_RSA_UKG",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-04-10T05:08:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								55
+							],
+							"hours": [
+								11
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Site_RSA_incremental')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_SiteMaster_Incremental_RSA",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2024-12-05T14:56:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								55
+							],
+							"hours": [
+								11
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trg_Retail_Corporate_Store_EDW')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_Retail_Corporate_Store_Incremental_EDW_bkp",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2025-10-08T10:00:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								10
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Wholesale_Containerrate_EDW')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_Containerrate_Semarchy_EDW",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2024-09-18T10:34:00Z",
+						"timeZone": "UTC",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								7
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/triggerLoad_Retail_Customer_CommunicationPreferenceLoad_Incremental_CATCHUP')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Catch up on Email Preferences already in Semarchy Staging.  Now the Function Queue has been fixed.",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Load_RetailCustomer_CommunicationPreferenceLoad_Incremental",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 30,
+						"startTime": "2024-07-02T08:45:00",
+						"timeZone": "Central Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
