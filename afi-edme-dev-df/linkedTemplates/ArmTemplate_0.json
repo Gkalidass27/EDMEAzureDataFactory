@@ -50,9 +50,18 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'apiToken' of 'Smartsheet_Storemasterlist'"
 		},
-		"TestFileShare123_connectionString": {
+		"Wholesale_sitemaster_connectionString": {
 			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'TestFileShare123'"
+			"metadata": "Secure string for 'connectionString' of 'Wholesale_sitemaster'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Wholesale_sitemaster"
+		},
+		"agr_cdp_func_functionKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'functionKey' of 'agr_cdp_func'"
+		},
+		"masterDataHubStg_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'masterDataHubStg'"
 		},
 		"AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl": {
 			"type": "string",
@@ -74,13 +83,13 @@
 			"type": "string",
 			"defaultValue": "https://releases.melissadata.net"
 		},
-		"RestService1_properties_typeProperties_url": {
+		"agr_cdp_func_properties_typeProperties_functionAppUrl": {
 			"type": "string",
-			"defaultValue": "https://releases.melissadata.net/releases/data/z5max.txt"
+			"defaultValue": "https://agr-cdp-func.azurewebsites.net"
 		},
-		"SmartsheetRDCMasterlist_properties_typeProperties_url": {
+		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
-			"defaultValue": "https://app.smartsheet.com/sheets/C76f2PC52VHXRfHfMPPw3m2gR85pVr5qq23Q78m1"
+			"defaultValue": "https://afimasterdatahubdevstg.dfs.core.windows.net"
 		}
 	},
 	"variables": {
@@ -635,21 +644,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/RestService1')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "RestService",
-				"typeProperties": {
-					"url": "[parameters('RestService1_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Retail_CustomerMaster')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -707,21 +701,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/SmartsheetRDCMasterlist')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "RestService",
-				"typeProperties": {
-					"url": "[parameters('SmartsheetRDCMasterlist_properties_typeProperties_url')]",
-					"enableServerCertificateValidation": true,
-					"authenticationType": "Anonymous"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Smartsheet_Storemasterlist')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -739,15 +718,49 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/TestFileShare123')]",
+			"name": "[concat(parameters('factoryName'), '/Wholesale_sitemaster')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
-				"type": "AzureFileStorage",
+				"type": "AzureSqlDatabase",
 				"typeProperties": {
-					"connectionString": "[parameters('TestFileShare123_connectionString')]",
-					"fileShare": "mcmh-file-share"
+					"connectionString": "[parameters('Wholesale_sitemaster_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/agr_cdp_func')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureFunction",
+				"typeProperties": {
+					"functionAppUrl": "[parameters('agr_cdp_func_properties_typeProperties_functionAppUrl')]",
+					"authentication": "Anonymous",
+					"functionKey": {
+						"type": "SecureString",
+						"value": "[parameters('agr_cdp_func_functionKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHubStg')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('masterDataHubStg_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('masterDataHubStg_accountKey')]"
+					}
 				}
 			},
 			"dependsOn": []
