@@ -13,321 +13,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_Retail_Corporate_Store_Incremental_EDW')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy Source to Target",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "SqlDWSource",
-								"sqlReaderQuery": "SELECT S.RecStatus AS STORESTATUS, S.StoreID, S.Name AS STORISName, S.SourceID, S.locnType, S.RegionID, S.Address1, S.City, S.State, S.Distribution_StoreID, S.DateCreated, S.DateChanged \r\nFROM EDME_DataFactory.Store S\r\nwhere S.RecStatus in ('U','N')",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"preCopyScript": "Truncate table EDW.EDW_RETAIL_CORPORATE_Store",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false,
-								"disableMetricsCollection": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_ASHLEY_EDW_EDME",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "EDME_DataFactory",
-									"TableName": "Store"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Semarchy_staging",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "EDW",
-									"TableName": "EDW_RETAIL_CORPORATE_Store"
-								}
-							}
-						]
-					},
-					{
-						"name": "Process Changes",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "Copy Source to Target",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "EDW.sp_Store_CDC_Process_Unified"
-						},
-						"linkedServiceName": {
-							"referenceName": "semarchy_staging",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "Get Change Count",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Process Changes",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "SELECT ISNULL(SUM(CASE WHEN ChangeType='INSERT' THEN 1 ELSE 0 END),0) AS InsertCount,\r\n ISNULL(SUM(CASE WHEN ChangeType='UPDATE' THEN 1 ELSE 0 END),0) AS UpdateCount,\r\n ISNULL(SUM(CASE WHEN ChangeType='DELETE' THEN 1 ELSE 0 END),0) AS DeleteCount,\r\n  ISNULL(COUNT(*),0) AS TotalChanges \r\n  FROM EDW.EDW_RETAIL_CORPORATE_Store_Log \r\n  WHERE Rundate = CAST(GETDATE() AS DATE)",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_Semarchy_staging",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "EDW",
-									"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
-								}
-							}
-						}
-					},
-					{
-						"name": "Get Latest Change Details",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Get Change Count",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "SELECT \r\n    StoreID, \r\n    ChangeType, \r\n    FORMAT(ProcessDate, 'yyyy-MM-dd HH:mm:ss') AS ProcessDate,\r\n    ChangeDetails \r\nFROM EDW.EDW_RETAIL_CORPORATE_Store_Log \r\nWHERE RunDate = CAST(GETDATE() AS DATE) \r\nORDER BY RunDate DESC, ChangeType DESC, StoreID DESC\r\n",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_Semarchy_staging",
-								"type": "DatasetReference",
-								"parameters": {
-									"SchemaName": "EDW",
-									"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
-								}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "Send Notification If Changes",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Get Latest Change Details",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@greater(activity('Get Change Count').output.firstRow.TotalChanges, 0)",
-								"type": "Expression"
-							},
-							"ifTrueActivities": [
-								{
-									"name": "Teams_Notification",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Teams_Channale_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": "afi-edme-rg",
-											"runId": {
-												"value": "@pipeline().RunId",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().Pipeline",
-												"type": "Expression"
-											},
-											"triggerTime": {
-												"value": "@pipeline().TriggerTime",
-												"type": "Expression"
-											},
-											"status": "Success",
-											"message": {
-												"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores')",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@{utcnow()}",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
-												"type": "Expression"
-											},
-											"teamWebhookUrl": {
-												"value": "@pipeline().globalParameters.GP_WebhookUrl",
-												"type": "Expression"
-											}
-										}
-									}
-								},
-								{
-									"name": "Email_Notification",
-									"type": "ExecutePipeline",
-									"dependsOn": [],
-									"policy": {
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"pipeline": {
-											"referenceName": "Notify_Email_LogicApp_Pipeline",
-											"type": "PipelineReference"
-										},
-										"waitOnCompletion": true,
-										"parameters": {
-											"subscription": {
-												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-												"type": "Expression"
-											},
-											"resourceGroup": {
-												"value": "afi-edme-rg",
-												"type": "Expression"
-											},
-											"dataFactoryName": {
-												"value": "@pipeline().DataFactory",
-												"type": "Expression"
-											},
-											"runId": {
-												"value": "@pipeline().RunId",
-												"type": "Expression"
-											},
-											"name": {
-												"value": "@pipeline().Pipeline",
-												"type": "Expression"
-											},
-											"status": "Success",
-											"triggerTime": {
-												"value": "@formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss')",
-												"type": "Expression"
-											},
-											"executionEndTime": {
-												"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
-												"type": "Expression"
-											},
-											"runDuration": {
-												"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
-												"type": "Expression"
-											},
-											"message": {
-												"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores,', activity('Get Change Count').output.firstRow.DeleteCount, ' Deleted stores')",
-												"type": "Expression"
-											},
-											"notificationTime": {
-												"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
-												"type": "Expression"
-											},
-											"to": {
-												"value": "@pipeline().globalParameters.DL_LIst",
-												"type": "Expression"
-											},
-											"subject": {
-												"value": "@concat('Pipeline execution alert – ', 'Stores Updates from EDW')",
-												"type": "Expression"
-											},
-											"rows": {
-												"value": "@activity('Get Latest Change Details').output.value",
-												"type": "Expression"
-											}
-										}
-									}
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "SiteMaster"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:01:39Z"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/pl_Retail_Corporate_Store_Incremental_EDW_bkp')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -18091,6 +17776,1147 @@
 				},
 				"folder": {
 					"name": "SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:21Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_SiteMaster_WH')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetNewLoadId",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\r\nEXECUTE [dbo].[GET_NEW_LOADID]\r\n@RETURN_VALUE_ARGUMENT OUTPUT\r\n,@P_DATA_LOCATION_NAME = 'Retail_SiteMaster'\r\n,@P_PROGRAM_NAME = 'RetailSiteDataLoad'\r\n,@P_LOAD_DESCRIPTION = 'RetailSiteDataLoad'\r\n,@P_USERNAME = 'semadmin'\r\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Semarchy_Repo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "SetNewLoadId",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "LoadID",
+							"value": {
+								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "LoadSiteWH",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "SetNewLoadId",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"additionalColumns": [
+									{
+										"name": "B_LOADID",
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										}
+									}
+								],
+								"sqlReaderQuery": "SELECT \n'Site' AS B_CLASSNAME,\nGETDATE() AS B_CREDATE,\nGETDATE() AS B_UPDDATE,\n'semadmin' AS B_CREATOR,\n'INITIALLOAD' AS B_PUBID,\nsite_id AS B_SOURCEID,\noperational_status AS OPERATIONAL_STATUS,\ntype AS TYPE,\naccount_num AS ACCOUNT_NUMBER,\nship_to_num AS SHIP_TO_NUM,\nmodel AS MODEL,\nversion AS VERSION,\ntime_zone AS TIME_ZONE,\nlocal_currency_code  AS LOCAL_CURRENCY_CODE,\nraw_phone AS RAW_PHONE,\nraw_cs_phone AS RAW_CS_PHONE,\nraw_fax AS RAW_FAX,\nsms_code AS SMS_CODE,\nsoft_open_date AS SOFT_OPEN_DATE,\ngrand_open_date AS GRAND_OPEN_DATE,\nclose_date AS CLOSE_DATE,\narea_unit_of_measure AS AREA_UNIT_OF_MEASURE,\nbuilding_sqft AS BUILDING_SQFT,\nwarehouse_sqft AS WAREHOUSE_SQFT,\nshowroom_sqft AS SHOWROOM_SQFT,\noffice_sqft AS OFFICE_SQFT,\nnum_of_dock_doors AS NUM_OF_DOCK_DOORS,\nretail_system_num AS RETAIL_SYSTEM_NUM, \nenterprise_store_num AS ENTERPRISE_STORE_NUM,\nprospect_id  AS PROSPECT_ID,\nCAST(dma_id AS DECIMAL(17,0)) AS DMA_ID, \ndma AS DMA,\nmsa_id AS MSA_ID,\nmsa AS MSA,\nmarket AS MARKET,\nregion AS REGION,\ndomestic_category AS DOMESTIC_CATEGORY,\ncountry_category AS COUNTRY_CATEGORY,\nCAST(ecom_fulfiller_flag AS BIT) AS ECOM_FULFILLER_FLAG\nFROM Retail.v_site_warehouse_incremental WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "B_LOADID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "B_LOADID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_PUBID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_SOURCEID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OPERATIONAL_STATUS",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "OPERATIONAL_STATUS",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "TYPE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "TYPE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ACCOUNT_NUMBER",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "ACCOUNT_NUMBER",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SHIP_TO_NUM",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SHIP_TO_NUM",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MODEL",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MODEL",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "VERSION",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "VERSION",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "TIME_ZONE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "TIME_ZONE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LOCAL_CURRENCY_CODE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "LOCAL_CURRENCY_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_PHONE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "RAW_PHONE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_CS_PHONE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "RAW_CS_PHONE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_FAX",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "RAW_FAX",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SMS_CODE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "SMS_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SOFT_OPEN_DATE",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "SOFT_OPEN_DATE",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "GRAND_OPEN_DATE",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "GRAND_OPEN_DATE",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "CLOSE_DATE",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "CLOSE_DATE",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "AREA_UNIT_OF_MEASURE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "AREA_UNIT_OF_MEASURE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "BUILDING_SQFT",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "BUILDING_SQFT",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "WAREHOUSE_SQFT",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "WAREHOUSE_SQFT",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "SHOWROOM_SQFT",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "SHOWROOM_SQFT",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "OFFICE_SQFT",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "OFFICE_SQFT",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 2,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "NUM_OF_DOCK_DOORS",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "NUM_OF_DOCK_DOORS",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "PROSPECT_ID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "PROSPECT_ID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DMA_ID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 17
+										},
+										"sink": {
+											"name": "DMA_ID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "DMA",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "DMA",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MSA_ID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MSA_ID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "MSA",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MSA",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MARKET",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MARKET",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "REGION",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "REGION",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "DOMESTIC_CATEGORY",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "DOMESTIC_CATEGORY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "COUNTRY_CATEGORY",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "COUNTRY_CATEGORY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "ECOM_FULFILLER_FLAG",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "ECOM_FULFILLER_FLAG",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Semarchy_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "SD_SITE",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "LoadLegalEntityWH",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "LoadSiteWH",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"additionalColumns": [
+									{
+										"name": "B_LOADID",
+										"value": {
+											"value": "@variables('LoadID')",
+											"type": "Expression"
+										}
+									}
+								],
+								"sqlReaderQuery": "SELECT\r\n'LegalEntity' AS B_CLASSNAME,\r\nGETDATE() AS B_CREDATE,\r\nGETDATE() AS B_UPDDATE,\r\n'semadmin' AS B_CREATOR,\r\n'INITIALLOAD' AS B_PUBID,\r\nlegal_entity_id AS LEGAL_ENTITY_ID,\r\nname AS NAME,\r\ntype AS TYPE,\r\nlic_contact AS LIC_CONTACT,\r\nlic_contact_email AS LIC_CONTACT_EMAIL,\r\nraw_lic_contact_phone AS RAW_LIC_CONTACT_PHONE,\r\nraw_addr_line1 AS RAW_ADDR_LINE1,\r\nraw_addr_line2 AS RAW_ADDR_LINE2,\r\nraw_city AS RAW_CITY,\r\nraw_state AS RAW_STATE,\r\nraw_state_code AS RAW_STATE_CODE,\r\nraw_country AS RAW_COUNTRY,\r\nraw_country_code AS RAW_COUNTRY_CODE,\r\nraw_postal_code AS RAW_POSTAL_CODE,\r\nraw_longitude AS RAW_LONGITUDE,\r\nraw_latitude AS RAW_LATITUDE,\r\nmailing_addr_line1 AS MAILING_ADDR_LINE1,\r\nmailing_addr_line2 AS MAILING_ADDR_LINE2,\r\nmailing_city AS MAILING_CITY,\r\nmailing_state AS MAILING_STATE,\r\nmailing_state_code AS MAILING_STATE_CODE,\r\nmailing_country AS MAILING_COUNTRY,\r\nmailing_country_code AS MAILING_COUNTRY_CODE,\r\nmailing_postal_code AS MAILING_POSTAL_CODE,\r\nos_legal_entity_id AS OS_LEGAL_ENTITY_ID,\r\ncompany_code AS COMPANY_CODE\r\nFROM Retail.v_wh_legal_entity_incremental WITH(NOLOCK)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "B_LOADID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "B_LOADID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "LEGAL_ENTITY_ID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "LEGAL_ENTITY_ID",
+											"type": "Decimal",
+											"physicalType": "decimal",
+											"scale": 0,
+											"precision": 38
+										}
+									},
+									{
+										"source": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_CLASSNAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "B_CREDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "B_UPDDATE",
+											"type": "DateTime",
+											"physicalType": "datetime2"
+										}
+									},
+									{
+										"source": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "B_CREATOR",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "NAME",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "NAME",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "TYPE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "TYPE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_ADDR_LINE1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_ADDR_LINE1",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_ADDR_LINE2",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "RAW_ADDR_LINE2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_CITY",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_CITY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_STATE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_STATE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_STATE_CODE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_STATE_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_POSTAL_CODE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_POSTAL_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_COUNTRY",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_COUNTRY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_COUNTRY_CODE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_COUNTRY_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_LATITUDE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_LATITUDE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_LONGITUDE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_LONGITUDE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_ADDR_LINE1",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_ADDR_LINE1",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_ADDR_LINE2",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_ADDR_LINE2",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_CITY",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_CITY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_STATE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_STATE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_STATE_CODE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_STATE_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_POSTAL_CODE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_POSTAL_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_COUNTRY",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_COUNTRY",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "MAILING_COUNTRY_CODE",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "MAILING_COUNTRY_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OS_LEGAL_ENTITY_ID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "OS_LEGAL_ENTITY_ID",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LIC_CONTACT",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LIC_CONTACT",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "LIC_CONTACT_EMAIL",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "LIC_CONTACT_EMAIL",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RAW_LIC_CONTACT_PHONE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RAW_LIC_CONTACT_PHONE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "COMPANY_CODE",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "COMPANY_CODE",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Semarchy_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "SA_LEGAL_ENTITY",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "LoadTrackingWH",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "LoadLegalEntityWH",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Load_TrackingWH",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"B_LOADID": {
+									"value": "@variables('LoadID')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SubmitLoad",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "LoadTrackingWH",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
+							"storedProcedureParameters": {
+								"P_INTEGRATION_JOB_NAME": {
+									"value": {
+										"value": "RetailSiteDataLoad",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"P_LOAD_ID": {
+									"value": {
+										"value": "@variables('LoadID')",
+										"type": "Expression"
+									},
+									"type": "Decimal"
+								},
+								"P_USERNAME": {
+									"value": {
+										"value": "semadmin",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"return_value_argument": {
+									"value": null,
+									"type": "Decimal"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_repo",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"LoadID": {
+						"type": "String"
+					},
+					"MaxWHLETrackingID": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "SiteMaster/Archive"
 				},
 				"annotations": [],
 				"lastPublishTime": "2025-12-08T10:02:21Z"

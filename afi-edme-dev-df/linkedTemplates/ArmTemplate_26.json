@@ -13,519 +13,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/Stage_PostalCodeAutomation_CA')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Getlicensekey_Melissa",
-						"type": "WebActivity",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "To get license key from KV"
-							}
-						],
-						"typeProperties": {
-							"method": "GET",
-							"headers": {},
-							"url": {
-								"value": "@pipeline().globalParameters.Melissa_LicenseKey",
-								"type": "Expression"
-							},
-							"authentication": {
-								"type": "MSI",
-								"resource": "https://vault.azure.net"
-							}
-						}
-					},
-					{
-						"name": "Set Licensekey",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Getlicensekey_Melissa",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Set License key to variable"
-							}
-						],
-						"typeProperties": {
-							"variableName": "license_key",
-							"value": {
-								"value": "@activity('Getlicensekey_Melissa').output.value",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Copy_PostalCode_CA",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set Licensekey",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.10:00:00",
-							"retry": 2,
-							"retryIntervalInSeconds": 60,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Copy File from download URL to Blob container"
-							}
-						],
-						"typeProperties": {
-							"source": {
-								"type": "HttpSource",
-								"httpRequestTimeout": "00:01:40"
-							},
-							"sink": {
-								"type": "BinarySink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								}
-							},
-							"enableStaging": false
-						},
-						"inputs": [
-							{
-								"referenceName": "HttpDataset2_CA_canadatxt",
-								"type": "DatasetReference",
-								"parameters": {
-									"ID": {
-										"value": "@variables('license_key')",
-										"type": "Expression"
-									}
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_PostalCode_CA",
-								"type": "DatasetReference",
-								"parameters": {
-									"Filename": {
-										"value": "@concat('canada','.txt')",
-										"type": "Expression"
-									},
-									"FolderName": {
-										"value": "@pipeline().parameters.FolderName",
-										"type": "Expression"
-									}
-								}
-							}
-						]
-					},
-					{
-						"name": "Copy_PostalCode_CA_OverLay",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set Licensekey",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.10:00:00",
-							"retry": 2,
-							"retryIntervalInSeconds": 60,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Copy File from download URL to Blob container"
-							}
-						],
-						"typeProperties": {
-							"source": {
-								"type": "HttpSource",
-								"httpRequestTimeout": "00:01:40"
-							},
-							"sink": {
-								"type": "BinarySink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								}
-							},
-							"enableStaging": false
-						},
-						"inputs": [
-							{
-								"referenceName": "HttpDataset2_CA_overlaytxt",
-								"type": "DatasetReference",
-								"parameters": {
-									"ID": "ZJERTAWalLbr19V1DoknD4**"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_PostalCode_CA",
-								"type": "DatasetReference",
-								"parameters": {
-									"Filename": {
-										"value": "@concat('overlay','.txt')",
-										"type": "Expression"
-									},
-									"FolderName": {
-										"value": "@pipeline().parameters.FolderName",
-										"type": "Expression"
-									}
-								}
-							}
-						]
-					},
-					{
-						"name": "Teams_Failed_Notification_PostalCode_Failed_overlaytxt",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Copy_PostalCode_CA_OverLay",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Notify Team "
-							}
-						],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Copy_PostalCode_CA_OverLay').output.executionDetails[0].start\n",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "'Failure'",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "'File Copy failed . Please have a look'",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@{utcnow()}",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Copy_PostalCode_CA_OverLay').output.copyDuration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "@pipeline().globalParameters.GP_WebhookUrl",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Teams_Failed_Notification_PostalCode_Failed_canadatxt",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Copy_PostalCode_CA",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Notify Team "
-							}
-						],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Copy_PostalCode_CA').output.executionDetails[0].start\n",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "'Failure'",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "'File Copy failed . Please have a look'",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@{utcnow()}",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Copy_PostalCode_CA').output.copyDuration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "@pipeline().globalParameters.GP_WebhookUrl",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Teams_Success_Notification_PostalCode_overlaytxt",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Copy_PostalCode_CA_OverLay",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Notify Team about new file processed"
-							}
-						],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Copy_PostalCode_CA_OverLay').output.executionDetails[0].start",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Copy_PostalCode_CA_OverLay').output.executionDetails[0].status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "'Postal codes file available in blob container'",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@{utcnow()}",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Copy_PostalCode_CA_OverLay').output.copyDuration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "@pipeline().globalParameters.GP_WebhookUrl",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Teams_Success_Notification_PostalCode_canadatxt",
-						"type": "ExecutePipeline",
-						"dependsOn": [
-							{
-								"activity": "Copy_PostalCode_CA",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [
-							{
-								"name": "Task",
-								"value": "Notify Team about new file processed"
-							}
-						],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Notify_Teams_Channale_Pipeline",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"subscription": {
-									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
-									"type": "Expression"
-								},
-								"resourceGroup": "afi-edme-rg",
-								"runId": {
-									"value": "@pipeline().RunId",
-									"type": "Expression"
-								},
-								"name": {
-									"value": "@pipeline().Pipeline",
-									"type": "Expression"
-								},
-								"triggerTime": {
-									"value": "@activity('Copy_PostalCode_CA').output.executionDetails[0].start",
-									"type": "Expression"
-								},
-								"status": {
-									"value": "@activity('Copy_PostalCode_CA').output.executionDetails[0].status",
-									"type": "Expression"
-								},
-								"message": {
-									"value": "'Postal codes file available in blob container'",
-									"type": "Expression"
-								},
-								"executionEndTime": {
-									"value": "@{utcnow()}",
-									"type": "Expression"
-								},
-								"runDuration": {
-									"value": "@activity('Copy_PostalCode_CA').output.copyDuration",
-									"type": "Expression"
-								},
-								"teamWebhookUrl": {
-									"value": "@pipeline().globalParameters.GP_WebhookUrl",
-									"type": "Expression"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"FolderName": {
-						"type": "string",
-						"defaultValue": "Postal_Code_Source_Files"
-					},
-					"GetLicensekey": {
-						"type": "string",
-						"defaultValue": "https://afide-edmekv.vault.azure.net/secrets/melissa-data-license-key/b0d3207214ea4b0b9fef24ac132a17e1?api-version=7.0"
-					}
-				},
-				"variables": {
-					"license_key": {
-						"type": "String"
-					},
-					"folder": {
-						"type": "Array"
-					},
-					"datelist": {
-						"type": "String"
-					},
-					"parsedatelist": {
-						"type": "Array"
-					},
-					"dummy": {
-						"type": "String"
-					},
-					"Processed_for_YrMonth_lkp": {
-						"type": "String"
-					},
-					"Api_Path": {
-						"type": "String"
-					},
-					"insert_stmt": {
-						"type": "String"
-					},
-					"New_processed_YearMonth": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Postal_Code"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:02:13Z"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Stage_PostalCodeAutomation_US')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -26277,6 +25764,321 @@
 				},
 				"folder": {
 					"name": "SiteMaster/Archive"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:01:39Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_Retail_Corporate_Store_Incremental_EDW')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy Source to Target",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT S.RecStatus AS STORESTATUS, S.StoreID, S.Name AS STORISName, S.SourceID, S.locnType, S.RegionID, S.Address1, S.City, S.State, S.Distribution_StoreID, S.DateCreated, S.DateChanged \r\nFROM EDME_DataFactory.Store S\r\nwhere S.RecStatus in ('U','N')",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "Truncate table EDW.EDW_RETAIL_CORPORATE_Store",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_ASHLEY_EDW_EDME",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "EDME_DataFactory",
+									"TableName": "Store"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Semarchy_staging",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "EDW",
+									"TableName": "EDW_RETAIL_CORPORATE_Store"
+								}
+							}
+						]
+					},
+					{
+						"name": "Process Changes",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Copy Source to Target",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "EDW.sp_Store_CDC_Process_Unified"
+						},
+						"linkedServiceName": {
+							"referenceName": "semarchy_staging",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Get Change Count",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Process Changes",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT ISNULL(SUM(CASE WHEN ChangeType='INSERT' THEN 1 ELSE 0 END),0) AS InsertCount,\r\n ISNULL(SUM(CASE WHEN ChangeType='UPDATE' THEN 1 ELSE 0 END),0) AS UpdateCount,\r\n ISNULL(SUM(CASE WHEN ChangeType='DELETE' THEN 1 ELSE 0 END),0) AS DeleteCount,\r\n  ISNULL(COUNT(*),0) AS TotalChanges \r\n  FROM EDW.EDW_RETAIL_CORPORATE_Store_Log \r\n  WHERE Rundate = CAST(GETDATE() AS DATE)",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_Semarchy_staging",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "EDW",
+									"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
+								}
+							}
+						}
+					},
+					{
+						"name": "Get Latest Change Details",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Get Change Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT \r\n    StoreID, \r\n    ChangeType, \r\n    FORMAT(ProcessDate, 'yyyy-MM-dd HH:mm:ss') AS ProcessDate,\r\n    ChangeDetails \r\nFROM EDW.EDW_RETAIL_CORPORATE_Store_Log \r\nWHERE RunDate = CAST(GETDATE() AS DATE) \r\nORDER BY RunDate DESC, ChangeType DESC, StoreID DESC\r\n",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_Semarchy_staging",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "EDW",
+									"TableName": "EDW_RETAIL_CORPORATE_Store_Log"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Send Notification If Changes",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Latest Change Details",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(activity('Get Change Count').output.firstRow.TotalChanges, 0)",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Teams_Notification",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Teams_Channale_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": "afi-edme-rg",
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"triggerTime": {
+												"value": "@pipeline().TriggerTime",
+												"type": "Expression"
+											},
+											"status": "Success",
+											"message": {
+												"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@{utcnow()}",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
+												"type": "Expression"
+											},
+											"teamWebhookUrl": {
+												"value": "@pipeline().globalParameters.GP_WebhookUrl",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Email_Notification",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Notify_Email_LogicApp_Pipeline",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"subscription": {
+												"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+												"type": "Expression"
+											},
+											"resourceGroup": {
+												"value": "afi-edme-rg",
+												"type": "Expression"
+											},
+											"dataFactoryName": {
+												"value": "@pipeline().DataFactory",
+												"type": "Expression"
+											},
+											"runId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"name": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"status": "Success",
+											"triggerTime": {
+												"value": "@formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											},
+											"executionEndTime": {
+												"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											},
+											"runDuration": {
+												"value": "@string(div(sub(ticks(utcnow()), ticks(pipeline().TriggerTime)), 10000000))",
+												"type": "Expression"
+											},
+											"message": {
+												"value": "@concat('Store CDC: ', activity('Get Change Count').output.firstRow.InsertCount, ' new stores, ', activity('Get Change Count').output.firstRow.UpdateCount, ' updated stores,', activity('Get Change Count').output.firstRow.DeleteCount, ' Deleted stores')",
+												"type": "Expression"
+											},
+											"notificationTime": {
+												"value": "@formatDateTime(utcnow(), 'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											},
+											"to": {
+												"value": "@pipeline().globalParameters.DL_LIst",
+												"type": "Expression"
+											},
+											"subject": {
+												"value": "@concat('Pipeline execution alert – ', 'Stores Updates from EDW')",
+												"type": "Expression"
+											},
+											"rows": {
+												"value": "@activity('Get Latest Change Details').output.value",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "SiteMaster"
 				},
 				"annotations": [],
 				"lastPublishTime": "2025-12-08T10:01:39Z"

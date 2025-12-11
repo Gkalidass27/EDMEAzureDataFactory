@@ -29,221 +29,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/WestFoundation_Historical')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "EDW_Ashleylake",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Parquet",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "HistoricalWestFoundation.parquet",
-						"folderPath": "Retail/SupplyChain/HistoricalWestFoundation",
-						"fileSystem": "trusted-zone"
-					},
-					"compressionCodec": "snappy"
-				},
-				"schema": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/cdp_customer_deduped')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "CDP_CustomerProfiling",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "clusterID",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "confidence_score",
-						"type": "varchar"
-					},
-					{
-						"name": "globalID",
-						"type": "varchar"
-					},
-					{
-						"name": "RecID",
-						"type": "varchar"
-					},
-					{
-						"name": "posRawContainerRecID",
-						"type": "varchar"
-					},
-					{
-						"name": "posFirstName",
-						"type": "varchar"
-					},
-					{
-						"name": "posMiddleInitial",
-						"type": "varchar"
-					},
-					{
-						"name": "posLastName",
-						"type": "varchar"
-					},
-					{
-						"name": "posCustomerEmail1",
-						"type": "varchar"
-					},
-					{
-						"name": "posCustomerEmail2",
-						"type": "varchar"
-					},
-					{
-						"name": "posCustomerEmail3",
-						"type": "varchar"
-					},
-					{
-						"name": "posCustomerPhone1",
-						"type": "varchar"
-					},
-					{
-						"name": "posCustomerPhone2",
-						"type": "varchar"
-					},
-					{
-						"name": "posCustomerPhone3",
-						"type": "varchar"
-					},
-					{
-						"name": "n_address",
-						"type": "varchar"
-					},
-					{
-						"name": "n_addr2",
-						"type": "varchar"
-					},
-					{
-						"name": "n_city",
-						"type": "varchar"
-					},
-					{
-						"name": "n_state",
-						"type": "varchar"
-					},
-					{
-						"name": "n_zip9",
-						"type": "varchar"
-					},
-					{
-						"name": "posFaceBookID",
-						"type": "varchar"
-					},
-					{
-						"name": "posTwitterID",
-						"type": "varchar"
-					},
-					{
-						"name": "market_id",
-						"type": "varchar"
-					},
-					{
-						"name": "customer_type",
-						"type": "varchar"
-					},
-					{
-						"name": "timestamp",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "customer_since",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "dtec",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "posFirstNameSoundex",
-						"type": "varchar"
-					},
-					{
-						"name": "posLastNameSoundex",
-						"type": "varchar"
-					},
-					{
-						"name": "Alpha",
-						"type": "varchar"
-					},
-					{
-						"name": "SourceSystem",
-						"type": "varchar"
-					},
-					{
-						"name": "SourceSubSystem",
-						"type": "varchar"
-					},
-					{
-						"name": "racProfitCenter",
-						"type": "nvarchar"
-					},
-					{
-						"name": "racSalesNumber",
-						"type": "nvarchar"
-					},
-					{
-						"name": "do_not_sell",
-						"type": "bit"
-					},
-					{
-						"name": "Flag",
-						"type": "varchar"
-					},
-					{
-						"name": "EntryID",
-						"type": "bigint",
-						"precision": 19
-					},
-					{
-						"name": "do_not_sell_request_date",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "unsubscribe",
-						"type": "bit"
-					},
-					{
-						"name": "unsubscribe_date",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					},
-					{
-						"name": "birthdate",
-						"type": "datetime",
-						"precision": 23,
-						"scale": 3
-					}
-				],
-				"typeProperties": {}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/ds_postalcode_StateOrProvinceCode')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -2277,6 +2062,734 @@
 				},
 				"annotations": [],
 				"lastPublishTime": "2025-12-08T10:02:13Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Cdp_Customer_Dedupe_InitialLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "cdp_customer_deduped",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT \nclusterID,\nconfidence_score,\nglobalID,\nRecID,\nposRawContainerRecID,\nposFirstName,\nposMiddleInitial,\nposLastName,\nposCustomerEmail1,\nposCustomerEmail2,\nposCustomerEmail3,\nposCustomerPhone1,\nposCustomerPhone2,\nposCustomerPhone3,\nn_address,\nn_addr2,\nn_city,\nn_state,\nn_zip9,\nposFaceBookID,\nposTwitterID,\nmarket_id,\ncustomer_type,\ntimestamp,\ncustomer_since,\ndtec,\nposFirstNameSoundex,\nposLastNameSoundex,\nAlpha,\nSourceSystem,\nSourceSubSystem,\nracProfitCenter,\nracSalesNumber,\ndo_not_sell,\nEntryID,\ndo_not_sell_request_date,\nunsubscribe,\nunsubscribe_date,\nbirthdate\nFROM @{pipeline().parameters.CDPSchema}.@{pipeline().parameters.CDPTableName} WITH(NOLOCK) WHERE YEAR(dtec)=@{pipeline().parameters.Year} AND MONTH(dtec)=@{pipeline().parameters.Month}",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"dataIntegrationUnits": 2,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "clusterID",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "clusterID",
+											"type": "Int32",
+											"physicalType": "int"
+										}
+									},
+									{
+										"source": {
+											"name": "confidence_score",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "confidence_score",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "globalID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "globalID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "RecID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "RecID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posRawContainerRecID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posRawContainerRecID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posFirstName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posFirstName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posMiddleInitial",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posMiddleInitial",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posLastName",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posLastName",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posCustomerEmail1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posCustomerEmail1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posCustomerEmail2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posCustomerEmail2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posCustomerEmail3",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posCustomerEmail3",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posCustomerPhone1",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posCustomerPhone1",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posCustomerPhone2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posCustomerPhone2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posCustomerPhone3",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posCustomerPhone3",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "n_address",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "n_address",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "n_addr2",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "n_addr2",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "n_city",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "n_city",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "n_state",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "n_state",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "n_zip9",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "n_zip9",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posFaceBookID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posFaceBookID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posTwitterID",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posTwitterID",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "market_id",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "market_id",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "customer_type",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "customer_type",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "timestamp",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "timestamp",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "customer_since",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "customer_since",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "dtec",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "posFirstNameSoundex",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posFirstNameSoundex",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "posLastNameSoundex",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "posLastNameSoundex",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "Alpha",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "Alpha",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SourceSystem",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SourceSystem",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "SourceSubSystem",
+											"type": "String",
+											"physicalType": "varchar"
+										},
+										"sink": {
+											"name": "SourceSubSystem",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "racProfitCenter",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "racProfitCenter",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "racSalesNumber",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "racSalesNumber",
+											"type": "String",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "do_not_sell",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "do_not_sell",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "EntryID",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "EntryID",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "do_not_sell_request_date",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "do_not_sell_request_date",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "unsubscribe",
+											"type": "Boolean",
+											"physicalType": "bit"
+										},
+										"sink": {
+											"name": "unsubscribe",
+											"type": "Boolean",
+											"physicalType": "bit"
+										}
+									},
+									{
+										"source": {
+											"name": "unsubscribe_date",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "unsubscribe_date",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									},
+									{
+										"source": {
+											"name": "birthdate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "birthdate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cdp_customer_deduped",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Semarchy_Cdp_Customer_Deduped",
+								"type": "DatasetReference",
+								"parameters": {
+									"Schema": {
+										"value": "@pipeline().parameters.SemarchySchema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@pipeline().parameters.SemarchyTableName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"CDPSchema": {
+						"type": "string"
+					},
+					"CDPTableName": {
+						"type": "string"
+					},
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"SemarchySchema": {
+						"type": "string"
+					},
+					"SemarchyTableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Retail_Customer_Flow"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:13Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Load_Containerrate_Semarchy_EDW')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "To load Containerrate to EDW",
+				"activities": [
+					{
+						"name": "Teams_Failed_Notification_CopyToEDW",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Cp_ContainerRate_GD_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Notify_Teams_Channale_Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"subscription": {
+									"value": "@pipeline().globalParameters.ADF_SubscriptionID",
+									"type": "Expression"
+								},
+								"resourceGroup": "afi-edme-rg",
+								"runId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"name": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"triggerTime": {
+									"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].start",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].status",
+									"type": "Expression"
+								},
+								"message": {
+									"value": "@replace(activity('Cp_ContainerRate_GD_EDW').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"executionEndTime": {
+									"value": "@{utcnow()}",
+									"type": "Expression"
+								},
+								"runDuration": {
+									"value": "@activity('Cp_ContainerRate_GD_EDW').output.copyDuration",
+									"type": "Expression"
+								},
+								"teamWebhookUrl": {
+									"value": "@pipeline().globalParameters.GP_WebhookUrl",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Cp_ContainerRate_GD_EDW",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "Select distinct \nF_WAREHOUSE_ID\n,F_ASHLEY_PORT_ID\n,TYPE\n,RATE\n,FORMAT(EFFECTIVE_FROM, 'yyyy-MM-dd') as EFFECTIVE_FROM\n,FORMAT(EFFECTIVE_TO, 'yyyy-MM-dd') as EFFECTIVE_TO\n,B_CREDATE\n,B_UPDDATE\nfrom [dbo].[GD_CONTAINER_RATES]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"enableSkipIncompatibleRow": true,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Semarchy_Wholesale_GD",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "dbo",
+									"TableName": "GD_CONTAINER_RATES"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "EDW_ContainerRate_Parquet",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Fail_job",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "Cp_ContainerRate_GD_EDW",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "Copy Activity Fails ",
+							"errorCode": {
+								"value": "@activity('Cp_ContainerRate_GD_EDW').output.executionDetails[0].status",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Wholesale/W_SiteMaster"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-08T10:02:17Z"
 			},
 			"dependsOn": []
 		}
