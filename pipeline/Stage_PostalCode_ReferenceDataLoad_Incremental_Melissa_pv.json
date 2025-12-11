@@ -1,0 +1,1617 @@
+{
+	"name": "Stage_PostalCode_ReferenceDataLoad_Incremental_Melissa_pv",
+	"properties": {
+		"activities": [
+			{
+				"name": "Files_Search",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Postal_Code_Succeed_Files_Search",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Files_Search",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('Files_Search').output.exists\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "US_Postal_Code_only",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "CountryCode",
+											"value": "US"
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ST",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "ST",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ZIP",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "ZIP",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "A/C",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "AC",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FIPS",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "FIPS",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "County",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "County",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Pref?",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Pref",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "T/Z",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "TZ",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "DST?",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "DST",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Lat",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Lat",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "Long",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Long",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "MSA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "MSA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "PMSA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "PMSA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Abbreviation",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Abbreviation",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "MA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "MA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Type",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Type",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CBSA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "CBSA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Div",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Div",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Population",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Population",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "USA_Zip_Code_File",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename_USA": {
+											"value": "@pipeline().parameters.US_PostalCode_FileName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "US_Zip_Code_Table",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "US_Postal_Code_Error_Files_only",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_only",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": "Postal_Code_Source_Files",
+										"wildcardFileName": {
+											"value": "@pipeline().parameters.US_PostalCode_FileName",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Postal_Code_Error_Files",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Sink_Postal_code_Error_Files",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_US_Postal_Code_Error_Files_only",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_Error_Files_only",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Delete_Postal_Code_Error_Files",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": {
+										"value": "@{pipeline().parameters.US_PostalCode_FileName}",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "US_Postal_Code_failure_Notification_only",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_only",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Stage_Retail_Customer_Failure_Notification",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ErrorCode": {
+										"value": "@{activity('US_Postal_Code_only').error.errorCode}",
+										"type": "Expression"
+									},
+									"ErrorMsg": {
+										"value": "@replace(activity('US_Postal_Code_only').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"ErrorStatusCode": {
+										"value": "@activity('US_Postal_Code_only').StatusCode",
+										"type": "Expression"
+									},
+									"FailureType": {
+										"value": "@{activity('US_Postal_Code_only').error.failureType}",
+										"type": "Expression"
+									},
+									"PipelineName": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"RunID": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"Sink": {
+										"value": "Scratch.CustomerInfo",
+										"type": "Expression"
+									},
+									"Sink_Type": {
+										"value": "@{activity('US_Postal_Code_only').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"Source": {
+										"value": "Source is US Postal Code Files",
+										"type": "Expression"
+									},
+									"Source_Type": {
+										"value": "@{activity('US_Postal_Code_only').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"TriggerId": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"TriggerName": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"TriggerTime": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"TriggerType": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('US_Postal_Code_only').Status",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('US_Postal_Code_only').Duration",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@activity('US_Postal_Code_only').ExecutionEndTime",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "US_Postal_Code_Fail_only",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_failure_Notification_only",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('US_Postal_Code_only').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('US_Postal_Code_only').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Archive_Files_only",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_only",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": "Postal_Code_Source_Files",
+										"wildcardFileName": "*.*",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Postal_Code_Archive_Files",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Sink_Postal_Code_Archive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_Files_only",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Archive_Files_only",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Postal_Code_Succeed_Files_Delete",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": "*.*",
+									"enablePartitionDiscovery": false
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "US_Postal_Code",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "CountryCode",
+											"value": "US"
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ST",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "ST",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "ZIP",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "ZIP",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "A/C",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "AC",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "FIPS",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "FIPS",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "County",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "County",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Pref?",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Pref",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "T/Z",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "TZ",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "DST?",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "DST",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Lat",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Lat",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "Long",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Long",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 5,
+												"precision": 9
+											}
+										},
+										{
+											"source": {
+												"name": "MSA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "MSA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "PMSA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "PMSA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Abbreviation",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Abbreviation",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "MA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "MA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Type",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Type",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "CBSA",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "CBSA",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Div",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Div",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Population",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Population",
+												"type": "String",
+												"physicalType": "nvarchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "USA_Zip_Code_File",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename_USA": {
+											"value": "@pipeline().parameters.US_PostalCode_FileName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "US_Zip_Code_Table",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Archive_Files",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "CANADA_Postal_Code",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": "Postal_Code_Source_Files",
+										"wildcardFileName": "*.*",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Postal_Code_Archive_Files",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Sink_Postal_Code_Archive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_Files",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Archive_Files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Postal_Code_Succeed_Files_Delete",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": "*.*",
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "US_Postal_Code_Error_Files",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": "Postal_Code_Source_Files",
+										"wildcardFileName": {
+											"value": "@pipeline().parameters.US_PostalCode_FileName",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Postal_Code_Error_Files",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Sink_Postal_code_Error_Files",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_US_Postal_Code_Error_Files",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_Error_Files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Delete_Postal_Code_Error_Files",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": {
+										"value": "@{pipeline().parameters.US_PostalCode_FileName}",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "CANADA_Postal_Code_Error_Files",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "CANADA_Postal_Code",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": "Postal_Code_Source_Files",
+										"wildcardFileName": {
+											"value": "@pipeline().parameters.CANADA_PostalCode_FileName",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 2,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Postal_Code_Error_Files",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Sink_Postal_code_Error_Files",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Delete_CANADA_Postal_Code_Error_Files",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "CANADA_Postal_Code_Error_Files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Delete_Postal_Code_Error_Files",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": {
+										"value": "@{pipeline().parameters.CANADA_PostalCode_FileName}",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "US_Postal_Code_failure_Notification",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Stage_Retail_Customer_Failure_Notification",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ErrorCode": {
+										"value": "@{activity('US_Postal_Code').error.errorCode}",
+										"type": "Expression"
+									},
+									"ErrorMsg": {
+										"value": "@replace(activity('US_Postal_Code').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"ErrorStatusCode": {
+										"value": "@activity('US_Postal_Code').StatusCode",
+										"type": "Expression"
+									},
+									"FailureType": {
+										"value": "@{activity('US_Postal_Code').error.failureType}",
+										"type": "Expression"
+									},
+									"PipelineName": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"RunID": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"Sink": {
+										"value": "Scratch.CustomerInfo",
+										"type": "Expression"
+									},
+									"Sink_Type": {
+										"value": "@{activity('US_Postal_Code').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"Source": {
+										"value": "Source is US Postal Code Files",
+										"type": "Expression"
+									},
+									"Source_Type": {
+										"value": "@{activity('US_Postal_Code').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"TriggerId": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"TriggerName": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"TriggerTime": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"TriggerType": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('US_Postal_Code').Status",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('US_Postal_Code').Duration",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@activity('US_Postal_Code').ExecutionEndTime",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "US_Postal_Code_Fail",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "US_Postal_Code_failure_Notification",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('US_Postal_Code').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('US_Postal_Code').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "CANADA_Postal_Code_failure_Notification",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "CANADA_Postal_Code",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Stage_Retail_Customer_Failure_Notification",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"ErrorCode": {
+										"value": "@{activity('CANADA_Postal_Code').error.errorCode}",
+										"type": "Expression"
+									},
+									"ErrorMsg": {
+										"value": "@replace(activity('CANADA_Postal_Code').error.message,'\"','')",
+										"type": "Expression"
+									},
+									"ErrorStatusCode": {
+										"value": "@activity('CANADA_Postal_Code').StatusCode",
+										"type": "Expression"
+									},
+									"FailureType": {
+										"value": "@{activity('CANADA_Postal_Code').error.failureType}",
+										"type": "Expression"
+									},
+									"PipelineName": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"RunID": {
+										"value": "@{pipeline().Pipeline}",
+										"type": "Expression"
+									},
+									"Sink": {
+										"value": "Scratch.CustomerInfo",
+										"type": "Expression"
+									},
+									"Sink_Type": {
+										"value": "@{activity('CANADA_Postal_Code').output.executionDetails[0].sink.type}",
+										"type": "Expression"
+									},
+									"Source": {
+										"value": "Source is Canada Postal Code Files",
+										"type": "Expression"
+									},
+									"Source_Type": {
+										"value": "@{activity('CANADA_Postal_Code').output.executionDetails[0].source.type}",
+										"type": "Expression"
+									},
+									"TriggerId": {
+										"value": "@{pipeline().TriggerId}",
+										"type": "Expression"
+									},
+									"TriggerName": {
+										"value": "@{pipeline().TriggerName}",
+										"type": "Expression"
+									},
+									"TriggerTime": {
+										"value": "@{pipeline().TriggerTime}",
+										"type": "Expression"
+									},
+									"TriggerType": {
+										"value": "@{pipeline().TriggerType}",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "@activity('CANADA_Postal_Code').Status",
+										"type": "Expression"
+									},
+									"runDuration": {
+										"value": "@activity('CANADA_Postal_Code').Duration",
+										"type": "Expression"
+									},
+									"executionEndTime": {
+										"value": "@activity('CANADA_Postal_Code').ExecutionEndTime",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "CANADA_Postal_Code_Fail",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "CANADA_Postal_Code_failure_Notification",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@replace(activity('CANADA_Postal_Code').error.message,'\"','')",
+									"type": "Expression"
+								},
+								"errorCode": {
+									"value": "@{activity('CANADA_Postal_Code').error.errorCode}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "CANADA_Postal_Code",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "Melissa_Fixedwidth_Source",
+									"type": "DataFlowReference",
+									"datasetParameters": {
+										"PostalCodeFixedWidthData": {
+											"filename_canada": "canada.txt"
+										},
+										"OverlayFixedWidthData": {
+											"filename_canada": "overlay.txt"
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "PreValidation",
+				"description": "Pre validation of postal code ",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "If Condition1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Ref_PostalCode].[usp_PC_Delete_PreValidation]"
+				},
+				"linkedServiceName": {
+					"referenceName": "semarchy_staging",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"US_PostalCode_FileName": {
+				"type": "string",
+				"defaultValue": "z5max.txt"
+			},
+			"CANADA_PostalCode_FileName": {
+				"type": "string",
+				"defaultValue": "canada.txt"
+			},
+			"CANADA_PostCode_Overlay": {
+				"type": "string",
+				"defaultValue": "overlay.txt"
+			}
+		},
+		"variables": {
+			"CAfiles": {
+				"type": "String"
+			},
+			"USfiles": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Postal_Code"
+		},
+		"annotations": []
+	}
+}
