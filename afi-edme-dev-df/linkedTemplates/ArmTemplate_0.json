@@ -20,7 +20,7 @@
 		"Enterprise_ReferenceMaster_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Enterprise_ReferenceMaster'",
-			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=Enterprise_ReferenceMaster"
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Enterprise_ReferenceMaster"
 		},
 		"LS_Smartsheets_apiToken": {
 			"type": "secureString",
@@ -55,13 +55,14 @@
 			"metadata": "Secure string for 'connectionString' of 'Wholesale_sitemaster'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=Wholesale_sitemaster"
 		},
-		"agr_cdp_func_functionKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'functionKey' of 'agr_cdp_func'"
-		},
 		"masterDataHubStg_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'masterDataHubStg'"
+		},
+		"masterDataHub_Retail_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'masterDataHub_Retail'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=masterDataHub_Retail"
 		},
 		"AFIEDME_KeyVault_dev_properties_typeProperties_baseUrl": {
 			"type": "string",
@@ -82,10 +83,6 @@
 		"Postalcode_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://releases.melissadata.net"
-		},
-		"agr_cdp_func_properties_typeProperties_functionAppUrl": {
-			"type": "string",
-			"defaultValue": "https://agr-cdp-func.azurewebsites.net"
 		},
 		"masterDataHubStg_properties_typeProperties_url": {
 			"type": "string",
@@ -731,24 +728,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/agr_cdp_func')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureFunction",
-				"typeProperties": {
-					"functionAppUrl": "[parameters('agr_cdp_func_properties_typeProperties_functionAppUrl')]",
-					"authentication": "Anonymous",
-					"functionKey": {
-						"type": "SecureString",
-						"value": "[parameters('agr_cdp_func_functionKey')]"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/masterDataHubStg')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -761,6 +740,19 @@
 						"type": "SecureString",
 						"value": "[parameters('masterDataHubStg_accountKey')]"
 					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('masterDataHub_Retail_connectionString')]"
 				}
 			},
 			"dependsOn": []
