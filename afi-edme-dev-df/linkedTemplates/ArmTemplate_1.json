@@ -7,6 +7,11 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "afi-edme-dev-df"
 		},
+		"masterDataHub_Retail_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'masterDataHub_Retail'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-stage-sql.database.windows.net;Initial Catalog=masterDataHub_Retail"
+		},
 		"semarchy_repo_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'semarchy_repo'",
@@ -17,6 +22,10 @@
 			"metadata": "Secure string for 'connectionString' of 'semarchy_staging'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=afi-edme-semarchy-dev-sql.database.windows.net;Initial Catalog=semarchy_staging"
 		},
+		"AzureVMADFAP01_properties_typeProperties_linkedInfo_resourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/68cde257-828b-4f5e-a7f1-4eb9683c89d6/resourcegroups/IoT_Hub/providers/Microsoft.DataFactory/factories/ashleyv2datafactory/integrationruntimes/AzureVMADFAP01"
+		},
 		"SelfHosted-IR_properties_typeProperties_linkedInfo_resourceId": {
 			"type": "string",
 			"defaultValue": "/subscriptions/f2330f9f-3a8b-498c-a2d6-476e4f263349/resourcegroups/afi-edme-rg/providers/Microsoft.DataFactory/factories/afi-edme-dev-df/integrationruntimes/SelfHosted-IR"
@@ -24,16 +33,25 @@
 		"SelfHosted-VM_properties_typeProperties_linkedInfo_resourceId": {
 			"type": "string",
 			"defaultValue": "/subscriptions/f2330f9f-3a8b-498c-a2d6-476e4f263349/resourcegroups/afi-edme-rg/providers/Microsoft.DataFactory/factories/afi-edme-dev-df/integrationruntimes/SelHosted-VM"
-		},
-		"AzureVMADFAP01_properties_typeProperties_linkedInfo_resourceId": {
-			"type": "string",
-			"defaultValue": "/subscriptions/68cde257-828b-4f5e-a7f1-4eb9683c89d6/resourcegroups/IoT_Hub/providers/Microsoft.DataFactory/factories/ashleyv2datafactory/integrationruntimes/AzureVMADFAP01"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('masterDataHub_Retail_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/semarchy_repo')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -84,6 +102,22 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureVMADFAP01')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"description": "EDW VM",
+				"typeProperties": {
+					"linkedInfo": {
+						"resourceId": "[parameters('AzureVMADFAP01_properties_typeProperties_linkedInfo_resourceId')]",
+						"authorizationType": "Rbac"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/SelHosted-VM')]",
 			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
 			"apiVersion": "2018-06-01",
@@ -118,22 +152,6 @@
 				"typeProperties": {
 					"linkedInfo": {
 						"resourceId": "[parameters('SelfHosted-VM_properties_typeProperties_linkedInfo_resourceId')]",
-						"authorizationType": "Rbac"
-					}
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/AzureVMADFAP01')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "SelfHosted",
-				"description": "EDW VM",
-				"typeProperties": {
-					"linkedInfo": {
-						"resourceId": "[parameters('AzureVMADFAP01_properties_typeProperties_linkedInfo_resourceId')]",
 						"authorizationType": "Rbac"
 					}
 				}
@@ -719,50 +737,6 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/semarchy_staging')]"
 			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/CDP_Customer_Deduped_csv')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "masterDataHubStg",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"FileName": {
-						"type": "String"
-					},
-					"Container_Name": {
-						"type": "string"
-					}
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().FileName",
-							"type": "Expression"
-						},
-						"fileSystem": {
-							"value": "@dataset().Container_Name",
-							"type": "Expression"
-						}
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": []
 		}
 	]
 }
