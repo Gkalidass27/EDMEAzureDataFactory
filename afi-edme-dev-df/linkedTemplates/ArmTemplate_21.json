@@ -21,6 +21,155 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_SITE_CONTACT')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "masterDataHub_Retail",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "B_LOADID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "SITE_CONTACT_ID",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CLASSNAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ERROR_STATUS",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_ORIGINALBATCHID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_OPERATIONID",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DUPSOPERATIONID",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 0
+					},
+					{
+						"name": "B_DUPSMERGETARGET",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_DELETETYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_DELETEAUTHOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEOPERATION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_DELETEPATH",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_COPIEDFROM",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "B_CREDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_UPDDATE",
+						"type": "datetime2",
+						"scale": 6
+					},
+					{
+						"name": "B_CREATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "B_UPDATOR",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTACT_FIRST_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTACT_LAST_NAME",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CONTACT_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "STD_CONTACT_PHONE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CONTACT_PHONE_STATUS_CODE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "RAW_CONTACT_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VLD_CONTACT_EMAIL",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SITE_CONTACT_TYPE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "F_SITE_MAIN",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "FP_SITE_MAIN",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FS_SITE_MAIN",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FD_SITE_MAIN",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SA_SITE_CONTACT"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/masterDataHub_Retail_dbo_SA_SITE_CONTENT')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -921,7 +1070,7 @@
 					}
 				},
 				"connectVia": {
-					"referenceName": "AzureVMADFAP01",
+					"referenceName": "AzureVMADFAP01-Link",
 					"type": "IntegrationRuntimeReference"
 				}
 			},
@@ -5555,625 +5704,6 @@
 				},
 				"annotations": [],
 				"lastPublishTime": "2025-12-08T10:02:12Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Load_EnterpriseRef_TIME_ZONE_EFF_DT_InitialLoad')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Time_Zone_EFF_DT_Sink_Max_Date",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Set_LoadID_Variable",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "SELECT MAX(B_UPDDATE) as MAX_B_UPDDATE FROM @{pipeline().parameters.Sink_Time_Zone_EFF_DT_Table_Name} WITH(NOLOCK)",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Master_Table_Max_Date_Sink",
-								"type": "DatasetReference",
-								"parameters": {
-									"Database_Name": {
-										"value": "@pipeline().parameters.Database_Name",
-										"type": "Expression"
-									}
-								}
-							}
-						}
-					},
-					{
-						"name": "Time_Zone_EFF_DT_Source_Count",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Time_Zone_EFF_DT_Sink_Max_Date",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "SELECT COUNT(1) as data FROM GD_ENT_REF_TIME_ZONE_EFF_DT WITH(NOLOCK) WHERE B_UPDDATE>'@{activity('Time_Zone_EFF_DT_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Lookup_GD_Master_Table",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Check_Country_Count",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Time_Zone_EFF_DT_Source_Count",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@greater(activity('Time_Zone_EFF_DT_Source_Count').output.firstRow.data,0)",
-								"type": "Expression"
-							},
-							"ifFalseActivities": [
-								{
-									"name": "Time_Zone_EFF_DT_Data_Not_Found_Logs_Stored_Procedure",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[Audit].[uspInsertADFErrorLog]",
-										"storedProcedureParameters": {
-											"ErrorCode": {
-												"value": {
-													"value": "404",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorMsg": {
-												"value": {
-													"value": "No Data Available For TIME_ZONE_EFF_DT",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"ErrorStatusCode": {
-												"value": {
-													"value": "404",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"FailureType": {
-												"value": {
-													"value": "No Data Available",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"PipelineName": {
-												"value": {
-													"value": "@pipeline().Pipeline",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"RunID": {
-												"value": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"Sink": {
-												"value": null,
-												"type": "String"
-											},
-											"Sink_Type": {
-												"value": null,
-												"type": "String"
-											},
-											"Source": {
-												"value": null,
-												"type": "String"
-											},
-											"Source_Type": {
-												"value": null,
-												"type": "String"
-											},
-											"TriggerId": {
-												"value": {
-													"value": "@{pipeline().TriggerId}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerName": {
-												"value": {
-													"value": "@{pipeline().TriggerName}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerTime": {
-												"value": {
-													"value": "@{pipeline().TriggerTime}",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"TriggerType": {
-												"value": {
-													"value": "@{pipeline().TriggerType}",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_staging",
-										"type": "LinkedServiceReference"
-									}
-								},
-								{
-									"name": "Cancel_LoadId_Stored_Procedure",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "Time_Zone_EFF_DT_Data_Not_Found_Logs_Stored_Procedure",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[dbo].[CANCEL_LOAD]",
-										"storedProcedureParameters": {
-											"P_LOAD_ID": {
-												"value": {
-													"value": "@variables('LoadId')",
-													"type": "Expression"
-												},
-												"type": "Decimal"
-											},
-											"P_USERNAME": {
-												"value": {
-													"value": "semadmin",
-													"type": "Expression"
-												},
-												"type": "String"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_repo",
-										"type": "LinkedServiceReference"
-									}
-								}
-							],
-							"ifTrueActivities": [
-								{
-									"name": "Time_Zone_EFF_DT_Copy_Data",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "AzureSqlSource",
-											"additionalColumns": [
-												{
-													"name": "B_LOADID",
-													"value": {
-														"value": "@variables('LoadId')",
-														"type": "Expression"
-													}
-												}
-											],
-											"sqlReaderQuery": {
-												"value": "SELECT \n'semadmin' AS B_CREATOR,\n'@{pipeline().parameters.Time_Zone_EFF_DT_Class_Name}' as B_CLASSNAME,\nENT_REF_TIME_ZN_EFF_DT_ID,\nB_CREDATE,\nB_UPDDATE,\nB_CREATOR,\nB_UPDATOR,\nTIME_ZONE_EFFECTIVE_YEAR,\nDST_START_DT,\nDST_END_DT,\nF_ENTERPRISE_REF_TIME_ZONE\nFROM GD_ENT_REF_TIME_ZONE_EFF_DT WITH(NOLOCK) \nWHERE B_UPDDATE>'@{activity('Time_Zone_EFF_DT_Sink_Max_Date').output.firstRow.MAX_B_UPDDATE}'",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"sink": {
-											"type": "AzureSqlSink",
-											"writeBehavior": "upsert",
-											"upsertSettings": {
-												"useTempDB": true,
-												"keys": [
-													"EXTERNAL_REF_TIME_ZONE_EF"
-												]
-											},
-											"sqlWriterUseTableLock": false,
-											"disableMetricsCollection": false
-										},
-										"enableStaging": false,
-										"dataIntegrationUnits": 2,
-										"translator": {
-											"type": "TabularTranslator",
-											"mappings": [
-												{
-													"source": {
-														"name": "B_LOADID"
-													},
-													"sink": {
-														"name": "B_LOADID",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													}
-												},
-												{
-													"source": {
-														"name": "ENT_REF_TIME_ZN_EFF_DT_ID",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													},
-													"sink": {
-														"name": "EXTERNAL_REF_TIME_ZONE_EF",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													}
-												},
-												{
-													"source": {
-														"name": "B_CLASSNAME",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_CLASSNAME",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CREDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													},
-													"sink": {
-														"name": "B_CREDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "B_UPDDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													},
-													"sink": {
-														"name": "B_UPDDATE",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "B_CREATOR",
-														"type": "String",
-														"physicalType": "varchar"
-													},
-													"sink": {
-														"name": "B_CREATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "B_UPDATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													},
-													"sink": {
-														"name": "B_UPDATOR",
-														"type": "String",
-														"physicalType": "nvarchar"
-													}
-												},
-												{
-													"source": {
-														"name": "TIME_ZONE_EFFECTIVE_YEAR",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 5
-													},
-													"sink": {
-														"name": "TIME_ZONE_EFFECTIVE_YEAR",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 5
-													}
-												},
-												{
-													"source": {
-														"name": "DST_START_DT",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													},
-													"sink": {
-														"name": "DST_START_DT",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "DST_END_DT",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													},
-													"sink": {
-														"name": "DST_END_DT",
-														"type": "DateTime",
-														"physicalType": "datetime2"
-													}
-												},
-												{
-													"source": {
-														"name": "F_ENTERPRISE_REF_TIME_ZONE",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													},
-													"sink": {
-														"name": "F_EXTERNAL_REF_TIME_ZONE",
-														"type": "Decimal",
-														"physicalType": "decimal",
-														"scale": 0,
-														"precision": 38
-													}
-												}
-											],
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "GD_Enterprise_REF_TABLE",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "SA_EXTERNAL_REF_TIME_ZONE_EF",
-											"type": "DatasetReference",
-											"parameters": {
-												"Database_Name": {
-													"value": "@pipeline().parameters.Database_Name",
-													"type": "Expression"
-												},
-												"Time_Zone_EFF_DT_Table_Name": {
-													"value": "@pipeline().parameters.Sink_Time_Zone_EFF_DT_Table_Name",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								},
-								{
-									"name": "SubmitLoadID",
-									"type": "SqlServerStoredProcedure",
-									"dependsOn": [
-										{
-											"activity": "Time_Zone_EFF_DT_Copy_Data",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"storedProcedureName": "[[dbo].[SUBMIT_LOAD]",
-										"storedProcedureParameters": {
-											"P_INTEGRATION_JOB_NAME": {
-												"value": {
-													"value": "@pipeline().parameters.Semarchy_Job_Name",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"P_LOAD_ID": {
-												"value": {
-													"value": "@variables('LoadId')",
-													"type": "Expression"
-												},
-												"type": "Decimal"
-											},
-											"P_USERNAME": {
-												"value": {
-													"value": "semadmin",
-													"type": "Expression"
-												},
-												"type": "String"
-											},
-											"return_value_argument": {
-												"value": null,
-												"type": "Decimal"
-											}
-										}
-									},
-									"linkedServiceName": {
-										"referenceName": "semarchy_repo",
-										"type": "LinkedServiceReference"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "GetNewLoadId",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": {
-									"value": "DECLARE @RETURN_VALUE_ARGUMENT DECIMAL\nEXECUTE [dbo].[GET_NEW_LOADID]\n@RETURN_VALUE_ARGUMENT OUTPUT\n,@P_DATA_LOCATION_NAME = @{pipeline().parameters.Database_Name}\n,@P_PROGRAM_NAME = @{pipeline().parameters.Semarchy_Job_Name}\n,@P_LOAD_DESCRIPTION =  @{pipeline().parameters.Semarchy_Job_Name}\n,@P_USERNAME = 'semadmin'\nSELECT @RETURN_VALUE_ARGUMENT AS RETURN_VALUE_ARGUMENT",
-									"type": "Expression"
-								},
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "Semarchy_Repo",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						}
-					},
-					{
-						"name": "Set_LoadID_Variable",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "GetNewLoadId",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "LoadId",
-							"value": {
-								"value": "@{activity('GetNewLoadId').output.firstRow.RETURN_VALUE_ARGUMENT}",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"Database_Name": {
-						"type": "string"
-					},
-					"Sink_Time_Zone_EFF_DT_Table_Name": {
-						"type": "string"
-					},
-					"Semarchy_Job_Name": {
-						"type": "string"
-					},
-					"Time_Zone_EFF_DT_Class_Name": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"LoadId": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "EnterPriceRef_Pipelines"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-12-08T10:02:13Z"
 			},
 			"dependsOn": []
 		}
